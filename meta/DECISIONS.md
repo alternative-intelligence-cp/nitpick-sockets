@@ -451,3 +451,21 @@ security claim is a comment.
 know which representation it is comparing. The bugs in this area are all of the
 form "the check saw `::ffff:127.0.0.1` and the allowlist held `127.0.0.1`", and
 an automatic conversion is what makes them invisible.
+
+---
+
+# The second batch — ratified 2026-09-03
+
+### SK-100 — the version policy is `nitpick-tui`'s T-103, adopted verbatim
+**2026-09-03, settling Q-3.** `0.x` until the compiler reaches its own 1.0 and
+the API has survived cycle 0.9's application; semantic versioning thereafter;
+and **adding a public error identity is a major version**, which SK-034 already
+records for this library.
+
+*Adopted verbatim rather than restated*, and that is the point of the decision:
+the error-identity rule is a property of the *language* — REACH-002 makes a new
+identity a compiler-enforced source break in every consumer — so every library
+in this ecosystem has the same rule, and five libraries each phrasing it
+slightly differently would be five chances for one of them to phrase it wrong.
+
+Where a future library needs a different policy, it says so against this one.

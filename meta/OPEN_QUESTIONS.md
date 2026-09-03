@@ -30,22 +30,11 @@ DNS out (`SK-024`), TLS out (`SK-025`).
 No. `[dependencies]` stays empty, cross-repository imports do not resolve
 anyway (`O-N2`), and the overlaps are recorded where they occur.
 
-### Q-3 — the release cadence and versioning
-`nsockets` has no consumers yet, so nothing forces an answer, and
-`nitpick-tui` settled the same question as its T-103.
-**Recommendation:** adopt T-103's shape verbatim — `0.x` until the compiler
-reaches 1.0 and the API has survived cycle 0.9's application; semantic
-versioning thereafter; and **adding a public error identity is a major
-version** (`SK-034`), which is already recorded here. Settled at cycle 1.0
-unless the author wants it earlier.
-
----
-
-## O-N — the compiler's
-
-Each is a request to be raised in the compiler repository, not something this
-project can fix. None blocks planning; one blocks the migration off the
-harness.
+### ~~Q-3 — the release cadence and versioning~~ — **SETTLED, SK-100**
+`nitpick-tui`'s T-103 adopted verbatim: `0.x` until the compiler reaches 1.0
+and the API has survived cycle 0.9's application, semver after, and adding a
+public error identity is a **major** version (SK-034). Adopted rather than
+restated because the rule is a property of the language, not of a library.
 
 ### O-N1 — `IO_REFERENCE.md` §10 records sockets as unspecified
 The language's own I/O specification says: *"Sockets. The stream traits cover
