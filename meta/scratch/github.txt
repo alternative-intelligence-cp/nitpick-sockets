@@ -1,0 +1,50 @@
+# Proposed GitHub metadata for nitpick-sockets
+# The parent session applies these; this file is the proposal, per the brief.
+
+## Description (current: none)
+
+BSD sockets for Nitpick — AF_UNIX, TCP and UDP over IPv4/IPv6, straight to the
+kernel. No libc, no C, no dependencies. MSG_NOSIGNAL on every send, every wait
+through the epoll reactor, and a wrong socket state that will not compile.
+
+  (250 characters; GitHub's limit is 350.)
+
+## Topics (20, the maximum)
+
+sockets
+tcp
+udp
+unix-sockets
+unix-domain-sockets
+networking
+network-programming
+socket-programming
+ipv6
+epoll
+async
+nitpick
+nitpick-lang
+safety-critical
+zero-dependency
+no-libc
+systems-programming
+linux
+scm-rights
+formal-verification
+
+## Notes on the choices
+
+- `unix-sockets` and `unix-domain-sockets` are both included deliberately:
+  they are the two spellings people search, and the repository name itself
+  says "sockets" without saying which kind.
+- `scm-rights` is narrow but is a genuine search term for the one feature this
+  library has that most socket libraries do not document well, and it is what
+  somebody looking for descriptor passing will type.
+- `epoll` and `async` describe the wait model, which is the thing that makes
+  this library different from a thin syscall wrapper.
+- `formal-verification` matches the ecosystem's other repositories and is
+  honest: `meta/specs/VERIFICATION.md` carries a real obligation list.
+- Not included, and considered: `bsd-sockets` (redundant with `sockets` +
+  `networking`), `posix` (misleading — this is Linux-specific by decision
+  SK-007), `tls` and `dns` (this library deliberately has neither, and tagging
+  them would draw exactly the wrong search).

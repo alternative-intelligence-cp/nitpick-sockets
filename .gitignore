@@ -1,1 +1,61 @@
+# Build output. Never committed — the artifact of record is produced by a clean
+# build, not carried in the tree (BUILD_REFERENCE.md §4.2 in the compiler repo,
+# which this library follows).
+build/
+*.o
+*.a
+
+# Emitted IR. `npkc` writes `.ll` text and the harness assembles it; the text is
+# output, not source. The ONE exception is `tests/fixtures/**/*.ll`, if a
+# hand-written floor test ever needs one — negated below so it stays committed.
+*.ll
+!tests/fixtures/**/*.ll
+
+# Linked programs the harness leaves behind with --keep.
+a.out
+*.bin
+debug_dump.*
+
+# The harness is Python until `npkg` grows generic-project support (the
+# bootstrap/harness -> npkg precedent in the compiler repo). Its bytecode is
+# output.
+__pycache__/
+*.pyc
+*.pyo
+
+# Harness logs and verdict files. A run's transcript is evidence for that run
+# and nothing else; anything worth keeping is written into a roadmap file.
+*.log
+verdicts*.txt
+
+# Unix-domain socket files a test binds. `bind` creates a filesystem entry that
+# `close` does not remove (SOCKET_MODEL.md §9), which is exactly why this line
+# exists: a test that crashes between bind and unlink leaves one behind, and it
+# must never be committed.
+*.sock
+tests/**/tmp/
+
+# Gitignored scratch. Never commit anything from here.
 .internal
+
+# Editor and OS residue.
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude Code local settings (machine-specific; the shared config is committed).
+.claude/settings.local.json
+
+# NOT ignored, deliberately:
+#   src/sys/*.npk       — the syscall numbers and kernel constants. They are
+#                         SOURCE, not generated: they are x86-64 ABI facts, each
+#                         carries the header it came from, and cycle 0.0's
+#                         probes assert every structure size with a running
+#                         program rather than a comment (SK-016).
+#   tests/fixtures/     — captured wire bytes and recorded kernel replies. They
+#                         are the input to the ancillary-data suite and must be
+#                         byte-stable.
+#   nitpick.lock        — read by every build, written only by `npkg update`.
