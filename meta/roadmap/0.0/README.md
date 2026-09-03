@@ -40,18 +40,18 @@ question.**
 ## Checklist
 
 ### 0.0.0 — the probes
-- [ ] `probe/01_sys_socket.npk` — `socket()` with `SOCK_NONBLOCK|SOCK_CLOEXEC` through `sys`, then `socketpair`, asserting both descriptors are ≥ 3 and non-blocking
-- [ ] `probe/02_sockaddr_layout.npk` — `sockaddr_in` (16), `sockaddr_in6` (28), `sockaddr_un` (110) laid out in a `buffer`, `bind`ed, `getsockname`ed back, compared field by field, with a sentinel one byte past the end untouched
-- [ ] `probe/03_cmsg_layout.npk` — `msghdr` (56), `iovec` (16), `cmsghdr` (16), `ucred` (12) asserted; a `sendmsg`/`recvmsg` round trip over a `socketpair` with no ancillary payload
-- [ ] **`probe/04_sigpipe.npk` — a send to a closed peer WITHOUT `MSG_NOSIGNAL`, in a child, asserting the child died of signal 13; and WITH it, asserting `EPIPE` in `Result.err`** — the probe that proves `SK-013` is load-bearing
-- [ ] `probe/05_ownedfd_drop.npk` — `own_fd` on a socket, scope exit, and `/proc/self/fd` showing it closed; then `release_fd` + explicit `close` observing the verdict
-- [ ] `probe/06_reader_writer.npk` — a struct holding an `OwnedFd` implementing the prelude's `Reader` and `Writer`, driven through a generic bound and through `dyn`
-- [ ] `probe/07_io_ready.npk` — `io_ready` on a socket for `EPOLLIN` and `EPOLLOUT`, and `io_ready2` over two descriptors, with a deadline that expires
-- [ ] `probe/08_connect_inprogress.npk` — a non-blocking connect to a **closed** port on loopback: `EINPROGRESS`, wait writable, `SO_ERROR` == `ECONNREFUSED`, and a second `SO_ERROR` read returning 0
-- [ ] **`probe/09_ownedfd_channel.npk` — an `OwnedFd`, and a struct holding one, as a channel element; expected REFUSED `NITPICK-TYPE-057`, with the diagnostic recorded verbatim**
-- [ ] **`probe/10_ownedfd_spawn.npk` — an `OwnedFd` MOVED into a spawned task; expected ACCEPTED — and a BORROW of one across a spawn; expected refused** — together these two are `SK-035`
-- [ ] `probe/11_scm_rights.npk` — a descriptor passed over a `socketpair` with `MSG_CMSG_CLOEXEC`, used at the far end, and its `FD_CLOEXEC` asserted set
-- [ ] `probe/12_pod_addr_array.npk` — a `Vec<SocketAddr>`-shaped array of 128-byte POD values: fill, read, copy, and a `#size_of` assertion
+- [ ] `probe/probe01_sys_socket.npk` — `socket()` with `SOCK_NONBLOCK|SOCK_CLOEXEC` through `sys`, then `socketpair`, asserting both descriptors are ≥ 3 and non-blocking
+- [ ] `probe/probe02_sockaddr_layout.npk` — `sockaddr_in` (16), `sockaddr_in6` (28), `sockaddr_un` (110) laid out in a `buffer`, `bind`ed, `getsockname`ed back, compared field by field, with a sentinel one byte past the end untouched
+- [ ] `probe/probe03_cmsg_layout.npk` — `msghdr` (56), `iovec` (16), `cmsghdr` (16), `ucred` (12) asserted; a `sendmsg`/`recvmsg` round trip over a `socketpair` with no ancillary payload
+- [ ] **`probe/probe04_sigpipe.npk` — a send to a closed peer WITHOUT `MSG_NOSIGNAL`, in a child, asserting the child died of signal 13; and WITH it, asserting `EPIPE` in `Result.err`** — the probe that proves `SK-013` is load-bearing
+- [ ] `probe/probe05_ownedfd_drop.npk` — `own_fd` on a socket, scope exit, and `/proc/self/fd` showing it closed; then `release_fd` + explicit `close` observing the verdict
+- [ ] `probe/probe06_reader_writer.npk` — a struct holding an `OwnedFd` implementing the prelude's `Reader` and `Writer`, driven through a generic bound and through `dyn`
+- [ ] `probe/probe07_io_ready.npk` — `io_ready` on a socket for `EPOLLIN` and `EPOLLOUT`, and `io_ready2` over two descriptors, with a deadline that expires
+- [ ] `probe/probe08_connect_inprogress.npk` — a non-blocking connect to a **closed** port on loopback: `EINPROGRESS`, wait writable, `SO_ERROR` == `ECONNREFUSED`, and a second `SO_ERROR` read returning 0
+- [ ] **`probe/probe09_ownedfd_channel.npk` — an `OwnedFd`, and a struct holding one, as a channel element; expected REFUSED `NITPICK-TYPE-057`, with the diagnostic recorded verbatim**
+- [ ] **`probe/probe10_ownedfd_spawn.npk` — an `OwnedFd` MOVED into a spawned task; expected ACCEPTED — and a BORROW of one across a spawn; expected refused** — together these two are `SK-035`
+- [ ] `probe/probe11_scm_rights.npk` — a descriptor passed over a `socketpair` with `MSG_CMSG_CLOEXEC`, used at the far end, and its `FD_CLOEXEC` asserted set
+- [ ] `probe/probe12_pod_addr_array.npk` — a `Vec<SocketAddr>`-shaped array of 128-byte POD values: fill, read, copy, and a `#size_of` assertion
 - [ ] a verdict line per probe recorded in `0.0.0.md`, with the exact diagnostic where one was refused
 - [ ] every design consequence written into `meta/specs/` **and** `meta/DECISIONS.md` before 0.0.1 starts
 
