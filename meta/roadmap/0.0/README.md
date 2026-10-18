@@ -3,8 +3,8 @@
 **The probes, the harness, and `src/core/`.** Nothing in this cycle opens a socket in anger. What it produces is the
 ability to find out whether the rest of the plan is buildable, and the machinery every later cycle is tested by.
 
-**Re-derived at compiler `c9baa9e` (2026-10-18) by the Team seat's planner, T7**, one subcycle file at a time, each
-committed and pushed as it reaches the pin. The six files were written at the repository's setup (2026-09-03), against
+**Re-derived at compiler `c9baa9e` (2026-10-18) by the Team seat's planners — T7 for 0.0.0, T7b for 0.0.1 —** one
+subcycle file at a time, each committed and pushed as it reaches the pin. The six files were written at the repository's setup (2026-09-03), against
 the compiler's cycle 1.5 and LLVM 20.1.2; each is re-measured at the pin, with what the audits found owed carried into
 the step that owes it (the owed-items table below). **`c9baa9e` is the libraries' one re-pin**, landing 118's commit,
 by the author's word on the workbench's question 32 (2026-10-15 12:04:21), taken on 2026-10-16 and committed at the
@@ -13,15 +13,15 @@ workbench's `4540f20`; this cycle is planned at it from the start, and no subcyc
 | File | At `c9baa9e` |
 |---|---|
 | [0.0.0](0.0.0.md) | **yes** — probes measured, five patches, blocks with filled Expects |
-| [0.0.1](0.0.1.md) | **not yet** — the setup-era text; the pass's continuation re-derives it |
-| [0.0.2](0.0.2.md) | **not yet** — as 0.0.1 |
-| [0.0.3](0.0.3.md) | **not yet** — as 0.0.1 |
-| [0.0.4](0.0.4.md) | **not yet** — as 0.0.1 |
-| [0.0.5](0.0.5.md) | **not yet** — as 0.0.1; its execution, the close, is the libraries' seat's |
+| [0.0.1](0.0.1.md) | **yes** — the layout, the skeleton, the manifest, CI and the currency table; six patches, blocks with filled Expects |
+| [0.0.2](0.0.2.md) | **not yet** — the setup-era text; the pass's continuation re-derives it |
+| [0.0.3](0.0.3.md) | **not yet** — as 0.0.2 |
+| [0.0.4](0.0.4.md) | **not yet** — as 0.0.2 |
+| [0.0.5](0.0.5.md) | **not yet** — as 0.0.2; its execution, the close, is the libraries' seat's |
 
 A file marked *not yet* is a target, not a plan: its steps are re-derived at the pin before anything is dispatched from
-it, and where it disagrees with 0.0.0's verdicts — LLVM 20.1.2, `// expect-signal:`, "seven ways", `src/option/raw.npk`
-— 0.0.0's verdicts and the tables below govern.
+it, and where it disagrees with 0.0.0's or 0.0.1's verdicts — LLVM 20.1.2, `// expect-signal:`, "seven ways",
+`src/option/raw.npk`, the `accept` stage — those verdicts and the tables below govern.
 
 ## Why this shape
 
@@ -38,7 +38,7 @@ Two of the compiler project's most expensive lessons decide this cycle's content
 
 ## Decisions in
 
-`SK-001`, `SK-002`, `SK-004`, `SK-005`, `SK-006`, `SK-007`, `SK-013`, `SK-016`, `SK-035`. All settled.
+`SK-001`, `SK-002`, `SK-004`, `SK-005`, `SK-006`, `SK-007`, `SK-013`, `SK-016`, `SK-026`, `SK-035`. All settled.
 
 **And the ones this cycle proposes**, from PD-159 on, in the Team seat's block for this repository, **PD-159 …
 PD-178**, which `nitpick-libs_19` confirmed at 18:51:47 on 2026-10-15 — each landing in the subcycle step that first
@@ -52,7 +52,12 @@ Each is settled with a recommendation and states its reversal; **none is left op
 | @@PD-161@@ | 0.0.0 | every slot a reader's bytes reach is `fixed uint8[]`; a writer's is plain |
 | @@PD-162@@ | 0.0.0 | an errno is compared only with the prelude's identities or another error; connect by a second `connect`; two accept rows wait on the compiler |
 | @@PD-163@@ | 0.0.0 | what a consumer of each module shape owes, measured; the tests' arm codes 111 and 112 |
-| PD-164 … PD-178 | 0.0.1 … 0.0.4 | the continuation's, as each file reaches the pin |
+| @@PD-164@@ | 0.0.1 | the layering is a table of what each module may import; the drawing's two missing arrows added |
+| @@PD-165@@ | 0.0.1 | the generic option form lives in `src/option/sockopt.npk`, because `raw` is a keyword |
+| @@PD-166@@ | 0.0.1 | the manifest at the pin: LLVM 20.1.8 with the compiler's target rows, and its first three test entries |
+| @@PD-167@@ | 0.0.1 | CI runs no third-party action, and every input it uses is pinned by content and asserted |
+| @@PD-168@@ | 0.0.1 | one currency table; the library is security-sensitive, and its three research items gate cycle 0.0's work |
+| PD-169 … PD-178 | 0.0.2 … 0.0.4 | the continuation's, as each file reaches the pin |
 
 ## The pin, and what each landing would move
 
@@ -74,7 +79,7 @@ taken **between subcycles**, never inside one (the early ecosystem audit's EC9).
 | 110 (DEF-226) | `pick (r.is_error)` carries the check out | **nothing**: `if (r.is_error)` throughout |
 | 111 (DEF-233, DEF-238) | a stray `give`/`fall` and a `frac` write are refused | **nothing**: none written |
 | 112 (DEF-232) | a `NIL` member is zero-sized | **nothing**: no `NIL` field |
-| 113 (DEF-235 and its company) | a keyword declared as a name of any kind is `PARSE-001` | **checked against the pin's `src/frontend/keywords.npk`, 170 words**: no declared name of the 651 is one (`tools/names.py`); `ucred`'s `pid`/`uid`/`gid` and a module named `raw` are (@@PD-160@@, EC7) |
+| 113 (DEF-235 and its company) | a keyword declared as a name of any kind is `PARSE-001` | **checked against the pin's `src/frontend/keywords.npk`, 170 words**: no declared name of 0.0.0's 651 or 0.0.1's 15 is one (`tools/names.py`); `ucred`'s `pid`/`uid`/`gid` and a module named `raw` are (@@PD-160@@, EC7), so the generic option form's file is `sockopt.npk` (@@PD-165@@) |
 | 114 (DEF-250) | a bare module-level binding is `TYPE-055` | **nothing**: every one `fixed`, initialised (`tools/rulings.py`) |
 | 115 (DEF-251 (i)) | every `define` carries `null_pointer_is_valid` | **every emission moves in text**; the cycle records no IR digest or byte count, and CI's `npkc.ll` row (0.0.1) is notice 118's. A byte comparison across pins reads through the compiler's `meta/roadmap/1.6/tools/attrnorm.py` and `dropnorm.py`, both by `git show c9baa9e:` |
 | 116 (DEF-252) | a view a callee stores is held to the holder's block | **nothing**: no callee stores a view |
@@ -96,6 +101,10 @@ taken **between subcycles**, never inside one (the early ecosystem audit's EC9).
 | 126 `e709f77` (DEF-242) | the site table holds the emission's sites | **emission only**: no IR is compared |
 | 127 `1670427` (D-339, DEF-181) | the lock walk's holes closed | **nothing**: no lock; probe 09's channel is refused at its annotation |
 | 128 `463cf93` (D-341, F70) | a `buffer` gets the checked `b[i]` and `b[lo...hi]`; a `#wild_slice` over a header's `.ptr` is a view of its owner (`BORROW-015`, `BORROW-001`); `#ptr_add`'s "`wild` context" sentence struck | **nowhere in 0.0.0**, which writes no `buffer` index and no `#wild_slice`; notice 128 counts no sockets site. **0.0.4's `Bytes` is designed to it**: no raw `.ptr[i]`, no `#wild_slice` over `.ptr` held across a write — nitpick-time's `bytes.npk` line 140 is the shape that breaks |
+
+**At the adoption that carries any landing past the pin, 0.0.1's CI moves**: its three pinned rows —
+`NITPICK_COMMIT`, `NPKC_LL_SHA256`, `NPKC_LL_BYTES` — take the new notice's, and the manifest's `llvm` row only if a
+landing moves the compiler's D-349 (`0.0.1.md` §10, which also names what each item not yet landed would move).
 
 ## The shapes this cycle does not write
 
@@ -126,31 +135,31 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 |---|---|---|
 | SL-1, read-only byte parameters | 0.0.0 step 3 | **FIXED**: A-5, A-14, A-22, Z-2, the 0.1 checklist; probes 14, 14b (@@PD-161@@) |
 | SL-2, `Bytes::view()` | 0.0.4 | a view, if any, tied to D-341's freeze; the write path takes `fixed uint8[]` (@@PD-161@@'s rule) |
-| SL-3 and E2-4, LLVM 20.1.8 and the manifest's rows | 0.0.1 | `[toolchain]`'s `llvm`, `triple` and `datalayout` as the compiler's `BUILD_REFERENCE.md` gives them at the pin, worded as `nitpick-regex`'s manifest; `CLAUDE.md`, `README.md`, CI |
+| SL-3 and E2-4, LLVM 20.1.8 and the manifest's rows | 0.0.1 steps 3, 4 | **FIXED** (@@PD-166@@): `[toolchain]`'s `llvm`, `triple` and `datalayout` as the compiler's manifest gives them at the pin, worded as `nitpick-regex`'s; `CLAUDE.md`, `README.md`; CI asserts the tools |
 | SL-4, `fixed` on the stream checklists | 0.0.0 step 3 | **FIXED**: the 0.3 checklist; probe 06b's `TYPE-014` |
-| SL-5, "cycle 1.5" labels | 0.0.1 | `README.md`, `BUILD.md` §1 and `specs/README.md` re-dated; `VERIFICATION.md`'s table with EK1 (0.0.4) |
+| SL-5, "cycle 1.5" labels | 0.0.1 step 6; 0.0.4 | **FIXED** at four sites: `README.md`, `BUILD.md` §1, `specs/README.md`, O-N2, with `SK-004`'s dated note; `VERIFICATION.md`'s six sites and `SAFETY.md`'s "discharge in cycle 1.5" with EK1 (0.0.4) |
 | SL-6, "fixed" as a size | 0.0.0 step 3 | **FIXED** at its eight sites; `SK-022`'s settled text left |
 | NH-1 and EC1, the `SIGPIPE` premise | 0.0.0 step 1 | **FIXED** at every site of the audit's list and their twins by subject (@@PD-159@@) |
 | NH-2, the Bridge quotation | 0.0.0 step 1 | **FIXED**: `SAFETY.md` §2's dated note reads both sentences at the pin |
 | NH-3, "`exit 0` asserts every descriptor closed" | 0.0.0 §1.3; 0.0.3 | measured false (D-151 sees no descriptor); `TESTING.md` V-14's case rewritten with the self-check |
-| NH-5 and G1, the manifest's target rows | 0.0.1; 0.0.2 | the rows, and the harness held to them |
+| NH-5 and G1, the manifest's target rows | 0.0.1 step 3; 0.0.2 | **FIXED**: the rows (@@PD-166@@); the harness held to them, 0.0.2 |
 | NH-7 and EK1, `VERIFICATION.md` Z-1 | 0.0.4 | an obligation a comment unless a decision accepts the arm its live clause costs, as regex's P-1b and parse's P-1a |
 | NH-8 and EC2, what an index does | 0.0.4 | `SAFETY.md`'s row, `VERIFICATION.md` §2 and `CLAUDE.md` with the containers' measured accessors |
 | NH-9, an identity's payload | not this cycle's | no step of cycle 0.0 raises an identity; cycles 0.3 and 0.4 meet `ESockCapacity`'s length, and `PLAYBOOK.md` §2's row stands |
 | NH-10 and G3, G4, the compiler's tools as judges | 0.0.2; 0.0.3 | `npkc` judges the sweep and the refusals; `accept` struck; no separate compilation; a call-edge scan |
 | NH-11 and G8, the floor and the loops | 0.0.0; 0.0.2 | every probe names the floor's six (§1.4); every loop states `decreases` or `unbounded`; the harness's templates |
 | NH-12 and G13, the containers | 0.0.4 | `Vec<T: Copy>`, which the address types satisfy (probe 12) |
-| NH-13 and EC7, names and `raw.npk` | 0.0.0 step 2; 0.0.1 | `BUILD.md` §7 measured (@@PD-160@@); a module named `raw` is `PARSE-001` (§1.3), so 0.0.1's layout renames `src/option/raw.npk` |
+| NH-13 and EC7, names and `raw.npk` | 0.0.0 step 2; 0.0.1 step 1; 0.0.3 | **FIXED**: `BUILD.md` §7 measured (@@PD-160@@); `src/option/sockopt.npk` on the eight lines outside the plans and `SK-026` marked (@@PD-165@@); `0.0.3.md`'s own line when 0.0.3 is re-derived |
 | NH-14, `cstring` paths | not this cycle's | no step of cycle 0.0 writes a path parameter; cycle 0.4's `unix_unlink` decides it |
 | E2-10, counts against sets | 0.0.0 step 4 | **FIXED** here: `ROADMAP.md`'s and `OPEN_QUESTIONS.md`'s counts dropped. `LIBRARIES.md:14` is the workbench's (W-16), the orchestrator's |
-| E2-13 and G14, `CURRENCY.md` and the research | 0.0.0 gate item 7; 0.0.1 | the three requests in 0.0.0 §13; the gate is cycle 0.0's first work dispatch; `CURRENCY.md` created at 0.0.1 |
-| E2-15, `CLAUDE.md`'s empty heading | 0.0.1 | the paragraph under "What this is" |
+| E2-13 and G14, `CURRENCY.md` and the research | 0.0.0 gate item 7; 0.0.1 step 5 | **FIXED**: the three requests in 0.0.0 §13; the gate is cycle 0.0's first work dispatch; `CURRENCY.md` and its three research rows (@@PD-168@@) |
+| E2-15, `CLAUDE.md`'s empty heading | 0.0.1 step 6 | **FIXED**: the paragraph under "What this is" |
 | EC3 and G6, "every public `error:`" | 0.0.0 step 4; 0.0.3 | **FIXED** at its cost sentences (`SAFETY.md`:20, `CONTRIBUTING.md`:46), measured (@@PD-163@@); `TESTING.md`:127 and the check, keyed by module and name, at 0.0.3 |
 | ED2, local `O-N` ids | 0.0.0 step 4 | **FIXED**: O-N1, O-N3, O-N4 and the new fifth each say its id is this repository's own |
-| G2, CI | 0.0.1 | LLVM asserted, the compiler at the pin, `npkc.ll`'s row, every hex value quoted, actions pinned |
+| G2, CI; EK2 by subject | 0.0.1 step 4; 0.0.2 | **FIXED** (@@PD-167@@): LLVM asserted, the compiler at the pin and clean, `npkc.ll`'s row, every hex value quoted, and no action to pin; the harness step's unqualified green summary, 0.0.2 |
 | G5, one reading of source | 0.0.3 | the tree checks over blanked bytes, with clean controls |
 | G7, the bill from `REACH-003` | 0.0.0 §1.4; 0.0.3 | measured; `check_failsafe_arms` from cycle 0.2 |
-| G9, refusals their own dispatch | 0.0.0; 0.0.1 | `tests/probe/` and `refused/`, and two manifest entries |
+| G9, refusals their own dispatch | 0.0.0; 0.0.1 step 3 | **FIXED**: `tests/probe/` and `refused/`, and the manifest's `probe` and `probe-refused` |
 | G10, transcripts and status | 0.0.0 | every verdict an Expect from a run; status never through a pipe (§2) |
 | G11, the self-check | 0.0.3 | far more than seven cases, each with a control, pending printed as pending |
 | G12, the managed-memory gate | 0.0.0 §1.3; 0.0.2; 0.0.4 | D-151 sees only `wild`; `mem-cap-mib` with a floor control |
@@ -175,9 +184,9 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 | 8 | `fd` and `int32` at the reactor | settled: `(o.value) =>! int32`, probes 06 and 07 |
 | 9 | `cstring` paths (NH-14) | not this cycle's |
 | 10 | `view()` and what `Bytes` is over | handed to 0.0.4, designed to D-341 |
-| 11 | is sockets security-sensitive | settled: yes; its three research items gate cycle 0.0's first work dispatch (0.0.0 gate item 7, §13) |
-| 12 | where CI sits | handed to 0.0.1; the runner's `::1` is a currency row until CI's first run |
-| 13 | names | settled for 0.0.0 (`names.py`, `BUILD.md` §7); `NSOCK_*`'s two lists handed to 0.0.4 |
+| 11 | is sockets security-sensitive | settled: yes; its three research items gate cycle 0.0's first work dispatch (0.0.0 gate item 7, §13); recorded by 0.0.1 (@@PD-168@@) |
+| 12 | where CI sits | settled by 0.0.1 (@@PD-167@@): GitHub's `ubuntu-24.04`, whose loopback CI's first step binds, a currency row its first run checks; no test needs a user namespace |
+| 13 | names | settled for 0.0.0 and 0.0.1 (`names.py`, `BUILD.md` §7); `NSOCK_*`'s two lists handed to 0.0.4 |
 | 14 | the compiler's stale comments | the orchestrator's to raise (W-27): 0.0.0 §10, §12 |
 | 15 | nothing has been run | every block of this pass ran, in plan order, in a stand-in |
 | 16 | landing 105 and probe 05 | settled: a released owner's drop closes nothing, probe 05 |
@@ -190,6 +199,12 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
   `SocketAddr` is 32 bytes, over payloads of 6 and 28 (probe 12).
 - **The plan's probe 04 was to die by signal 13 in a child**, and the harness was to grow a marker for it: at the pin
   nothing dies, and the marker is retired (@@PD-159@@).
+- **`BUILD.md` B-18's drawing gave `option` and `socket` fewer arrows than the specifications need**, and its sentence
+  read columns that put `datagram` left of `server`: 0.0.1 states the layering as a table (@@PD-164@@).
+- **`SOCKET_MODEL.md` K-12's builder returns `stream`'s types from `socket`**, which the table does not let `socket`
+  import: held as an `O-K` entry for cycle 0.2 (0.0.1 step 1).
+- **The first writing's 0.0.1 was to show CI's `network` skip line**, at a subcycle whose harness is a stub: the two
+  stages are 0.0.3's, and 0.0.1's CI binds the runner's loopback itself (@@PD-167@@).
 
 ## Subcycles
 
@@ -218,12 +233,13 @@ states its own acceptance when it reaches the pin, and where the two differ, the
 - [ ] `tests/probe/README.md`; block 6's sweep read
 
 ### 0.0.1 — the skeleton
+- [ ] `BUILD.md` B-18 as a table of what each module may import (@@PD-164@@); the generic option form's file `src/option/sockopt.npk` (@@PD-165@@, EC7)
 - [ ] `src/lib.npk` exists and `pub use`s nothing yet (`use` is not transitive, so the surface is a deliberate list)
-- [ ] every `src/` subdirectory has a placeholder module that compiles, `src/option/`'s not named `raw` (EC7)
-- [ ] `nitpick.toml`'s `[toolchain]` pinned to LLVM 20.1.8 with the `triple` and `datalayout` rows, and its `[[test]]` table's first entries, `tests/probe/` and `refused/` each their own
+- [ ] every `src/` subdirectory has a placeholder module that compiles, its header stating its row of the table
+- [ ] `nitpick.toml`'s `[toolchain]` at LLVM 20.1.8 with the `triple` and `datalayout` rows, and three `[[test]]` entries — `conformance`, `probe` and `probe-refused` (@@PD-166@@)
 - [ ] a consumer program under `tests/conformance/` imports `src/lib.npk` by relative path and compiles, links, runs and exits 0
-- [ ] CI: a workflow running `harness/run.py` on push, with LLVM 20.1.8 and the compiler built from the pinned commit, every hex value quoted
-- [ ] `meta/research/CURRENCY.md`, its three research rows and every external fact the specifications state
+- [ ] CI: a workflow running no action — `harness/run.py`'s stub on push, LLVM 20.1.8 asserted, the compiler at the pinned commit and its emission asserted, the runner's loopback bound, every hex value quoted (@@PD-167@@) — green on the push
+- [ ] `meta/research/CURRENCY.md`, its three research rows and every external fact the specifications state (@@PD-168@@)
 - [ ] `CLAUDE.md` and `CONTRIBUTING.md` re-read against 0.0.0's verdicts and extended; `CLAUDE.md`'s empty heading filled
 
 ### 0.0.2 — the harness, part 1

@@ -1,0 +1,15 @@
+# 0.0.1's stale-claim sweep: one subject per claim the steps changed, in more than one wording. `tools/sweep.py`.
+LLVM 20.1.2 | 20\.1\.2|llvm 20\.1(?!\.8)
+llvm-config as the version check | llvm-config
+the four surprises | four things that will surprise|four things
+the manifest's four tables | four tables|four of the tables
+the layering's column rule | import (a module|one) to its (left|right)|direction of every (dependency )?arrow|server ─+► stream
+the generic option form in raw | raw\.npk|option/raw\b|module named raw
+the planning status | status: planning|no code yet|no library code exists yet
+the compiler at cycle 1.5 | compiler.{0,20}cycle 1\.5\b|compiler.s 1\.5\.0|cycle 1\.5\.0|discharge in cycle 1\.5|when 1\.5\.\d lands
+the empty heading | What this is Before starting
+the consumer under accept | accept.{0,4}tests/conformance|conformance/.{0,6}accept|accepted by tools/check|accept.{0,4}the public API compiles
+owes one arm | owes (exactly )?one (failsafe )?arm
+rootlist_add called from nowhere | rootlist_add.{0,30}(never called|called from (nowhere|anywhere))|never populated
+npkg has no update | no install and no update|written only by npkg update
+the builder returns a stream type | listen\(backlog\)\s+-> TcpListener|connect\(addr, within\) -> TcpStream

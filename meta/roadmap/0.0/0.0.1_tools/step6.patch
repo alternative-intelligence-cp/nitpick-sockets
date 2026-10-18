@@ -1,0 +1,171 @@
+diff --git a/.gitignore b/.gitignore
+index 1b4e49d..79ba35e 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -58,4 +58,6 @@ tests/**/tmp/
+ #   tests/fixtures/     — captured wire bytes and recorded kernel replies. They
+ #                         are the input to the ancillary-data suite and must be
+ #                         byte-stable.
+-#   nitpick.lock        — read by every build, written only by `npkg update`.
++#   nitpick.lock        — read by every build, and written only by `npkg update`,
++#                         which refuses at compiler `c9baa9e`: nothing writes it
++#                         until dependencies resolve (meta/specs/BUILD.md §1).
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 1d81d44..a2a85ea 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -4,6 +4,11 @@ Guidance for Claude Code sessions working in this repository.
+ 
+ ## What this is
+ 
++`nsockets` — a BSD sockets library for **Nitpick**, the safety-critical systems
++language at `../../nitpick`. **Status: cycle 0.0** — the language probes are in
++`tests/probe/` and the module skeleton in `src/`, placeholders that compile; no
++library code yet. The specifications and the plan are in `meta/`.
++
+ ## Before starting a session here
+ 
+ Check **[`../BOARD.md`](../BOARD.md)** — it says whether this repository
+@@ -12,10 +17,6 @@ is claimed by a stream, and by which. **One writer per repository, always.**
+ stream partition: what gates this repository, what this repository gates, and
+ what to do when a cross-stream gate is not ready yet.
+ 
+-`nsockets` — a BSD sockets library for **Nitpick**, the safety-critical systems
+-language at `../../nitpick`. **Status: planning.** No library code exists yet.
+-The specifications and the plan do.
+-
+ ## Read these first, in this order
+ 
+ 1. **`meta/specs/SAFETY.md`** — the constraints and where they come from. Most
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index ec337f5..e871f29 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -27,7 +27,7 @@ A settled decision's text is never rewritten — supersede it with a new one.
+ **Every change is green under the full harness.** `--only` is for iterating and
+ never for concluding.
+ 
+-## The four things that will surprise you
++## The things that will surprise you
+ 
+ 1. **Every send must carry `MSG_NOSIGNAL`.** Not "should" — the floor's runtime
+    catches `SIGPIPE`, so on it a plain send to a dead peer answers `EPIPE`, but
+@@ -57,6 +57,19 @@ never for concluding.
+    call `unix_unlink` yourself. It is the one thing this library asks you to
+    clean up after it.
+ 
++5. **A keyword cannot name anything, and nor can a name the prelude declares.**
++   From the compiler's landing 113 a keyword declared as a name of any kind is
++   `NITPICK-PARSE-001` — `ucred`'s `pid`, `uid` and `gid`, a local `old`, a
++   module named `raw` — and a prelude name declared again, such as `O_CLOEXEC`,
++   is `NITPICK-RESOLVE-001` (@@PD-160@@). `meta/specs/BUILD.md` §7 is the measured
++   table, with the substitutes this library uses.
++
++6. **An errno the prelude does not name can be forwarded, but not named or
++   compared.** A program's `error:X = 115i32;` is `NITPICK-RESOLVE-010`, and an
++   error read as a number is `NITPICK-TYPE-032`, so an errno compares only with
++   the prelude's five — `WouldBlock`, `Interrupted`, `NotFound`, `Exists`,
++   `CrossDevice` — or with another error, and this library names none (@@PD-162@@).
++
+ ## Tests
+ 
+ - **Expectations live in the test file**, as markers, and assert on codes and
+diff --git a/README.md b/README.md
+index f720eb1..a9e4d55 100644
+--- a/README.md
++++ b/README.md
+@@ -4,13 +4,15 @@ BSD sockets for **[Nitpick](https://github.com/alternative-intelligence-cp/nitpi
+ the safety-critical systems language. The package is `nsockets` (`SK-001`). AF_UNIX, TCP and UDP over IPv4 and IPv6,
+ straight to the kernel. No libc, no C, no dependency of any kind.
+ 
+-> **Status: planning.** No code yet. The specification set is in
++> **Status: cycle 0.0, foundations.** No library code yet: the language
++> probes are in [`tests/probe/`](tests/probe/) and the module skeleton in
++> [`src/`](src/), placeholders that compile. The specification set is in
+ > [`meta/specs/`](meta/specs/) and the plan in
+ > [`meta/roadmap/`](meta/roadmap/), written in that order and by that
+ > discipline — specs first, then a cycle map, then execution-grade subcycles,
+-> then code. The compiler itself is at cycle 1.5 (verification); this library
+-> is planned now so that implementation can start the day the language stops
+-> moving.
++> then code. The plan is measured against the compiler at the workbench's pin,
++> `c9baa9e` — its landing 118, in its cycle 1.6; its cycle 1.5, verification,
++> closed on 2026-09-25.
+ 
+ ---
+ 
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index cb5c619..09da924 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -60,6 +60,11 @@ relationship to `npkg`, and retires the same way.
+ *Not a dependency violation:* zero-dependency governs the artifact, not the
+ workbench — the compiler's `ORCHESTRATION.md` §6 says so in as many words.
+ 
++*(2026-10-18, cycle 0.0.1: re-read at compiler `c9baa9e`, the measurement holds
++for every build — nothing that builds a program calls `rootlist_add`, though one
++of the compiler's own tests does; `specs/BUILD.md` §1's note of that date says
++where.)*
++
+ ### SK-005 — `nsockets` declares its own storage primitives
+ **2026-09-03.** `Vec<T>`, `Bytes` and `limits.npk` live in `src/core/` and are
+ ours. The compiler's `List<T>` is a compiler internal whose own header says it
+diff --git a/meta/OPEN_QUESTIONS.md b/meta/OPEN_QUESTIONS.md
+index a6ea21e..de626d3 100644
+--- a/meta/OPEN_QUESTIONS.md
++++ b/meta/OPEN_QUESTIONS.md
+@@ -51,6 +51,10 @@ ecosystem audit's ED2.)*
+ 
+ ### O-N2 — `npkg` cannot build a library, and `[dependencies]` resolves to nothing
+ Measured at the compiler's 1.5.0 and recorded in `specs/BUILD.md` §1.
++*(Re-measured 2026-10-18 at compiler `c9baa9e`, cycle 0.0.1: it holds, but
++`rootlist_add` is called by one of the compiler's own tests, though from
++nothing that builds a program, as `specs/BUILD.md` §1's note of that date
++says.)*
+ `npkg build` is the compiler's own bootstrap ladder; `target = "library"` is
+ accepted by the schema and read by nothing; the loader's dependency-root list
+ is created empty and `rootlist_add` is called from nowhere.
+diff --git a/meta/specs/BUILD.md b/meta/specs/BUILD.md
+index c4d9cc2..0667737 100644
+--- a/meta/specs/BUILD.md
++++ b/meta/specs/BUILD.md
+@@ -21,6 +21,14 @@ Read at the compiler's commit for cycle 1.5.0 (2026-09-03):
+   `./` and `../` paths work.
+ - **`npkg` has no `install` and no `update`.**
+ 
++*(Re-read 2026-10-18 at compiler `c9baa9e`, cycle 0.0.1: the first point holds.
++In the second, `rootlist_init` creates the list empty in
++`src/driver/pipeline.npk`, and `rootlist_add` is called from no file under
++`src/`, `npkg/` or `tools/` — only the compiler's own
++`tests/frontend/resolve_paths.npk` calls it. And `npkg update` exists, and
++refuses by name — "there is nothing to resolve in a single-repository world" —
++while there is no `install`.)*
++
+ **Decision SK-004: `harness/` builds and tests `nsockets` until `npkg` can, and
+ retires into it.** That is precisely the relationship `bootstrap/harness/` has
+ to `npkg` in the compiler repository, including the part where both run side by
+diff --git a/meta/specs/README.md b/meta/specs/README.md
+index 0770f3d..5c7f46c 100644
+--- a/meta/specs/README.md
++++ b/meta/specs/README.md
+@@ -28,7 +28,7 @@ proposals that look reasonable in the abstract die on one of them.
+ | 8 | [`ANCILLARY_MODEL.md`](ANCILLARY_MODEL.md) | `SCM_RIGHTS`, `SCM_CREDENTIALS`, and the one `msghdr` |
+ | 9 | [`CONCURRENCY_MODEL.md`](CONCURRENCY_MODEL.md) | the reactor, the server loop, and why a connection cannot cross a channel |
+ | 10 | [`TESTING.md`](TESTING.md) | the harness, the headless double, loopback and `socketpair`, the `network` stage |
+-| 11 | [`VERIFICATION.md`](VERIFICATION.md) | the proof obligations this library carries into the compiler's cycle 1.5 |
++| 11 | [`VERIFICATION.md`](VERIFICATION.md) | the proof obligations this library carries into the compiler's verification |
+ | 12 | [`COMPAT.md`](COMPAT.md) | the kernel and platform matrix, and what is tested on what |
+ | 13 | [`GLOSSARY.md`](GLOSSARY.md) | the words, used one way each |
+ 
+diff --git a/src/addr/README.md b/src/addr/README.md
+index 87215bd..35214c5 100644
+--- a/src/addr/README.md
++++ b/src/addr/README.md
+@@ -4,4 +4,6 @@
+ `hton`/`ntoh` in one module, the strict parsers and the RFC 5952 formatters.
+ Pure computation: no descriptors, no kernel. Declares **`ESockAddr` only**, so
+ a program that parses addresses and never opens a socket owes one `failsafe`
+-arm. Governed by `../../meta/specs/ADDRESS_MODEL.md`. Built in cycle 0.1.
++arm of this library's — `ESockAddr`, qualified by its module — beside the
++floor's six and what the parser's code reaches (`SAFETY.md` S-8, @@PD-163@@).
++Governed by `../../meta/specs/ADDRESS_MODEL.md`. Built in cycle 0.1.

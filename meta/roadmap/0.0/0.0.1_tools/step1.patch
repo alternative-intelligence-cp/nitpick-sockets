@@ -1,0 +1,262 @@
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index 4d72ee9..bfd6b8b 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -341,6 +341,8 @@ cannot make. `TcpStream` implements `Reader`/`Writer` (`SK-027`), which is
+ exactly the seam a TLS layer wraps.
+ 
+ ### SK-026 — socket options are typed, one function per option
++> **SUPERSEDED IN PART by @@PD-165@@ (2026-10-18): the file it names.** A module named `raw` is `NITPICK-PARSE-001` at
++> compiler `c9baa9e`, so the generic form is confined to `src/option/sockopt.npk`; the rule stands.
+ **2026-09-03.** There is no `setsockopt` in the public surface; the generic
+ form is confined to `src/option/raw.npk` and is not re-exported.
+ 
+@@ -667,3 +669,46 @@ the wildcard's 99** — a test could not tell a deadline from any other trap.
+ 
+ *Reversal:* none for the bills, which are measurements a later pin re-takes; the codes move by a later decision if
+ `PLAYBOOK.md` §3 item 8 assigns these identities others, every `failsafe` that names them following.
++
++### @@PD-164@@ — the layering is a table of what each module may import
++**2026-10-18, cycle 0.0.1 step 1.**
++
++*What was read* — `BUILD.md` B-18 stated the layering as a drawing and the sentence "a module may not import a
++module to its left". The drawing gave `option` no arrow, though `OPTION_MODEL.md` P-1's generic form is the
++`setsockopt` call, whose number `src/sys/` holds (`SOCKET_MODEL.md` §1; `TESTING.md`'s `check_constants_named`), and
++it gave `socket` no arrow to `addr`, though `SOCKET_MODEL.md` K-13's `bind` takes the address encoder's bytes and
++K-14 records the bound address. The sentence read the drawing's columns, in which `addr` stands under `socket`, and
++`datagram` and `ancillary` stand left of `server`, so that read literally it let `datagram` import `server`.
++
++*So:* B-18 is a table, one row per module, naming every module it may import directly — what the drawing's arrows
++reach from it, with those two arrows added, since `use` is not transitive (B-17) and a module that names a `core`
++type imports `core` itself. `src/README.md` points at the table, each placeholder module states its row in its
++header (cycle 0.0.1's plan), and the harness's `check_layering` (cycle 0.0.3) reads it. The one place a
++specification already disagrees with it is held as `O-K4`, for cycle 0.2: `SOCKET_MODEL.md` K-12 has the builder,
++which is `src/socket/`'s, return `TcpListener` and `TcpStream`, which are `src/stream/`'s.
++
++*Alternatives declined:* **add the two arrows and keep the drawing** — the sentence would still read columns, which a
++check cannot read and a reader can misread; **let `socket` import `stream`** — a `use` cycle with `stream`'s import
++of `socket`, legal and a decomposition mistake (B-19).
++
++*Reversal:* none needed for the table, which changes no import any file makes — `src/` held none before this
++subcycle; a cycle that needs an import its module's row lacks amends the row by a decision.
++
++### @@PD-165@@ — the generic option form lives in `src/option/sockopt.npk`, because `raw` is a keyword
++**2026-10-18, cycle 0.0.1 step 1.**
++
++*What was measured* — a module named `raw` is `NITPICK-PARSE-001` at its `mod:` line at compiler `c9baa9e`: `raw` is
++a keyword, and from the compiler's landing 113 a keyword declared as a name of any kind is refused (cycle 0.0.0's
++block 0b; the early ecosystem audit's EC7). So `SK-026`'s `src/option/raw.npk` could never compile. A module named
++`sockopt` compiles there (cycle 0.0.1's block 0b).
++
++*So:* the generic form — the library's only `setsockopt` and `getsockopt` calls — is confined to
++`src/option/sockopt.npk`, named for the call it wraps. This supersedes in part `SK-026`, the file it names; its rule — typed options, one function
++each, the generic form confined and not re-exported — stands, and so does `check_no_raw_setsockopt`'s name, which
++names the call it bans. `OPTION_MODEL.md` P-1, `TESTING.md`'s check row, `ROADMAP.md`, the 0.7 and 1.0 roadmaps and
++`src/option/README.md` name the file.
++
++*Alternatives declined:* **`generic.npk`** — the word reads as the language's generics; **`untyped.npk`** — it names
++what the form lacks, not what it holds.
++
++*Reversal:* a rename, by a later decision; no rule moves.
+diff --git a/meta/OPEN_QUESTIONS.md b/meta/OPEN_QUESTIONS.md
+index c514f63..a6ea21e 100644
+--- a/meta/OPEN_QUESTIONS.md
++++ b/meta/OPEN_QUESTIONS.md
+@@ -125,6 +125,15 @@ workbench registry id for it is the orchestrator's to assign — ED2.)*
+   **Recommendation:** yes, with `SOCKET_MODEL.md` K-9's verification, because
+   the alternative is that a consumer writes it without the check. Settled at
+   cycle 0.2.
++- **O-K4 — where the builder's `listen` and `connect` live.** `SOCKET_MODEL.md`
++  K-12 has `SockBuilder`, which is `src/socket/`'s, return a `TcpListener` from
++  `listen` and a `TcpStream` from `connect`, and those are `src/stream/`'s; B-18's
++  table (@@PD-164@@) does not let `socket` import `stream`, and cycle 0.2.3 writes
++  `listen` before cycle 0.3 declares the listener. **Recommendation:** each is a
++  consuming call in `src/stream/` that takes the builder, so `socket` imports
++  nothing of `stream`'s and K-12's rule — the builder is the only place an
++  unbound socket exists — stands. Settled at cycle 0.2, before 0.2.3 is planned,
++  by a decision restating K-12.
+ 
+ ### Addresses
+ 
+diff --git a/meta/roadmap/0.2/README.md b/meta/roadmap/0.2/README.md
+index db5b2ce..eb8f43c 100644
+--- a/meta/roadmap/0.2/README.md
++++ b/meta/roadmap/0.2/README.md
+@@ -10,7 +10,10 @@ opens a descriptor — and the cycle where `SK-013`'s send path lands.
+ `SK-032`, `SK-033`. All settled.
+ 
+ **Open questions to settle:** `O-K3` (should `sock_adopt` exist at 1.0?
+-recommendation: yes, with K-9's verification).
++recommendation: yes, with K-9's verification), and `O-K4` (where the builder's
++`listen` and `connect` live, since they return `src/stream/`'s types and B-18's
++table, @@PD-164@@, keeps `socket` from importing `stream`; recommendation:
++consuming calls in `src/stream/` that take the builder).
+ 
+ ## Subcycles
+ 
+diff --git a/meta/roadmap/0.7/README.md b/meta/roadmap/0.7/README.md
+index 7c2e11f..293f394 100644
+--- a/meta/roadmap/0.7/README.md
++++ b/meta/roadmap/0.7/README.md
+@@ -1,6 +1,6 @@
+ # Cycle 0.7 — Options
+ 
+-**`src/option/`: the typed surface completed, and `raw.npk` confined.**
++**`src/option/`: the typed surface completed, and `sockopt.npk` confined.**
+ 
+ ## Decisions in
+ 
+@@ -13,7 +13,7 @@
+ 
+ | # | Topic | Ends with |
+ |---|---|---|
+-| 0.7.0 | **`raw.npk` and the confinement** | `check_no_raw_setsockopt` live and seen to fail |
++| 0.7.0 | **`sockopt.npk` and the confinement** | `check_no_raw_setsockopt` live and seen to fail |
+ | 0.7.1 | **The stream options** — `TCP_NODELAY`, keepalive and its three parameters | a keepalive that actually detects a dead peer |
+ | 0.7.2 | **The buffer and error options** — `SO_RCVBUF`/`SO_SNDBUF`, `SO_ERROR` | the doubling documented and asserted |
+ | 0.7.3 | **The builder's error shape** — `O-P2` | an option failure reported with the option's name |
+@@ -22,7 +22,7 @@
+ ## Checklist
+ 
+ ### 0.7.0 — confinement
+-- [ ] `src/option/raw.npk` holding the only `setsockopt`/`getsockopt` calls
++- [ ] `src/option/sockopt.npk` holding the only `setsockopt`/`getsockopt` calls (@@PD-165@@)
+ - [ ] **not re-exported by `src/lib.npk`** — a consumer cannot reach it
+ - [ ] `check_no_raw_setsockopt` live, with the 0.0.3 self-check case un-pended
+ - [ ] every typed wrapper's level is a constant **inside** the wrapper and never
+diff --git a/meta/roadmap/1.0/README.md b/meta/roadmap/1.0/README.md
+index 28e468c..bd48fd2 100644
+--- a/meta/roadmap/1.0/README.md
++++ b/meta/roadmap/1.0/README.md
+@@ -28,7 +28,7 @@ is settled here if the author has not settled it earlier.
+       a major version
+ - [ ] a conformance test that imports the umbrella and touches every name, so a
+       removal breaks a test rather than a user
+-- [ ] `raw.npk` confirmed **not** re-exported (`SK-026`)
++- [ ] `sockopt.npk` confirmed **not** re-exported (`SK-026`, @@PD-165@@)
+ 
+ ### 1.0.1 — the `failsafe` contract
+ - [ ] the per-import arm list generated (`SAFETY.md` S-9) and published in
+diff --git a/meta/roadmap/ROADMAP.md b/meta/roadmap/ROADMAP.md
+index e9cd05b..2de4c4b 100644
+--- a/meta/roadmap/ROADMAP.md
++++ b/meta/roadmap/ROADMAP.md
+@@ -155,7 +155,7 @@ connected sockets, `SO_BROADCAST`, multicast joins, and `O-G1`'s `IP_PKTINFO`.
+ a datagram rather than as end of stream.
+ 
+ ### 0.7 — Options
+-`src/option/`: the typed surface completed, `raw.npk` confined and
++`src/option/`: the typed surface completed, `sockopt.npk` confined and
+ `check_no_raw_setsockopt` live, `O-T1` settled against a measurement, `O-P2`'s
+ builder-error shape decided.
+ 
+diff --git a/meta/specs/BUILD.md b/meta/specs/BUILD.md
+index a625958..c4d9cc2 100644
+--- a/meta/specs/BUILD.md
++++ b/meta/specs/BUILD.md
+@@ -181,21 +181,37 @@ the public surface deliberately, one line per name, because `use` is not
+ transitive (`MODULE_REFERENCE.md` §2.3) — which makes the public surface a list
+ in one file that a reviewer can read.
+ 
+-**Rule B-18 — the layering, and the direction of every arrow.**
++**Rule B-18 (@@PD-164@@) — the layering, as a table.** A module imports only the modules its row
++names:
+ 
+-```
+-     server ──► stream ──┐
+-                         ├──► socket ──► sys ──┐
+-   datagram ─────────────┤        │            │
+-                         │        ▼            ▼
+-  ancillary ─────────────┘     option        core
+-                         │                     ▲
+-                         └──► addr ────────────┘
+-```
++| Module | May import |
++|---|---|
++| `core` | nothing |
++| `sys` | `core` |
++| `addr` | `core` |
++| `option` | `sys`, `core` |
++| `socket` | `option`, `addr`, `sys`, `core` |
++| `stream` | `socket`, `option`, `addr`, `sys`, `core` |
++| `datagram` | `socket`, `option`, `addr`, `sys`, `core` |
++| `ancillary` | `socket`, `option`, `addr`, `sys`, `core` |
++| `server` | `stream`, `socket`, `option`, `addr`, `sys`, `core` |
+ 
+ `core` depends on nothing. `sys` depends on `core`. `addr` depends on `core`
+ and on nothing else — which is what makes it importable by a program that never
+-opens a socket (`SAFETY.md` S-8). A module may not import a module to its left.
++opens a socket (`SAFETY.md` S-8). A row names every module the module may
++import directly, because `use` is not transitive (B-17): a module that names a
++`core` type imports `core` itself.
++
++*(2026-10-18, cycle 0.0.1, @@PD-164@@: until this subcycle the rule was a drawing and
++the sentence "a module may not import a module to its left". The drawing gave
++`option` no arrow, though P-1's generic form is the `setsockopt` call whose
++number `src/sys/` holds, and gave `socket` no arrow to `addr`, though
++`SOCKET_MODEL.md` K-13's `bind` takes the address encoder's bytes and K-14
++records the bound address; and the sentence read the drawing's columns, where
++`addr` stands under `socket`, and `datagram` and `ancillary` stand left of
++`server`. Each row is what the drawing's arrows reach from its module, with
++those two arrows added. `meta/OPEN_QUESTIONS.md` O-K4 holds the one place a
++specification disagrees with it.)*
+ 
+ **Rule B-19 — a `use` cycle is legal** (D-086) and is still a decomposition
+ mistake. The harness has a check.
+diff --git a/meta/specs/OPTION_MODEL.md b/meta/specs/OPTION_MODEL.md
+index 26128e5..a1516c0 100644
+--- a/meta/specs/OPTION_MODEL.md
++++ b/meta/specs/OPTION_MODEL.md
+@@ -9,8 +9,11 @@ option, each taking and returning the type that option actually is.
+ 
+ **Rule P-1 (SK-026).** Socket options are **typed, one function per option**.
+ The generic form — `setsockopt(level, name, ptr, len)` — is confined to
+-`src/option/raw.npk`, is not exported by `src/lib.npk`, and is called by the
+-typed wrappers and by nothing else.
++`src/option/sockopt.npk` (@@PD-165@@), is not exported by `src/lib.npk`, and is called
++by the typed wrappers and by nothing else.
++
++*(2026-10-18, cycle 0.0.1, @@PD-165@@: this named `src/option/raw.npk`, and a module
++named `raw` is `NITPICK-PARSE-001` — `raw` is a keyword.)*
+ 
+ The generic form is a `void*` and a length. Every mistake it permits is one
+ this library exists to prevent: passing a `bool` where the kernel wants a
+diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
+index a9ccb0c..6c3057c 100644
+--- a/meta/specs/TESTING.md
++++ b/meta/specs/TESTING.md
+@@ -136,7 +136,7 @@ run on every full invocation.
+ | `check_layering` | every `use` edge against `BUILD.md` §6's diagram |
+ | `check_msg_nosignal` | **every `sendto`/`sendmsg` call site in `src/` passes `MSG_NOSIGNAL`** — the mechanical enforcement of S-1, and the most valuable check in this list |
+ | `check_no_floor_write` | no call to the floor's `write` on a socket descriptor anywhere in `src/` (S-2) |
+-| `check_no_raw_setsockopt` | `setsockopt` appears only in `src/option/raw.npk` (P-1) |
++| `check_no_raw_setsockopt` | `setsockopt` appears only in `src/option/sockopt.npk` (P-1, @@PD-165@@) |
+ | `check_constants_named` | no bare syscall number or kernel constant outside `src/sys/`; no bound outside `src/core/limits.npk` |
+ | `check_struct_sizes` | every structure size a spec table states is asserted by a probe |
+ | `check_no_hardcoded_port` | no port literal in the suite except 0 (V-3) |
+diff --git a/src/README.md b/src/README.md
+index b9c217f..21ddb58 100644
+--- a/src/README.md
++++ b/src/README.md
+@@ -1,6 +1,6 @@
+ # `src/` — the library
+ 
+-Nitpick source only. The layering and the direction of every dependency arrow
+-are in `../meta/specs/BUILD.md` §6; a module may not import one to its left.
++Nitpick source only. A module imports only what its row of
++`../meta/specs/BUILD.md` B-18's table names (@@PD-164@@).
+ `lib.npk` is the umbrella and lists the public surface, one name per line,
+ because `use` is not transitive.
+diff --git a/src/option/README.md b/src/option/README.md
+index 0ce58e0..854ca37 100644
+--- a/src/option/README.md
++++ b/src/option/README.md
+@@ -1,7 +1,7 @@
+ # `src/option/` — typed socket options
+ 
+ One function per option, each taking the type that option actually is. The
+-generic `setsockopt` lives in `raw.npk`, is not re-exported, and is called by
++generic `setsockopt` lives in `sockopt.npk`, is not re-exported, and is called by
+ the typed wrappers and by nothing else. Governed by
+ `../../meta/specs/OPTION_MODEL.md`. Built in cycles 0.2 (the three pre-bind
+ options) and 0.7 (the rest).

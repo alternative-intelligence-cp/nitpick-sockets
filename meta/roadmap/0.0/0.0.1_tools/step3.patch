@@ -1,0 +1,173 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 8d54110..1d81d44 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -124,8 +124,9 @@ The compiler binary is the **pinned toolchain** the board names
+ (`../BOARD.md`, W-18): `$NPKC` and `$NPKRT` are supplied to every session by the
+ orchestrator, or set by hand from `../.internal/toolchain/<commit>/`. Never build the
+ compiler from here and never read its `build/` directly — the guard refuses
+-the first, and the second is rebuilt under you. LLVM 20.1.2 exactly, pinned;
+-`llvm-config --version` to check.
++the first, and the second is rebuilt under you. LLVM 20.1.8 exactly — the manifest's
++`[toolchain]` pin, the compiler's since its D-349 (@@PD-166@@) — asked of the tools
++themselves: `llc --version`, `opt --version`, `ld.lld --version`.
+ 
+ ## Where things go
+ 
+diff --git a/README.md b/README.md
+index 8d284f7..f720eb1 100644
+--- a/README.md
++++ b/README.md
+@@ -110,8 +110,9 @@ is a folder, a subcycle is a file inside it, and a finished cycle moves to
+ 
+ ## Requirements
+ 
+-Linux on x86-64, the Nitpick compiler, and LLVM 20.1.2 — the same toolchain the
+-compiler pins. Nothing else, at build time or at run time.
++Linux on x86-64, the Nitpick compiler, and LLVM 20.1.8 — the same toolchain the
++compiler pins (@@PD-166@@), whose triple and data layout `nitpick.toml` carries.
++Nothing else, at build time or at run time.
+ 
+ ## Licence
+ 
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index bfd6b8b..f86f31d 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -712,3 +712,28 @@ names the call it bans. `OPTION_MODEL.md` P-1, `TESTING.md`'s check row, `ROADMA
+ what the form lacks, not what it holds.
+ 
+ *Reversal:* a rename, by a later decision; no rule moves.
++
++### @@PD-166@@ — the manifest at the pin: LLVM 20.1.8 with the compiler's target rows, and its first three test entries
++**2026-10-18, cycle 0.0.1 step 3.**
++
++*What was read* — at compiler `c9baa9e` its own manifest pins `llvm = "20.1.8"`, which its D-349 moved from 20.1.2 at
++its landing 99, and carries `triple` and `datalayout`; its `BUILD_REFERENCE.md` §1 says a library's manifest carries
++the same two rows, that both of its runners refuse a manifest without them by name, and that the schema has six
++tables, where this manifest said four. The pin audit's SL-3, the planning guide's NH-5 and G1, and the early ecosystem
++audit's E2-4.
++
++*So:* `nitpick.toml`'s `[toolchain]` pins `llvm = "20.1.8"` and carries `triple` and `datalayout` exactly as the
++compiler's manifest gives them at the pin, its comments worded as `nitpick-regex`'s manifest words them, and its
++schema sentence names the six tables and the two it does not carry; `CLAUDE.md` and `README.md` name 20.1.8, and the
++tools that are asked it. And the first three `[[test]]` entries, in the compiler's stage vocabulary (its
++`BUILD_REFERENCE.md` §7.1): the consumer under `compile`/`positive`, which links and runs it, and cycle 0.0.0's probes
++split by kind — `probe`, a `program` suite, and `probe-refused`, `compile`/`negative`, judged by exact codes (the
++planning guide's G9).
++
++*Alternatives declined:* **the version and no target rows** — the compiler's runners refuse that manifest by name;
++**"the compiler's pin" and no number** — a manifest row is a number the harness asserts the tools against; **the
++consumer under `accept`** — the compiler's `tools/check` judges it, built from the compiler's source, and it neither
++links nor runs a program; **one probe entry** — one entry judges every file it reads one way, and seven of cycle
++0.0.0's nineteen probes are refusals.
++
++*Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
+diff --git a/nitpick.toml b/nitpick.toml
+index f0afd1c..d87ff8e 100644
+--- a/nitpick.toml
++++ b/nitpick.toml
+@@ -1,9 +1,14 @@
+ # nsockets — the manifest.
+ #
+-# The schema is the compiler's (BUILD_REFERENCE.md §1, D-077): four tables plus
+-# the `[[test]]` array, and `npkg`'s parser refuses a key the schema lacks. It
+-# is written in full now, ahead of the tool that reads it, because a manifest
+-# that appears when the tooling arrives is a manifest nobody reviewed.
++# The schema is the compiler's (BUILD_REFERENCE.md §1, D-077): six tables and
++# the `[[test]]` array, and `npkg`'s parser refuses a key the schema lacks. This
++# manifest carries four of the tables -- `[verify]` configures the compiler's
++# solver and `[limits]` the descriptor limit its runners stand under, and no
++# tool of this library runs either. It is written in full ahead of the tool
++# that reads it, because a manifest that appears when the tooling arrives is a
++# manifest nobody reviewed.
++# *(Corrected 2026-10-18, cycle 0.0.1 -- @@PD-166@@: this said "four tables plus the
++# `[[test]]` array", and the compiler's schema has six.)*
+ #
+ # WHAT CANNOT READ THIS YET. `npkg build` is the compiler's own bootstrap
+ # ladder — it assembles `runtime/npkrt.ll` and `bootstrap/seed/stage1.ll`, has
+@@ -36,8 +41,20 @@ opt-level = 0
+ # compiler pins, because a patch release may change instruction selection. These
+ # lists are READ by every `llc`/`opt`/`ld.lld` invocation the harness makes; a
+ # stated flag nothing consumes is the next stale document.
++# *(20.1.8 since cycle 0.0.1, 2026-10-18 -- @@PD-166@@: the compiler's D-349 moved its pin from
++# 20.1.2 at its landing 99, and compiler `c9baa9e` carries it.)*
+ [toolchain]
+-llvm          = "20.1.2"
++llvm          = "20.1.8"
++# THE TARGET EVERY MODULE STATES (the compiler's E-8, D-322 (5), its landing 71).
++# Every emission opens with a `target datalayout` and a `target triple` line, and
++# these two rows are what the runner holds them to: `datalayout` to what the
++# pinned `opt` derives from `triple`, and every linked program's two lines to
++# both (cycle 0.0.2's harness). Pins, not settings -- the compiler's runners
++# refuse a manifest without either, by name (its BUILD_REFERENCE.md §1) -- and
++# the layout is the FULL string: `llvm-as` completes a partial one, which then
++# fails the belt.
++triple        = "x86_64-unknown-linux-gnu"
++datalayout    = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
+ llc-flags     = ["-O0", "-filetype=obj", "-relocation-model=static"]
+ llc-opt-flags = ["-O2", "-filetype=obj", "-relocation-model=static"]
+ opt-flags     = ["-O2", "-S"]
+@@ -55,10 +72,30 @@ lld-flags     = ["-static"]
+ # entry naming a directory with nothing in it is a suite that reports green
+ # while checking nothing, which is the failure this table exists to prevent.
+ # The stages are the compiler's (BUILD_REFERENCE §7.1) and the expectation
+-# grammar lives inside each test file.
+-#
+-# [[test]]
+-# name = "conformance"
+-# stage = "compile"
+-# kind = "positive"
+-# path = "tests/conformance"
++# grammar lives inside each test file. Suites run in the order written here.
++
++# Cycle 0.0.1's consumer of the public surface. `compile`/`positive` is "compiles,
++# links, runs, and exits with the expected code" -- what this suite needs and
++# what `accept` is not: `accept` is judged by the compiler's own `tools/check`, a
++# program built from the compiler's source, and it neither links nor runs.
++[[test]]
++name  = "conformance"
++stage = "compile"
++kind  = "positive"
++path  = "tests/conformance"
++
++# Cycle 0.0.0's probes, split by kind, because one entry judges every file it
++# reads one way: those that compile, link and run, by their exits at -O0 and
++# through `opt -O2`; those refused on purpose, by exactly the code each one's
++# first line states. `path` is a directory, swept only with `recursive = true`
++# (BUILD_REFERENCE §7.1), so the two entries are disjoint without naming a file.
++[[test]]
++name  = "probe"
++stage = "program"
++path  = "tests/probe"              # the probes that compile, link and run
++
++[[test]]
++name  = "probe-refused"
++stage = "compile"
++kind  = "negative"
++path  = "tests/probe/refused"      # the probes refused on purpose, each with its exact code
+diff --git a/tests/README.md b/tests/README.md
+index 12aee9b..7750cb9 100644
+--- a/tests/README.md
++++ b/tests/README.md
+@@ -2,8 +2,9 @@
+ 
+ | Directory | Stage | Contents |
+ |---|---|---|
+-| `probe/` | `program` | the cycle-0.0 language and kernel probes; **never deleted** |
+-| `conformance/` | `accept` | the public API compiles in a program that only imports it |
++| `probe/` | `program` | the cycle-0.0 language and kernel probes that run; **never deleted** |
++| `probe/refused/` | `compile`, `negative` | the cycle-0.0 probes refused on purpose, each with its exact code; **never deleted** |
++| `conformance/` | `compile`, `positive` | the public API compiles, links and runs in a program that only imports it |
+ | `unit/` | `program` | the pure layers, judged by exit code |
+ | `unit/net/` | `loopback` | the socket layers, over `socketpair` and `127.0.0.1` |
+ | `unit/extern/` | `network` | the two tests that need an outside host |
+@@ -13,3 +14,8 @@
+ Every test binds to **port 0** and uses the **abstract namespace** for
+ `AF_UNIX`. Expectations live in the test file. Governed by
+ `../meta/specs/TESTING.md`.
++
++*(2026-10-18, cycle 0.0.1, @@PD-166@@: `conformance/` was `accept`'s, which the
++compiler's `tools/check` judges without linking or running the program; the
++manifest's entries are the three rows above, in the compiler's stage
++vocabulary.)*

@@ -1,0 +1,113 @@
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index be7b49c..cb5c619 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -763,3 +763,33 @@ it needs is the input this decision removes.
+ 
+ *Reversal:* to cache, or to use any action, name it by full commit sha with its release beside it, as a currency row
+ checked at the action's own repository on a named date, and restore the cached steps `nitpick-regex`'s workflow has.
++
++### @@PD-168@@ — one currency table; the library is security-sensitive, and its three research items gate cycle 0.0's work
++**2026-10-18, cycle 0.0.1 step 5.**
++
++*What was read* — the workbench plan skill: every outside fact a plan rests on is a row of `meta/research/CURRENCY.md`,
++"a cycle whose currency rows are unchecked is not ready to start", and a security-sensitive library owes three
++research items before its cycle map — known defects in the prior art and the reference implementations, the standards
++bodies' current guidance, and the current test vectors — re-run at hardening. Until cycle 0.0.0's research gate,
++this repository had no `CURRENCY.md` and no digest, and no specification or decision said whether the library is
++security-sensitive; cycle 0.0.0's plan applied the rule at its gate item 7, by the libraries' reviewer's ruling (the
++early ecosystem audit's E2-13; the planning guide's G14 and its open point 11).
++
++*So:* `meta/research/CURRENCY.md` holds one row per outside fact the specifications state, and each row not yet
++checked names the cycle that checks it. **`nsockets` is security-sensitive**: it parses addresses from text, walks
++control messages another process sent, passes descriptors between processes and reads a peer's credentials, and
++`SK-036` already treats its parser's refusals as a security claim. So the three research items are owed, and, by the
++libraries' reviewer's ruling of 2026-10-15, **they gate cycle 0.0's first work dispatch**, cycle 0.0.0's, which
++carries their digests and files them before any probe runs, so that a finding which asks the language a question
++becomes a cycle-0.0 probe before it is anything else; every other finding is held where its subject is decided, and
++`CURRENCY.md` says where. Each is a `security` digest, stale ninety days after its date, so a later cycle reads the
++three dates before it starts.
++
++*Alternatives declined:* **count the library routine** — its input is what a peer sends, and the research would be
++skipped where it matters most; **gate cycle 0.1, through cycle 0.0.5's close** — a finding that arrives after cycle
++0.0 is archived has no cycle 0.0 to become a probe in; **a table per subject** — the workbench's checks and its
++research skill read one.
++
++*Reversal:* to let cycle 0.0's probes run before the research, move the gate to cycle 0.1: cycle 0.0.0's gate item 7
++and block 0a's research lines go, the three rows wait for their digests, and `0.1/0.1.0.md`'s gate names them; to
++count the library routine, strike `CURRENCY.md`'s research section and its three rows, and the gate with them.
+diff --git a/meta/research/CURRENCY.md b/meta/research/CURRENCY.md
+new file mode 100644
+index 0000000..91fa1a6
+--- /dev/null
++++ b/meta/research/CURRENCY.md
+@@ -0,0 +1,57 @@
++# Currency — the facts from outside the compiler tree this plan rests on
++
++One row per standard, kernel fact, reference implementation, test-vector set and outside tool the plan names, with
++the version pinned, the day it was checked, the primary source, and the decision that pins it (the workbench
++research skill's §7). **A row unchecked for six months is stale, and a cycle whose rows are unchecked is not ready to
++start**: each row not yet checked names the cycle that checks it, before that cycle starts. Facts about the language
++are never rows here; they are read in the compiler's tree at the pinned commit. Created by cycle 0.0.1 (@@PD-168@@).
++
++| Depends on | Pinned | Checked | Source | Decision |
++|---|---|---|---|---|
++| GitHub Actions' runner image — CI's `runs-on` | `ubuntu-24.04` | by cycle 0.0.1's first CI run, whose first step prints it, quoted in that subcycle's record | github.com/actions/runner-images | @@PD-167@@ |
++| The runner's loopback — what the `loopback` stage runs over (`BUILD.md` B-5) | `127.0.0.1` and `::1`, each bound at port 0 | by the same run's first step | the run's log | @@PD-167@@ |
++| LLVM's release asset — what CI installs | `LLVM-20.1.8-Linux-X64.tar.xz` at `llvmorg-20.1.8`; the version is the compiler's D-349, read in its tree | by the same run, which downloads it and asserts each tool's version | github.com/llvm/llvm-project/releases | @@PD-166@@ |
++| Python — the harness's interpreter | none chosen yet; the runner's version is printed by CI's first step | not yet — cycle 0.0.2, which writes the harness, names the version it needs | python.org | `SK-004` |
++| The x86-64 socket syscall numbers (`SOCKET_MODEL.md` §1) | the fifteen in its table, "measured on the target platform on 2026-09-03", no kernel release named | not yet — cycle 0.2.0, which writes `src/sys/`, against the kernel's table at a named release; cycle 0.0.0's probes ran on them | the kernel's `arch/x86/entry/syscalls/syscall_64.tbl` | `SK-016`, `SK-007` |
++| The kernel's structure layouts (`ADDRESS_MODEL.md` §1, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
++| The kernel feature floor (`COMPAT.md` W-3) | `accept4` 2.6.28, `SOCK_NONBLOCK`/`SOCK_CLOEXEC` 2.6.27, `MSG_CMSG_CLOEXEC` 2.6.23, `SO_REUSEPORT` 3.9; the floor Linux 3.9 | not yet — cycle 0.2.0, before it starts | man-pages at a named release | `SK-003`, `SK-007` |
++| `net.core.somaxconn`'s default (`SOCKET_MODEL.md` K-16) | 4096 "since Linux 5.4" | not yet — cycle 0.2.3, which writes `listen` and its note | the kernel's documentation at a named release | none; K-16 states it |
++| `SCM_MAX_FD` (`ANCILLARY_MODEL.md` N-5) | 253 | not yet — cycle 0.5, which writes the descriptor-passing path | the kernel's source at a named release | none; N-5 states it |
++| The IPv6 text and canonical forms (`ADDRESS_MODEL.md` A-20, A-24) | RFC 4291 §2.2; RFC 5952 | by research item 2 below | rfc-editor.org | none; A-20 and A-24 state them |
++| IPv4 text strictness, and the defects of the parsers that are not strict (`ADDRESS_MODEL.md` A-19) | `inet_pton`'s four decimal octets; "CVEs in more than one language's standard library", none named | by research item 1 below | cve.org, nvd.nist.gov | `SK-036` |
++| POSIX's short-write contract (`STREAM_MODEL.md` T-17) | "the POSIX contract", no edition named | not yet — cycle 0.3, which writes `write_all`, at POSIX.1-2024 | pubs.opengroup.org | none; T-17 states it |
++| Research item 1 below — known defects in the prior art and the reference implementations | what its digest records, as of its date | **unchecked** until cycle 0.0's research gate files [`security-defects.md`](security-defects.md); stale ninety days after its date | cve.org, nvd.nist.gov, each implementation's tracker | @@PD-168@@ |
++| Research item 2 below — the standards bodies' current guidance | what its digest records, as of its date | **unchecked** until the same gate files [`security-guidance.md`](security-guidance.md); stale ninety days after its date | rfc-editor.org, pubs.opengroup.org, the kernel's documentation and man-pages at a named release | @@PD-168@@ |
++| Research item 3 below — the current test vectors | what its digest records, as of its date | **unchecked** until the same gate files [`security-vectors.md`](security-vectors.md); stale ninety days after its date | each vector set's repository or standard, at a named revision | @@PD-168@@ |
++
++## The research this library owes, because it is security-sensitive
++
++**`nsockets` is security-sensitive** (@@PD-168@@): it parses addresses from text (`ADDRESS_MODEL.md` A-19 … A-24, and
++`SK-036` treats its refusals as a security claim), walks control messages another process sent (`ANCILLARY_MODEL.md`
++N-9 … N-11, and `VERIFICATION.md` Z-3: "the only place in this library where attacker-adjacent binary data drives an
++offset"), passes descriptors between processes (N-2) and reads a peer's credentials (N-13 … N-17). So the workbench
++research skill's §8 applies, and its three requests are owed, each in its §3 shape and `sensitivity: security` — two
++independent primaries, stale after ninety days — each filed here as a digest its row cites. Each request, with what
++would change the plan if it came true, is written out in full in cycle 0.0.0's plan, §13:
++
++1. **Known defects** in the prior art and the reference implementations of the five surfaces the library parses or
++   decodes: IPv4 and IPv6 text addresses, `sockaddr_un` paths, `cmsghdr` walks, `SCM_RIGHTS`, and
++   `SO_PEERCRED`/`SCM_CREDENTIALS`. *Would change the plan if* a defect class reaches one of the five that no rule
++   refuses or tests.
++2. **The standards bodies' current guidance** for the surfaces the rules rest on: the IPv6 addressing architecture
++   and text form (RFC 4291, RFC 5952), IPv4 dotted-quad strictness, IPv4-mapped addresses, and POSIX.1-2024's socket
++   interfaces. *Would change the plan if* a cited RFC is obsoleted or updated where a rule depends on it, current
++   guidance contradicts a rule, or POSIX specifies an interface the library uses differently from the Linux
++   behaviour its specifications state.
++3. **The current test vectors** for IPv4 and IPv6 text-address parsing and formatting, and for `cmsghdr` and
++   `SCM_RIGHTS` handling, with their versions and primary copies. *Would change the plan if* a maintained set exists
++   that cycle 0.1's conformance stage should pin, or a set the specifications cite has a newer revision.
++
++**They gate cycle 0.0's work** (@@PD-168@@): its first work dispatch, cycle 0.0.0's, carries their three digests, and its
++worker files them here before any probe runs. The orchestrator dispatches the requests to the researcher, who never
++writes into a repository. When the three arrive, the plan is re-cut before any probe runs, and this section then
++says, per digest, what it found and where each finding is held: a finding that asks the language a question becomes
++a cycle-0.0 probe; every other is held where its subject is decided — a row of this table, a specification, or the
++roadmap item of the cycle that owns it — or this section says who decides it; none is dropped for want of a probe
++(the workbench plan skill's note of 2026-10-16). A later cycle reads the three dates before it starts, since each is
++stale ninety days after its own, and all three are re-run at hardening, cycle 0.10.
+diff --git a/meta/research/README.md b/meta/research/README.md
+index 9fb1227..498ba70 100644
+--- a/meta/research/README.md
++++ b/meta/research/README.md
+@@ -3,3 +3,7 @@
+ Kernel measurements, recorded `loopback` runs per environment (which is what
+ makes a row in `specs/COMPAT.md` a claim with a file behind it), and any
+ measurement a decision cites.
++
++[`CURRENCY.md`](CURRENCY.md) is the table of every outside fact the plan rests
++on, with the day each was checked (@@PD-168@@); a research digest is filed beside it as
++`<topic>.md` and cited by the row it checks.

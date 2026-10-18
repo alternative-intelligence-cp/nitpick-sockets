@@ -1,0 +1,185 @@
+diff --git a/src/addr/addr.npk b/src/addr/addr.npk
+new file mode 100644
+index 0000000..9422b8b
+--- /dev/null
++++ b/src/addr/addr.npk
+@@ -0,0 +1,9 @@
++mod:addr;
++
++// `src/addr/` — addresses: `Ipv4Addr` … `UnixAddr`, the kernel `sockaddr` encodings, `hton`/`ntoh`, the strict
++// parsers and the RFC 5952 formatters. Specified by `meta/specs/ADDRESS_MODEL.md`; built from cycle 0.1. A
++// placeholder until then, by cycle 0.0.1's plan: it compiles, so the parse sweep has this directory to sweep, and
++// it is replaced, not deleted.
++//
++// MAY IMPORT: `core` (`meta/specs/BUILD.md` B-18's table). Every import is a relative path (B-17) until the
++// compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/ancillary/ancillary.npk b/src/ancillary/ancillary.npk
+new file mode 100644
+index 0000000..f6221ed
+--- /dev/null
++++ b/src/ancillary/ancillary.npk
+@@ -0,0 +1,9 @@
++mod:ancillary;
++
++// `src/ancillary/` — control data: the one `msghdr` in the library, `SCM_RIGHTS` descriptor passing and
++// `SCM_CREDENTIALS` peer identity. Specified by `meta/specs/ANCILLARY_MODEL.md`; built from cycle 0.5. A
++// placeholder until then, by cycle 0.0.1's plan: it compiles, so the parse sweep has this directory to sweep, and
++// it is replaced, not deleted.
++//
++// MAY IMPORT: `socket`, `option`, `addr`, `sys` and `core` (`meta/specs/BUILD.md` B-18's table). Every import is a
++// relative path (B-17) until the compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/core/core.npk b/src/core/core.npk
+new file mode 100644
+index 0000000..1b4a75a
+--- /dev/null
++++ b/src/core/core.npk
+@@ -0,0 +1,8 @@
++mod:core;
++
++// `src/core/` — storage primitives: `Vec<T>`, `Bytes`, and `limits.npk`, every named bound in the library.
++// Specified by `meta/specs/BUILD.md` §5; built from cycle 0.0.4. A placeholder until then, by cycle 0.0.1's plan:
++// it compiles, so the parse sweep has this directory to sweep, and it is replaced, not deleted.
++//
++// MAY IMPORT: nothing (`meta/specs/BUILD.md` B-18's table). Every import is a relative path (B-17) until the
++// compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/datagram/datagram.npk b/src/datagram/datagram.npk
+new file mode 100644
+index 0000000..d9126a0
+--- /dev/null
++++ b/src/datagram/datagram.npk
+@@ -0,0 +1,8 @@
++mod:datagram;
++
++// `src/datagram/` — message-oriented sockets: `UdpSocket` and `UnixDatagram`. Specified by
++// `meta/specs/DATAGRAM_MODEL.md`; built from cycle 0.6. A placeholder until then, by cycle 0.0.1's plan: it
++// compiles, so the parse sweep has this directory to sweep, and it is replaced, not deleted.
++//
++// MAY IMPORT: `socket`, `option`, `addr`, `sys` and `core` (`meta/specs/BUILD.md` B-18's table). Every import is a
++// relative path (B-17) until the compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/lib.npk b/src/lib.npk
+new file mode 100644
+index 0000000..a9d1261
+--- /dev/null
++++ b/src/lib.npk
+@@ -0,0 +1,9 @@
++mod:lib;
++
++// `nsockets` — the umbrella. A consumer imports this file by a relative path (`meta/specs/BUILD.md` B-17)
++// and reaches the public surface through it.
++//
++// IT RE-EXPORTS NOTHING YET, AND THAT IS DELIBERATE (cycle 0.0.1's plan). `use` is not transitive (the
++// compiler's `MODULE_REFERENCE.md` §2.3), so the public surface is a list in this one file, one `pub use`
++// per name, written by the cycle that makes the name public — cycle 0.1's addresses first. Nothing of
++// `src/option/sockopt.npk` is ever on it (`meta/specs/OPTION_MODEL.md` P-1).
+diff --git a/src/option/option.npk b/src/option/option.npk
+new file mode 100644
+index 0000000..9caf7cc
+--- /dev/null
++++ b/src/option/option.npk
+@@ -0,0 +1,9 @@
++mod:option;
++
++// `src/option/` — typed socket options, one function per option, and the generic form they call, confined to
++// `sockopt.npk` and never re-exported (@@PD-165@@). Specified by `meta/specs/OPTION_MODEL.md`; built from cycles 0.2
++// and 0.7. A placeholder until then, by cycle 0.0.1's plan: it compiles, so the parse sweep has this directory to
++// sweep, and it is replaced, not deleted.
++//
++// MAY IMPORT: `sys` and `core` (`meta/specs/BUILD.md` B-18's table). Every import is a relative path (B-17) until
++// the compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/server/server.npk b/src/server/server.npk
+new file mode 100644
+index 0000000..030d37f
+--- /dev/null
++++ b/src/server/server.npk
+@@ -0,0 +1,8 @@
++mod:server;
++
++// `src/server/` — the accept loop: accept-then-spawn, the live-connection ceiling, the `EMFILE` back-off and
++// `poll_set`. Specified by `meta/specs/CONCURRENCY_MODEL.md`; built from cycle 0.8. A placeholder until then, by
++// cycle 0.0.1's plan: it compiles, so the parse sweep has this directory to sweep, and it is replaced, not deleted.
++//
++// MAY IMPORT: `stream`, `socket`, `option`, `addr`, `sys` and `core` (`meta/specs/BUILD.md` B-18's table). Every
++// import is a relative path (B-17) until the compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/socket/socket.npk b/src/socket/socket.npk
+new file mode 100644
+index 0000000..032e4d0
+--- /dev/null
++++ b/src/socket/socket.npk
+@@ -0,0 +1,10 @@
++mod:socket;
++
++// `src/socket/` — the primitive: `Sock`, the builder, creation with atomic `SOCK_NONBLOCK|SOCK_CLOEXEC`, `bind`,
++// `shutdown`, `sock_adopt` and the `socketpair` double, and the send and receive path with `MSG_NOSIGNAL`
++// unconditional (where the builder's `listen` and `connect` live is `meta/OPEN_QUESTIONS.md` O-K4). Specified by
++// `meta/specs/SOCKET_MODEL.md`; built from cycle 0.2. A placeholder until then, by cycle 0.0.1's plan: it compiles,
++// so the parse sweep has this directory to sweep, and it is replaced, not deleted.
++//
++// MAY IMPORT: `option`, `addr`, `sys` and `core` (`meta/specs/BUILD.md` B-18's table). Every import is a relative
++// path (B-17) until the compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/stream/stream.npk b/src/stream/stream.npk
+new file mode 100644
+index 0000000..766f4ce
+--- /dev/null
++++ b/src/stream/stream.npk
+@@ -0,0 +1,9 @@
++mod:stream;
++
++// `src/stream/` — connection-oriented sockets: `TcpListener`, `TcpStream`, `UnixListener`, `UnixStream` and the
++// seqpacket pair — connect, accept, half-close, and the prelude's `Reader`/`Writer`. Specified by
++// `meta/specs/STREAM_MODEL.md`; built from cycles 0.3 and 0.4. A placeholder until then, by cycle 0.0.1's plan: it
++// compiles, so the parse sweep has this directory to sweep, and it is replaced, not deleted.
++//
++// MAY IMPORT: `socket`, `option`, `addr`, `sys` and `core` (`meta/specs/BUILD.md` B-18's table). Every import is a
++// relative path (B-17) until the compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/sys/sys.npk b/src/sys/sys.npk
+new file mode 100644
+index 0000000..36a6a87
+--- /dev/null
++++ b/src/sys/sys.npk
+@@ -0,0 +1,9 @@
++mod:sys;
++
++// `src/sys/` — the syscall vocabulary: the x86-64 socket syscall numbers and the kernel constants, each carrying
++// the header it came from. Specified by `meta/specs/SOCKET_MODEL.md` §1; built from cycle 0.2.0. A placeholder
++// until then, by cycle 0.0.1's plan: it compiles, so the parse sweep has this directory to sweep, and it is
++// replaced, not deleted.
++//
++// MAY IMPORT: `core` (`meta/specs/BUILD.md` B-18's table). Every import is a relative path (B-17) until the
++// compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/tests/conformance/import.npk b/tests/conformance/import.npk
+new file mode 100644
+index 0000000..b19d42a
+--- /dev/null
++++ b/tests/conformance/import.npk
+@@ -0,0 +1,31 @@
++// expect-exit: 0
++//
++// THE CONSUMER, AND IT IS THE LIBRARY'S FIRST TEST OF ITS OWN SURFACE (cycle 0.0.1).
++// It imports `src/lib.npk` exactly as a program outside this repository will — by a relative path,
++// because the compiler resolves no `[dependencies]` yet (`meta/specs/BUILD.md` B-17;
++// `meta/OPEN_QUESTIONS.md` O-N2: the day it does, this `use` is what changes) — and it compiles,
++// links, runs and exits 0. Against an empty surface that is the point: it keeps compiling as the
++// surface grows, and the day it does not, the surface changed incompatibly.
++//
++// Its `failsafe` names the six identities every program owes (`PLAYBOOK.md` §3 item 7) and no more:
++// `NITPICK-REACH-003` names exactly these six for a root importing the umbrella at compiler `c9baa9e`.
++mod:import;
++
++use "../../src/lib.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
