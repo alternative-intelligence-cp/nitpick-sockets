@@ -1,0 +1,744 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 762f75c..7f79b83 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -33,11 +33,12 @@ every Nitpick library, if you have the sibling checkouts.
+ 
+ ## The two rules this library exists around
+ 
+-**1. Every send carries `MSG_NOSIGNAL`** (`SK-013`). The Nitpick runtime
+-installs **no** signal disposition — a search of `runtime/npkrt.ll` finds no
+-`rt_sigaction` — so `SIGPIPE`'s default is live and its default is to terminate
+-the process. The compiler's own Bridge records the consequence: *"the first
+-EPIPE schedule proved it by taking the whole process down."*
++**1. Every send carries `MSG_NOSIGNAL`** (`SK-013`, @@PD-159@@). The floor's
++runtime catches `SIGPIPE` with a handler that returns, so on it a send to a
++dead peer answers `EPIPE`; under the default disposition — which a host may
++restore, and a runtime may stop overriding — the same send kills the process.
++`MSG_NOSIGNAL` answers `EPIPE` under both (probe 04, measured at compiler
++`c9baa9e`).
+ 
+ The corollary that will be broken by accident: **this library does not use the
+ runtime floor's `write` on a socket**, and neither may an impl of the prelude's
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 44ea091..e751c88 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -29,9 +29,10 @@ never for concluding.
+ 
+ ## The four things that will surprise you
+ 
+-1. **Every send must carry `MSG_NOSIGNAL`.** Not "should" — the Nitpick runtime
+-   installs no `SIGPIPE` disposition, so a plain send to a dead peer terminates
+-   the process. `check_msg_nosignal` greps every `sendto`/`sendmsg` site in
++1. **Every send must carry `MSG_NOSIGNAL`.** Not "should" — the floor's runtime
++   catches `SIGPIPE`, so on it a plain send to a dead peer answers `EPIPE`, but
++   under the default disposition, which a host may restore, the same send
++   terminates the process (probe 04). `check_msg_nosignal` greps every `sendto`/`sendmsg` site in
+    `src/` with a whitelist of zero, and it will catch you. Do not use the
+    runtime floor's `write` on a socket, and do not copy the prelude's
+    `ByteWriter` impl, which does.
+diff --git a/README.md b/README.md
+index dff135a..8d284f7 100644
+--- a/README.md
++++ b/README.md
+@@ -22,12 +22,12 @@ every C-shaped wrapper leaves to the caller, and Nitpick makes them checkable.
+ **A write to a dead peer cannot kill your process.** In C, and in every
+ library that wraps `write(2)` without thinking about it, sending on a socket
+ whose peer has gone raises `SIGPIPE` and the default disposition is to
+-terminate. Nitpick installs no signal dispositions, so that default is live —
+-and this library's answer is structural rather than advisory: **every send
+-`nsockets` issues carries `MSG_NOSIGNAL`, without exception**, so the failure
+-arrives as `EPIPE` in `Result.err` where the caller can see it. The compiler's
+-own Bridge learned this the hard way; its source records that the first EPIPE
+-schedule took the whole process down.
++terminate. Nitpick's runtime catches `SIGPIPE` with a handler that returns, so
++on it that send answers `EPIPE` — and this library does not lean on the
++runtime for it: **every send `nsockets` issues carries `MSG_NOSIGNAL`, without
++exception**, so the failure arrives as `EPIPE` in `Result.err` where the caller
++can see it, whatever the process's disposition is. Its probe 04 measures
++both.
+ 
+ **A socket cannot outlive the scope that must close it.** Every socket is an
+ `OwnedFd`, so the close *is* the drop and there is no `close` in the surface.
+diff --git a/harness/README.md b/harness/README.md
+index f2853e6..64d626d 100644
+--- a/harness/README.md
++++ b/harness/README.md
+@@ -5,5 +5,7 @@ Python, because `npkg` cannot build a library yet
+ workbench. It retires into `npkg` the way `bootstrap/harness/` does in the
+ compiler repository. Built in cycles 0.0.2 and 0.0.3.
+ 
+-It carries one marker the compiler's grammar does not: `// expect-signal: N`,
+-for the `SIGPIPE` test.
++It carries no marker the compiler's grammar does not. *(2026-10-18: it was to
++carry `// expect-signal: N`, for the `SIGPIPE` test, which @@PD-159@@ retires —
++at compiler `c9baa9e` that test's send answers `EPIPE`, and nothing in the
++suite dies by a signal.)*
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index 56f54e7..923cfa3 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -131,6 +131,8 @@ The one place `fcntl` appears is `sock_adopt` (`SOCKET_MODEL.md` K-9), where a
+ descriptor arrived from outside and there is nothing atomic to do.
+ 
+ ### SK-013 — every send carries `MSG_NOSIGNAL`, without exception
++> **SUPERSEDED IN PART by @@PD-159@@ (2026-10-18): its stated fact.** At compiler `c9baa9e` the floor catches
++> `SIGPIPE` with a handler that returns (probe 04); the rule stands, with its reason restated there.
+ **2026-09-03. The library's headline safety rule.**
+ 
+ *The fact it rests on, measured rather than assumed:* **the Nitpick runtime
+@@ -430,6 +432,13 @@ longer the scope that accepted it.
+ *The library builds the shape the language permits and documents why the other
+ is absent*, so nobody spends a day trying to defeat the checker.
+ 
++*(2026-10-18, cycle 0.0.0: both rules RUN at compiler `c9baa9e`, at `-O0` and through `opt -O2` — an `OwnedFd`,
++and a struct holding one, are `NITPICK-TYPE-057` at the channel's annotation (`tests/probe/refused/probe09_ownedfd_channel.npk`,
++`probe09b_holder_channel.npk`; the struct's diagnostic names the struct, not its field); a task handed one by
++`move` sends on it and its drop closes it before the spawner's join (`tests/probe/probe10_ownedfd_spawn.npk`); and a
++borrow of one across the spawn is `NITPICK-BORROW-004` (`refused/probe10b_borrow_spawn.npk`). This decision holds
++as written.)*
++
+ ### SK-036 — address parsing is strict, `inet_pton`-shaped and not `inet_aton`-shaped
+ **2026-09-03.** `ipv4_parse` accepts exactly four decimal octets, 0–255, with
+ **no leading zeros**, and refuses `127.1`, `0177.0.0.1`, `0x7f.0.0.1` and
+@@ -469,3 +478,47 @@ in this ecosystem has the same rule, and five libraries each phrasing it
+ slightly differently would be five chances for one of them to phrase it wrong.
+ 
+ Where a future library needs a different policy, it says so against this one.
++
++---
++
++# The third batch — cycle 0.0's probes, proposed 2026-10-18 at compiler `c9baa9e`
++
++Proposed by cycle 0.0's plan, each in the step whose measurement forces it, and numbered at the libraries' seat's
++review. Each records the alternatives it declines and its reversal.
++
++### @@PD-159@@ — the floor catches `SIGPIPE`; every send still carries `MSG_NOSIGNAL`, and nothing dies by a signal
++**2026-10-18, cycle 0.0.0 step 1, probe 04. Supersedes `SK-013` in part: its stated fact. The rule stands.**
++
++*What was measured* (`tests/probe/probe04_sigpipe.npk`, at compiler `c9baa9e`, at `-O0` and through `opt -O2`): the
++floor's runtime installs a handler for `SIGPIPE` at startup — `rt_sigaction(SIGPIPE, NULL, &prior)` reads a handler
++that is neither `SIG_DFL` nor `SIG_IGN`, with the flags `SA_RESTORER | SA_ONSTACK | SA_RESTART` that
++`runtime/npkrt.ll`'s `npk_fault_arm` installs (the compiler's DEF-68) — and that handler returns. A `sendto` with a
++flags word of 0 to a socketpair whose peer is closed answers an error and the program lives; the same send with
++`MSG_NOSIGNAL`, the floor's `write` on the socket, and a `write` to a pipe whose reader is closed answer the same
++error, the pipe's `EPIPE`; and under the default disposition, set by the probe itself, the `MSG_NOSIGNAL` send
++answers `EPIPE` again, where the same send with no flags dies by signal 13 (its mutant, a shell's status 141).
++`SK-013`'s stated fact — the runtime installs no signal disposition, so `SIGPIPE`'s default is live — was true of the
++runtime it was read in and is false here: `npkrt.ll` has no `rt_sigaction` at the compiler's `3d15ac9`, and has the
++handler from `c3bdae2`.
++
++*So:* every send `nsockets` issues still carries `MSG_NOSIGNAL`, and the reason is the default disposition rather
++than the runtime: on the floor's runtime a send to a dead peer answers `EPIPE` either way, but a process's
++disposition is the default whenever its host restores it or its runtime stops overriding it, and `MSG_NOSIGNAL`
++makes this library's sends safe under every one of those, at the cost of one flag. `SAFETY.md` S-2 stands, its
++reason restated: the floor's `write` on a socket answers `EPIPE` under the handler and kills under the default, and
++has no flags word for `MSG_NOSIGNAL`. S-3 stands: the library installs no handler and blocks no signal — the
++runtime's handler is the runtime's. `check_msg_nosignal` and `check_no_floor_write` stand as planned.
++
++*And the marker:* `// expect-signal: N` (`TESTING.md` V-6) is retired. Its one consumer was the leg of probe 04 that
++was to die by signal 13, and at this pin nothing in the suite is expected to die by a signal. `TESTING.md` V-5's test
++is probe 04's legs.
++
++*Alternatives declined:* **keep `SK-013`'s premise and read the probe as an anomaly** — the probe exists to replace a
++reading with a measurement; **drop `MSG_NOSIGNAL` as belt-and-braces** — it costs one flag per send, and the
++floor's handler is not this library's to rely on; **keep `// expect-signal:` with a probe that restores the default
++disposition and dies on purpose** — it would test the kernel's default action, not this library or this language,
++and a marker with no subject of its own is a marker nobody keeps working.
++
++*Reversal:* if a later runtime stops installing the handler, probe 04's first assertion fails (exit 11) and its
++no-flags send dies by signal 13 — red on that pin's first run — and a decision restores `SK-013`'s premise and the
++marker, with probe 04 its consumer.
+diff --git a/meta/OPEN_QUESTIONS.md b/meta/OPEN_QUESTIONS.md
+index 292c1c5..d130a64 100644
+--- a/meta/OPEN_QUESTIONS.md
++++ b/meta/OPEN_QUESTIONS.md
+@@ -63,14 +63,20 @@ is `escape.npk`'s `type_holds_pointer`, which answers **`false`** for
+ so explicitly. The code is right and the comment is loose.
+ **Ask:** a one-word amendment, because that comment is exactly where somebody
+ designing a server will look, and `SK-035` is built on the code's behaviour
+-rather than the comment's.
++rather than the comment's. *(2026-10-18, cycle 0.0.0: the behaviour RUN at compiler
++`c9baa9e` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
++so, `src/frontend/types.npk:1733`. The ask stands.)*
+ 
+ ### O-N4 — no `sigaction` and no signal-mask primitive in the language
+ Stated as an observation rather than a request: `nsockets` needs neither
+ (`MSG_NOSIGNAL` closes its one hazard at the call site, `SAFETY.md` S-3), and
+ `nitpick-tui` reaches the signal machinery through `signalfd` over raw `sys`
+ calls. Recorded so that a future language-level signal facility is known to
+-have one library that wants it and one that does not.
++have one library that wants it and one that does not. *(2026-10-18, cycle
++0.0.0: the floor's runtime itself installs handlers — `SIGPIPE`'s returns,
++measured by probe 04 through a raw `rt_sigaction` read — so the language's
++programs have a disposition that is not the default; `nsockets` still needs no
++signal facility, @@PD-159@@.)*
+ 
+ ---
+ 
+diff --git a/meta/roadmap/ROADMAP.md b/meta/roadmap/ROADMAP.md
+index 8f61fa0..0dc5edd 100644
+--- a/meta/roadmap/ROADMAP.md
++++ b/meta/roadmap/ROADMAP.md
+@@ -37,16 +37,19 @@ not resolve (`specs/BUILD.md` §1, `../OPEN_QUESTIONS.md` O-N2):
+ 
+ And the two that shape the *design*:
+ 
+-> **The Nitpick runtime installs no `SIGPIPE` disposition, so a plain send to a
+-> dead peer kills the process** — which makes `MSG_NOSIGNAL` on every send this
+-> library's headline rule (`SK-013`).
++> **A plain send to a dead peer kills a process whose `SIGPIPE` disposition is
++> the default** — the floor's runtime catches it, and a host may set it back —
++> which makes `MSG_NOSIGNAL` on every send this library's headline rule
++> (`SK-013`; @@PD-159@@ records what probe 04 measured at compiler `c9baa9e`).
+ >
+ > **An `OwnedFd` is refused as a channel element but may be moved into a
+ > spawn** — which makes accept-then-spawn the only expressible server model
+ > (`SK-035`).
+ 
+-Both were measured in the compiler's own source, not assumed, and both are
+-enforced mechanically rather than by discipline: `check_msg_nosignal` greps
++Both were read in the compiler's own source and then run, by cycle 0.0.0's
++probes 04, 09 and 10 at compiler `c9baa9e` — the first contradicted its reading
++(@@PD-159@@), the second confirmed it — and both are enforced mechanically
++rather than by discipline: `check_msg_nosignal` greps
+ every send site, and the second is enforced by the compiler itself.
+ 
+ ---
+@@ -79,8 +82,9 @@ free to follow the dependencies rather than the risk.
+ ### 0.0 — Foundations
+ The **language probes** first: twelve small programs that ask the compiler
+ whether the shapes `meta/specs/` depends on are spellable. Two of them are the
+-reason this cycle exists — **probe 04 proves `SIGPIPE` is lethal** (and so that
+-`SK-013` is load-bearing rather than belt-and-braces), and **probes 09 and 10
++reason this cycle exists — **probe 04 measures what `SIGPIPE` does** (at compiler
++`c9baa9e` the runtime catches it, so `SK-013` is belt-and-braces there and
++load-bearing under the default disposition, @@PD-159@@), and **probes 09 and 10
+ prove the `OwnedFd` channel refusal and the spawn move**, which is `SK-035`'s
+ entire foundation. Then the harness, the manifest's test table, CI, and
+ `src/core/`.
+@@ -187,10 +191,11 @@ contract published per module, examples, and `Q-3`'s version policy.
+ ## Ordering notes
+ 
+ - **The probes come first, in 0.0**, and two of them are load-bearing rather
+-  than reassurance: `SIGPIPE`'s lethality and the `OwnedFd` channel/spawn
++  than reassurance: what `SIGPIPE` does and the `OwnedFd` channel/spawn
+   asymmetry are the foundations of `SK-013` and `SK-035`, and both were read
+-  out of compiler source rather than run. A probe that contradicts either
+-  changes the library.
++  out of compiler source rather than run — until cycle 0.0.0 ran them: the
++  first contradicted its reading (@@PD-159@@), the second confirmed it. A probe
++  that contradicts either changes the library.
+ - **The harness comes first too**, for the compiler's stated reason about
+   diagnostics: it is how every later cycle is tested, and a suite written after
+   the code is a suite shaped by the code.
+diff --git a/meta/specs/CONCURRENCY_MODEL.md b/meta/specs/CONCURRENCY_MODEL.md
+index fcd4de8..0ef2e21 100644
+--- a/meta/specs/CONCURRENCY_MODEL.md
++++ b/meta/specs/CONCURRENCY_MODEL.md
+@@ -46,7 +46,10 @@ expressible, bounded, and needs nothing this library has to invent.
+ ## 2. What a socket may cross
+ 
+ Two language rules, measured in the compiler's own source, and they point in
+-opposite directions. Both matter.
++opposite directions. Both matter. *(2026-10-18: and run, at compiler `c9baa9e`,
++by cycle 0.0.0's probes 09, 09b, 10 and 10b — an `OwnedFd`, and a struct
++holding one, are `NITPICK-TYPE-057` as channel elements; a move into a spawned
++task compiles and runs; a borrow across the spawn is `NITPICK-BORROW-004`.)*
+ 
+ **Rule C-5 — an `OwnedFd` is refused as a channel element.**
+ `chan_elem_verdict_recorded` in `src/frontend/types.npk` answers
+diff --git a/meta/specs/SAFETY.md b/meta/specs/SAFETY.md
+index edaf3dc..5ad0dff 100644
+--- a/meta/specs/SAFETY.md
++++ b/meta/specs/SAFETY.md
+@@ -14,13 +14,13 @@ costs a library that talks to the kernel over descriptors.
+ 
+ | Language rule | Where | Consequence for `nsockets` |
+ |---|---|---|
+-| **The runtime installs no signal dispositions** | measured, §2 | `SIGPIPE`'s default is live and it terminates the process. **Every send carries `MSG_NOSIGNAL`.** §2 |
++| **The runtime catches `SIGPIPE` with a handler that returns** | measured, §2 (probe 04) | a send to a dead peer answers `EPIPE` on the floor's runtime, and kills a process whose disposition is the default. **Every send carries `MSG_NOSIGNAL`**, which answers `EPIPE` under either. §2 |
+ | `defer` does **not** run on a trap | D-014 | a socket open at trap time is closed by process exit and by nothing else. §6 |
+ | A trap is a **whole-program** event; no task resumes | D-063 | there is no "the connection task cleans up" |
+ | `failsafe`'s `pick` must **name** every error that can reach it | REACH-002 | every public `error:` we declare is an arm every consuming program owes. §3 |
+ | Reachability is **import-scoped** | 1.4.8's `nsys` note | module decomposition decides what a consumer's `failsafe` owes. §3 |
+-| An `OwnedFd` is **refused as a channel element** | TYPE-057, D-235 | a connection cannot be queued to a worker pool. This decides the server model outright. `CONCURRENCY_MODEL.md` §3 |
+-| An `OwnedFd` does **not** hold a pointer | `escape.npk`, D-185 | a **move** into a spawned task *is* legal. The two rules together are the whole concurrency story. `CONCURRENCY_MODEL.md` §3 |
++| An `OwnedFd` is **refused as a channel element** | TYPE-057, D-235; measured, probes 09 and 09b | a connection cannot be queued to a worker pool. This decides the server model outright. `CONCURRENCY_MODEL.md` §3 |
++| An `OwnedFd` does **not** hold a pointer | `escape.npk`, D-185; measured, probes 10 and 10b | a **move** into a spawned task *is* legal, and a borrow across the spawn is `BORROW-004`. The two rules together are the whole concurrency story. `CONCURRENCY_MODEL.md` §3 |
+ | Owning values are **move-only** | TYPE-046 | no binding-to-binding copies of an `OwnedFd`; a socket is consumed or borrowed, never duplicated by assignment |
+ | Borrows are second class | D-004 | a byte view handed to `send` cannot be stored, returned, or held across an `await` |
+ | A successful `exit 0` with live `wild` allocations **traps** | D-151 | every `wild` byte an ancillary buffer takes is paired on every path. §6 |
+@@ -44,28 +44,41 @@ is to **terminate the process** — not to return an error, not to route through
+ `failsafe`, not to run a `defer`. The program is gone, mid-transaction, with
+ whatever it was holding.
+ 
+-**This is live in Nitpick, and it is measured, not assumed.** The runtime
+-(`runtime/npkrt.ll`) installs no signal disposition for anything: a search of
+-its 3 400 lines finds no `rt_sigaction` call. There is no `SIG_IGN` for
+-`SIGPIPE` at `_start` and no equivalent anywhere else. The compiler's own
+-Bridge records the consequence in its source, in as many words:
+-
+-> *"MSG_NOSIGNAL always: a plain write to a socketpair whose peer died raises
+-> SIGPIPE, which terminates the runtime by default — the exact event this
+-> architecture exists to prevent."* — `lib/nbridge.npk`
+-
+-and, elsewhere in the same file, that *"the first EPIPE schedule proved it by
+-taking the whole process down."*
+-
+-**Rule S-1 (SK-013).** **Every send `nsockets` issues carries
++**What the floor's runtime does, measured at compiler `c9baa9e`** (probe 04,
++`tests/probe/probe04_sigpipe.npk`, at `-O0` and through `opt -O2`). It catches
++`SIGPIPE` with a handler that returns: `runtime/npkrt.ll`'s `npk_fault_arm`
++installs it at startup (the compiler's DEF-68), and `rt_sigaction(SIGPIPE,
++NULL, &prior)` reads it back — neither `SIG_DFL` nor `SIG_IGN`, its flags
++`SA_RESTORER | SA_ONSTACK | SA_RESTART`. So on the floor's runtime a send with
++no flags to a dead peer **answers `EPIPE`** and the program lives, and so do
++the same send with `MSG_NOSIGNAL`, the floor's `write` on the socket, and a
++`write` to a pipe whose reader is gone — all four the same error. Under the
++default disposition, set by the probe itself, the `MSG_NOSIGNAL` send still
++answers `EPIPE`, and the same send with no flags **dies by signal 13**.
++
++*(Corrected 2026-10-18 by @@PD-159@@. This paragraph said the runtime installs
++no signal disposition for anything — a search of `npkrt.ll` found no
++`rt_sigaction` call — which was true of the runtime it was read in: there is
++none at the compiler's `3d15ac9`, and the handler is there from `c3bdae2`. It
++quoted the compiler's Bridge, `lib/nbridge.npk`: "a plain write to a socketpair
++whose peer died raises SIGPIPE, which terminates the runtime by default" — a
++comment that predates the handler and still reads so at `c9baa9e` — and "the
++first EPIPE schedule proved it by taking the whole process down", which that
++file says of `?!`, an unwrap that traps on an `EPIPE` result, not of the
++signal.)*
++
++**Rule S-1 (SK-013, @@PD-159@@).** **Every send `nsockets` issues carries
+ `MSG_NOSIGNAL`.** Without exception, on every family, on every socket type,
+ on the ancillary path as well as the ordinary one. The failure then arrives
+-as `EPIPE` (`-32`) in `Result.err`, where a caller can see it and act.
++as `EPIPE` (`-32`) in `Result.err`, where a caller can see it and act —
++whatever the process's disposition is, the floor's handler or the default.
+ 
+ **Rule S-2.** `nsockets` therefore **does not use the runtime floor's
+ `write`** on a socket, and neither may an impl of the prelude's `Writer` trait
+ over one. The floor's `write` is `write(2)`, which raises `SIGPIPE` on a socket
+-exactly as it does in C; the only send primitives this library uses are
++exactly as it does in C — answered `EPIPE` by the floor's handler and fatal
++under the default disposition (probe 04) — and has no flags word to carry
++`MSG_NOSIGNAL`; the only send primitives this library uses are
+ `sendto` (syscall 44) and `sendmsg` (syscall 46), both with `MSG_NOSIGNAL` in
+ the flags word. This is the single most likely rule to be broken by accident,
+ because `ByteWriter` in the prelude *does* use the floor's `write` and looks
+diff --git a/meta/specs/STREAM_MODEL.md b/meta/specs/STREAM_MODEL.md
+index af3e467..21a25fc 100644
+--- a/meta/specs/STREAM_MODEL.md
++++ b/meta/specs/STREAM_MODEL.md
+@@ -57,9 +57,10 @@ which is D-072's rule and the prelude's own shape — `ByteWriter`'s `flush` is
+ **Rule T-5 — the `Writer` impl uses `sendto`, not the floor's `write`.**
+ `SAFETY.md` S-2. This is the rule most likely to be broken by somebody copying
+ `impl:ByteWriter:Writer` out of the prelude, which uses `write(2)` because it
+-writes to a file. On a socket, `write(2)` raises `SIGPIPE` and terminates the
+-process. **The two impls cannot share a body**, and a comment at both sites
+-says so.
++writes to a file. On a socket, `write(2)` raises `SIGPIPE` — answered `EPIPE`
++by the floor's handler and fatal under the default disposition (probe 04) —
++and it has no flags word for `MSG_NOSIGNAL`. **The two impls cannot share a
++body**, and a comment at both sites says so.
+ 
+ **Rule T-6 — the retry loop is the prelude's shape**, and only the syscall
+ differs:
+diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
+index 66cc96a..c462328 100644
+--- a/meta/specs/TESTING.md
++++ b/meta/specs/TESTING.md
+@@ -68,27 +68,34 @@ pathname test is the day one gets left behind.
+ 
+ ## 3. The `SIGPIPE` test is the one that must exist
+ 
+-**Rule V-5.** A test that:
+-
+-1. makes a `socketpair`;
+-2. closes one end;
+-3. sends on the other **without** `MSG_NOSIGNAL`, in a child process, and
+-   asserts the child **died of signal 13**;
+-4. sends on another pair **with** `MSG_NOSIGNAL` and asserts it returns
+-   `EPIPE` (`-32`) in `Result.err`.
++**Rule V-5 (@@PD-159@@).** Probe 04, `tests/probe/probe04_sigpipe.npk`, a
++permanent suite entry, which:
++
++1. reads `SIGPIPE`'s disposition and asserts the floor's handler is installed;
++2. makes a `socketpair`, closes one end, and sends on the other with a flags
++   word of 0 — asserting an error, and that the program lives;
++3. sends **with** `MSG_NOSIGNAL`, writes with the floor's `write`, and writes
++   to a pipe whose reader is closed — asserting all three answer the same error
++   as step 2, the pipe's `EPIPE`;
++4. sets the disposition to `SIG_DFL` and sends with `MSG_NOSIGNAL` again —
++   asserting `EPIPE`, and that the program lives.
+ 
+ This is the one test in the suite that proves a *specification claim* rather
+-than a behaviour: `SAFETY.md` §2 asserts that the runtime installs no `SIGPIPE`
+-disposition and that the default is lethal, and that claim is load-bearing for
+-every send in the library. If a future compiler release starts ignoring
+-`SIGPIPE` at `_start`, step 3 fails, and the library learns that its central
+-rule has become belt-and-braces rather than essential — which is worth knowing
+-either way.
+-
+-**Rule V-6.** Step 3 needs a subprocess, because the whole point is that the
++than a behaviour: `SAFETY.md` §2's account of the disposition, and that
++`MSG_NOSIGNAL` reaches the kernel through `sys` — step 4 dies by signal 13 if it
++does not. If a future runtime stops installing the handler, step 1 fails, and
++the library learns that its central rule has become essential again rather
++than belt-and-braces — which is worth knowing either way. *(Rewritten
++2026-10-18 by @@PD-159@@: step 3 was a send without `MSG_NOSIGNAL`, in a child,
++asserted to die of signal 13; at compiler `c9baa9e` that send answers `EPIPE`.)*
++
++~~**Rule V-6.** Step 3 needs a subprocess, because the whole point is that the
+ process dies. The harness runs it as a separate program whose expected outcome
+ is death by signal, and the marker is `// expect-signal: 13` — one addition to
+-the compiler's marker grammar, and the only one this library makes.
++the compiler's marker grammar, and the only one this library makes.~~ —
++**retired by @@PD-159@@** (2026-10-18): nothing in the suite is expected to die
++by a signal at the pin, so the marker would have no consumer, and this library
++adds none to the compiler's marker grammar.
+ 
+ ---
+ 
+@@ -172,7 +179,7 @@ expectations and requires it to report every one as a failure:
+ - a `check` case expecting a code the compiler does not report;
+ - a `check` case that reports a code no expectation names (the D-237 rule);
+ - a `loopback` case that leaves a socket open at exit (D-151 should trap it);
+-- a `// expect-signal: 13` case whose program exits normally;
++- ~~a `// expect-signal: 13` case whose program exits normally;~~ retired with V-6 (@@PD-159@@);
+ - a `parse` case that does not parse;
+ - a tree check fed a deliberate violation — a `sendto` without `MSG_NOSIGNAL`.
+ 
+diff --git a/tests/probe/probe04_sigpipe.npk b/tests/probe/probe04_sigpipe.npk
+new file mode 100644
+index 0000000..63cebe5
+--- /dev/null
++++ b/tests/probe/probe04_sigpipe.npk
+@@ -0,0 +1,112 @@
++// expect-exit: 0
++//
++// PROBE 04 -- SIGPIPE, AND WHAT `MSG_NOSIGNAL` IS FOR AT THIS PIN.
++//
++// ASKS: what a send to a socket whose peer is gone does to the sender -- under the disposition the
++// floor's runtime installs, and under the default one. In order:
++//   1. the disposition: `rt_sigaction(SIGPIPE, NULL, &prior)` -- is a handler installed, with which flags;
++//   2. a `sendto` with a flags word of 0 to a socketpair whose peer is closed;
++//   3. the same with `MSG_NOSIGNAL` (16384), the floor's `write` on the same socket, and -- the
++//      witness that the error is `EPIPE` -- a `write` to a pipe whose reader is closed;
++//   4. the disposition set to `SIG_DFL` by this program, then the `MSG_NOSIGNAL` send again.
++// DEPENDS ON THE ANSWER: SK-013, `SAFETY.md` §2, and the `// expect-signal:` marker
++// (`TESTING.md` V-6), whose one consumer was this probe's leg 2.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. The floor catches SIGPIPE with a handler that
++// returns (`SA_RESTORER | SA_ONSTACK | SA_RESTART`), so leg 2 answers an error and the program
++// lives; every send answers the same error, the pipe's `EPIPE`; and under `SIG_DFL` the
++// `MSG_NOSIGNAL` send answers it too, so the flag reaches the kernel through `sys`. Were the flag
++// lost, leg 4 would die by signal 13 (a shell's status 141). An errno the prelude does not name
++// compares only against another error (probe 13), so `EPIPE` is identified by its witness. Codes
++// 10 ... 29 are the assertions.
++mod:probe04_sigpipe;
++
++fixed int64:SYS_WRITE = 1i64;
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_RT_SIGACTION = 13i64;
++fixed int64:SYS_SENDTO = 44i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:SYS_PIPE2 = 293i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:PIPE_CLOEXEC = 524288i64;
++fixed int64:MSG_NOSIGNAL = 16384i64;
++fixed int64:SIGPIPE = 13i64;
++fixed int64:SA_FLOOR = 469762048i64;
++
++func:main = int32(cstring[]:_~argv) {
++    // 1. the disposition the floor installed at startup
++    wild int8->:prior = calloc(1i64, 32i64);
++    Result<int64>:rq = sys(SYS_RT_SIGACTION, SIGPIPE, 0i64, prior, 8i64);
++    if (rq.is_error) { exit 10i32; }
++    int64:handler = <-(#ptr_add<int64>(prior, 0i64));
++    int64:flags = <-(#ptr_add<int64>(prior, 1i64));
++    dalloc(prior);
++    if (handler == 0i64) { exit 11i32; }
++    if (handler == 1i64) { exit 12i32; }
++    if (flags != SA_FLOOR) { exit 13i32; }
++
++    // 2. a send with no flags to a socketpair whose peer is closed
++    wild int8->:sv = alloc(8i64);
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rsp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
++    if (rsp.is_error) { exit 14i32; }
++    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
++    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
++    dalloc(sv);
++    Result<int64>:cb = sys(SYS_CLOSE, b);
++    if (cb.is_error) { exit 15i32; }
++    wild int8->:one = calloc(1i64, 8i64);
++    <-one = 120i8;
++    Result<int64>:r0 = sys(SYS_SENDTO, a, one, 1i64, 0i64, 0i64, 0i64);
++    if (!r0.is_error) { exit 16i32; }
++
++    // 3. MSG_NOSIGNAL, the floor's `write`, and the witness
++    Result<int64>:r1 = sys(SYS_SENDTO, a, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);
++    if (!r1.is_error) { exit 17i32; }
++    if (r1.err != r0.err) { exit 18i32; }
++    Result<int64>:rw = write((a =>! int32) =>! fd, one, 1i64);
++    if (!rw.is_error) { exit 19i32; }
++    if (rw.err != r0.err) { exit 20i32; }
++    wild int8->:pv = alloc(8i64);
++    Result<int64>:rp = sys(SYS_PIPE2, pv, PIPE_CLOEXEC);
++    if (rp.is_error) { exit 21i32; }
++    int64:pr = (<-(#ptr_add<int32>(pv, 0i64))) => int64;
++    int64:pw = (<-(#ptr_add<int32>(pv, 1i64))) => int64;
++    dalloc(pv);
++    Result<int64>:cr = sys(SYS_CLOSE, pr);
++    if (cr.is_error) { exit 22i32; }
++    Result<int64>:wp = sys(SYS_WRITE, pw, one, 1i64);
++    if (!wp.is_error) { exit 23i32; }
++    if (wp.err != r0.err) { exit 24i32; }
++
++    // 4. the default disposition, set by this program: MSG_NOSIGNAL alone stands between it and death
++    wild int8->:act = calloc(1i64, 32i64);
++    Result<int64>:rd = sys(SYS_RT_SIGACTION, SIGPIPE, act, 0i64, 8i64);
++    dalloc(act);
++    if (rd.is_error) { exit 25i32; }
++    Result<int64>:r4 = sys(SYS_SENDTO, a, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);
++    if (!r4.is_error) { exit 26i32; }
++    if (r4.err != r0.err) { exit 27i32; }
++
++    dalloc(one);
++    Result<int64>:ca = sys(SYS_CLOSE, a);
++    if (ca.is_error) { exit 28i32; }
++    Result<int64>:cw = sys(SYS_CLOSE, pw);
++    if (cw.is_error) { exit 29i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe10_ownedfd_spawn.npk b/tests/probe/probe10_ownedfd_spawn.npk
+new file mode 100644
+index 0000000..ad1e157
+--- /dev/null
++++ b/tests/probe/probe10_ownedfd_spawn.npk
+@@ -0,0 +1,89 @@
++// expect-exit: 0
++//
++// PROBE 10 -- AN `OwnedFd` MOVED INTO A SPAWNED TASK.
++//
++// ASKS: `drop handler(move(o))`, where `handler` is `async func:handler = NIL(move OwnedFd:o)` --
++// can a task own the descriptor its spawner accepted? Read out of `type_holds_pointer` in the
++// compiler's `escape.npk` (`TY_OWNEDFD` -> false, "a descriptor NUMBER") and `IO_REFERENCE.md` §6;
++// this runs it: the task sends one byte on the descriptor it owns, its drop closes it, and the
++// spawner's join waits for it before its own scope ends.
++// DEPENDS ON THE ANSWER: SK-035 -- with probe 09's refusal, accept-then-spawn is the only server
++// model the language permits (`CONCURRENCY_MODEL.md` §3). Refused, it would leave only "one
++// connection at a time, inline", and the server story would be re-planned from scratch.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 19 are the assertions: the byte the
++// task sent arrives at the other end, and after the join the moved descriptor is closed -- its
++// `fcntl(F_GETFD)` answers the error a closed descriptor's does, measured against a witness.
++// Probe 10b is its pair: a BORROW across the spawn is refused.
++mod:probe10_ownedfd_spawn;
++
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_SENDTO = 44i64;
++fixed int64:SYS_RECVFROM = 45i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:SYS_FCNTL = 72i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:MSG_NOSIGNAL = 16384i64;
++fixed int64:MSG_DONTWAIT = 64i64;
++fixed int64:F_GETFD = 1i64;
++fixed int64:NO_SUCH_DESCR = 987654i64;
++
++error:ESend;
++
++async func:handler = NIL(move OwnedFd:o) {
++    wild int8->:one = calloc(1i64, 8i64);
++    <-one = 55i8;
++    Result<int64>:r = sys(SYS_SENDTO, o.value, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);
++    dalloc(one);
++    if (r.is_error) { fail ESend; }
++    pass NIL;
++};
++
++async func:serve = NIL(int64:descr) {
++    OwnedFd:o = own_fd((descr =>! int32) =>! fd);
++    drop handler(move(o));
++    pass NIL;
++};
++
++async func:main = int32(cstring[]:_~argv) {
++    wild int8->:sv = alloc(8i64);
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rsp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
++    if (rsp.is_error) { exit 10i32; }
++    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
++    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
++    dalloc(sv);
++    Result<NIL>:rs = await serve(a);
++    if (rs.is_error) { exit 11i32; }
++    wild int8->:got = calloc(1i64, 8i64);
++    Result<int64>:rn = sys(SYS_RECVFROM, b, got, 8i64, MSG_DONTWAIT, 0i64, 0i64);
++    if (rn.is_error) { exit 12i32; }
++    if (rn.value != 1i64) { exit 13i32; }
++    if ((<-got) != 55i8) { exit 14i32; }
++    dalloc(got);
++    Result<int64>:closed = sys(SYS_FCNTL, a, F_GETFD);
++    Result<int64>:witness = sys(SYS_CLOSE, NO_SUCH_DESCR);
++    if (!closed.is_error) { exit 15i32; }
++    if (!witness.is_error) { exit 16i32; }
++    if (closed.err != witness.err) { exit 17i32; }
++    Result<int64>:cb = sys(SYS_CLOSE, b);
++    if (cb.is_error) { exit 18i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (ESend)             { exit 20i32; },
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (DeadlineExceeded)  { exit 111i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe09_ownedfd_channel.npk b/tests/probe/refused/probe09_ownedfd_channel.npk
+new file mode 100644
+index 0000000..5916d8f
+--- /dev/null
++++ b/tests/probe/refused/probe09_ownedfd_channel.npk
+@@ -0,0 +1,31 @@
++// expect-error: NITPICK-TYPE-057
++//
++// PROBE 09 -- AN `OwnedFd` AS A CHANNEL ELEMENT.
++//
++// ASKS: is `Channel<OwnedFd, LEVEL, CAP>` spellable -- could an accepted connection be queued to a
++// worker pool? The refusal was read out of the compiler's `chan_elem_verdict_recorded`
++// (`TY_OWNEDFD` -> `CHAN_ELEM_FD`); this asks the compiler.
++// DEPENDS ON THE ANSWER: SK-035, half of it -- the server model (`CONCURRENCY_MODEL.md` §2, §3).
++// EXPECTED: refused, `NITPICK-TYPE-057` at the channel's annotation, and nothing else. Accepted would
++// WIDEN the design space (a worker pool becomes spellable): a decision to reopen, not a failure.
++// Probe 10 is its pair: a MOVE into a spawn is legal.
++mod:probe09_ownedfd_channel;
++
++func:queue = NIL(Channel<OwnedFd, 3i32, 4i64>:_~ch) never fails { pass NIL; };
++
++func:main = int32(cstring[]:_~argv) {
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe09b_holder_channel.npk b/tests/probe/refused/probe09b_holder_channel.npk
+new file mode 100644
+index 0000000..a8119dd
+--- /dev/null
++++ b/tests/probe/refused/probe09b_holder_channel.npk
+@@ -0,0 +1,32 @@
++// expect-error: NITPICK-TYPE-057
++//
++// PROBE 09b -- A STRUCT HOLDING AN `OwnedFd` AS A CHANNEL ELEMENT.
++//
++// ASKS: does probe 09's refusal reach through an aggregate -- a socket type is a struct holding its
++// `OwnedFd`, so this is the case a library type meets. Read out of `type_contains_borrow_recorded`
++// (`TY_OWNEDFD` -> true, so a struct holding one refuses transitively); this asks the compiler.
++// DEPENDS ON THE ANSWER: SK-035, with probe 09: every type this library declares around a
++// descriptor (`TcpStream`, `UnixStream`, `Listener`, `Datagram`) is a struct holding one.
++// EXPECTED: refused, `NITPICK-TYPE-057` at the channel's annotation, and nothing else.
++mod:probe09b_holder_channel;
++
++struct:Sockish = { OwnedFd:descr; uint8:family; };
++
++func:queue = NIL(Channel<Sockish, 3i32, 4i64>:_~ch) never fails { pass NIL; };
++
++func:main = int32(cstring[]:_~argv) {
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe10b_borrow_spawn.npk b/tests/probe/refused/probe10b_borrow_spawn.npk
+new file mode 100644
+index 0000000..1b3ddc2
+--- /dev/null
++++ b/tests/probe/refused/probe10b_borrow_spawn.npk
+@@ -0,0 +1,37 @@
++// expect-error: NITPICK-BORROW-004
++//
++// PROBE 10b -- A BORROW OF AN `OwnedFd` ACROSS A SPAWN.
++//
++// ASKS: probe 10's other half: `drop peek(@o)`, a task handed a BORROW of the descriptor its
++// spawner owns. D-004 rule 4, as D-180 narrows it to the spawn, says no.
++// DEPENDS ON THE ANSWER: SK-035 -- the asymmetry with probe 10's legal move is the whole finding.
++// EXPECTED: refused, `NITPICK-BORROW-004` at the spawn, and nothing else.
++mod:probe10b_borrow_spawn;
++
++async func:peek = NIL(OwnedFd->:p) {
++    pass NIL;
++};
++
++async func:serve = NIL(int64:descr) {
++    OwnedFd:o = own_fd((descr =>! int32) =>! fd);
++    drop peek(@o);
++    pass NIL;
++};
++
++async func:main = int32(cstring[]:_~argv) {
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (DeadlineExceeded)  { exit 111i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};

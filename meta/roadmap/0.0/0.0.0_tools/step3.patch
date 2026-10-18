@@ -1,0 +1,642 @@
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index 623d528..9b7c023 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -114,6 +114,12 @@ than four struct declarations for the same guarantee.
+ `close(release_fd(move s))` is the spelling for a caller that must observe
+ close's verdict — the move defuses the drop, so no double close is spellable.
+ 
++*(2026-10-18, cycle 0.0.0: RUN at compiler `c9baa9e` — `own_fd` on a socket closes it at the block's end; an owner
++handed to `release_fd(move(o))` is vacated, so its block's end closes nothing (the compiler's landing 105 drops an
++address-taken owner unconditionally, and a moved-out slot's drop is a no-op); `close` on the bare number answers
++success, and a second `close` the same error as a witness close of a number never opened (`tests/probe/probe05_ownedfd_drop.npk`).
++This decision holds as written.)*
++
+ ### SK-012 — non-blocking and close-on-exec are set atomically at creation
+ **2026-09-03.** `SOCK_NONBLOCK | SOCK_CLOEXEC` in the `socket()`,
+ `socketpair()` and `accept4()` calls. Never `socket()` followed by two `fcntl`
+@@ -308,6 +314,10 @@ socket addresses are routinely relative and routinely abstract, so `Path` is
+ the wrong type twice over. `unix_addr_from_path(Path)` exists for callers who
+ genuinely have an absolute path and want the check.
+ 
++*(2026-10-18, cycle 0.0.0, @@PD-161@@: the byte slice `unix_addr_path` takes is the read-only view, `fixed uint8[]`,
++so a caller holding a `string` passes `string_bytes(s)` — `ADDRESS_MODEL.md` A-14 says so; this decision's choice of a
++byte slice over `Path` holds as written.)*
++
+ ### SK-024 — no DNS
+ **2026-09-03.** No `getaddrinfo`, no `/etc/hosts`, no resolver.
+ 
+@@ -358,6 +368,12 @@ property.
+ with `MSG_NOSIGNAL` and **not** the floor's `write`, so it cannot share a body
+ with the prelude's `ByteWriter` impl.
+ 
++*(2026-10-18, cycle 0.0.0, @@PD-161@@: RUN at compiler `c9baa9e` — a struct holding an `OwnedFd` implements the
++prelude's `Reader` and `Writer` with their exact signatures, `fixed uint8[]:wsrc` and `Writer`'s `flush` among them, its
++`write` a `sendto` with `MSG_NOSIGNAL` from the view's own `.ptr` and `.len`, and it runs through a generic bound and
++through `dyn Writer` (`tests/probe/probe06_reader_writer.npk`); an implementation that drops the `fixed` is
++`NITPICK-TYPE-014` (`refused/probe06b_impl_drops_fixed.npk`). This decision holds as written.)*
++
+ ### SK-028 — `IPV6_V6ONLY` is set explicitly, never left to the sysctl
+ **2026-09-03.** Every IPv6 socket sets it to whatever the caller asked for.
+ The builder's default is **v6only on**.
+@@ -564,3 +580,29 @@ the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, a
+ *Reversal:* none for the sizes, which are measurements — a later pin that moves one reddens probe 02, 03 or 12 on its
+ first run, and the specification follows. If a later compiler frees `pid`, `uid` or `gid` as names, the fields keep
+ the names they have, since renaming a public field is a major version.
++
++### @@PD-161@@ — every slot a reader's bytes reach is the read-only view; a writer's is plain
++**2026-10-18, cycle 0.0.0 step 3, probes 06, 06b, 14 and 14b. The pin audit's SL-1 and SL-4; SL-6 beside them.**
++
++*What was measured* at compiler `c9baa9e`, at `-O0` and through `opt -O2`: a decoder over `fixed uint8[]:src` takes
++`string_bytes` of a `string` (the read-only view since the compiler's landing 103, D-351), a plain view of a local
++array, and a range of either (probe 14); the same decoder over a plain `uint8[]:src` refuses `string_bytes(s)`,
++`NITPICK-TYPE-007` at the argument (probe 14b). An implementation of the prelude's `Writer` takes `fixed
++uint8[]:wsrc` exactly as the trait does — dropping the `fixed` is `NITPICK-TYPE-014` (probe 06b) — and its `write`
++hands the view's own `.ptr` and `.len` to `sendto` (probe 06). A `Reader`'s `dest` is a plain `uint8[]`: it writes.
++
++*So:* every parameter this library declares over bytes it only reads is `fixed uint8[]` — `addr_decode`,
++`unix_decode`, `unix_addr_path`, every parser (A-5, A-14, A-22), every kernel-structure accessor (`VERIFICATION.md`
++Z-2's `sin_port_at`), and cycle 0.1's checklist, with a test that `socket_addr_parse(string_bytes(s))` compiles —
++and every parameter it writes stays a plain `uint8[]`: `addr_encode`'s and `unix_encode`'s `dest`, a receive's
++`dest`. The stream implementations' checklist (cycle 0.3) names `fixed uint8[]:wsrc` and `flush`. And the bare word
++`fixed` is the keyword's: a size is "constant-size", never "fixed" (SL-6's eight sites).
++
++*Alternatives declined:* **keep plain `uint8[]` and let a caller copy a `string` into a buffer first** — every call
++from a `string` would allocate, the cost A-22 exists to avoid; **a `string` overload beside each parser** — two
++entry points per parser where one view serves both callers; **plain `uint8[]` everywhere and a `fixed` copy at the
++edge** — a copy per call to undo a type the compiler hands out.
++
++*Reversal:* if a later compiler lets `string_bytes` fill a plain slot, nothing need move: a `fixed` parameter takes a
++plain view too (probe 14). If it removes the read-only view, the parameters return to `uint8[]` by a later decision,
++probe 14 reddening first.
+diff --git a/meta/OPEN_QUESTIONS.md b/meta/OPEN_QUESTIONS.md
+index d130a64..739b4ba 100644
+--- a/meta/OPEN_QUESTIONS.md
++++ b/meta/OPEN_QUESTIONS.md
+@@ -155,8 +155,8 @@ signal facility, @@PD-159@@.)*
+ ### Ancillary
+ 
+ - **O-Y1 — the `SCM_RIGHTS` cap.** Sixteen descriptors per message, against the
+-  kernel's 253, chosen so the fixed control buffer is comfortable.
+-  **Recommendation:** keep 16 at 1.0; a higher cap costs a bigger fixed buffer
++  kernel's 253, chosen so the constant-size control buffer is comfortable.
++  **Recommendation:** keep 16 at 1.0; a higher cap costs a bigger control buffer
+   on every ancillary receive, paid by everyone. Raise it with a measurement if a
+   consumer asks.
+ - **O-Y2 — descriptor passing to a non-`AF_UNIX` peer.** Nothing to do; recorded
+diff --git a/meta/roadmap/0.1/README.md b/meta/roadmap/0.1/README.md
+index aff9b8b..d4f380c 100644
+--- a/meta/roadmap/0.1/README.md
++++ b/meta/roadmap/0.1/README.md
+@@ -49,7 +49,7 @@ scope id? recommendation: yes).
+ 
+ ### 0.1.1 — encode and decode
+ - [ ] `addr_encode` / `addr_decode` — one pair, and nothing else touches the bytes (A-5)
+-- [ ] every offset from `ADDRESS_MODEL.md` §2, each behind its own accessor (`SAFETY.md` S-16)
++- [ ] every offset from `ADDRESS_MODEL.md` §2, each behind its own accessor over `fixed uint8[]` (`SAFETY.md` S-16, @@PD-161@@)
+ - [ ] `sin_zero` zeroed on every encode (A-6), so two encodings of one address compare equal
+ - [ ] `sin6_flowinfo` swapped, `sin6_scope_id` **not** — the adjacent-fields-opposite-conventions case, with its own test
+ - [ ] the returned length is the `addrlen` to pass, and is never `sizeof(sockaddr_storage)`
+@@ -62,7 +62,7 @@ scope id? recommendation: yes).
+ - [ ] **the abstract encoding asserted byte for byte**: `sun_path[0] == 0`, `addrlen == 2 + 1 + len`, and a test that binds two abstract names differing only in trailing bytes and asserts they are different addresses (A-12)
+ - [ ] a 108-byte path refused `ESockAddr` with the length in the message (A-13)
+ - [ ] a 107-byte path accepted, with its NUL
+-- [ ] `unix_addr_from_path(Path)` for absolute paths; `unix_addr_path(uint8[])` for everything else (A-14)
++- [ ] `unix_addr_from_path(Path)` for absolute paths; `unix_addr_path(fixed uint8[])` for everything else (A-14)
+ - [ ] an unnamed address round-trips through `getsockname` on a `socketpair` end (A-15)
+ 
+ ### 0.1.3 — parsing
+@@ -70,7 +70,7 @@ scope id? recommendation: yes).
+ - [ ] **every spelling in A-19's refusal table is a rejection test** — `127.1`, `0177.0.0.1`, `0x7f.0.0.1`, `1.2.3.4.5`, `1.2.3.`, `+1.2.3.4`, leading whitespace — because an untested security claim is a comment
+ - [ ] `ipv6_parse` per RFC 4291 §2.2: eight groups, at most one `::`, the trailing dotted-quad form, the `%scope` suffix
+ - [ ] `socket_addr_parse` with the bracketed IPv6 form; unbracketed IPv6-with-port refused (A-21)
+-- [ ] every parser takes `uint8[]`, not `string`, and allocates nothing (A-22)
++- [ ] every parser takes `fixed uint8[]`, not `string`, and allocates nothing (A-22); `socket_addr_parse(string_bytes(s))` compiles (@@PD-161@@)
+ 
+ ### 0.1.4 — formatting
+ - [ ] appends to a `Bytes`, never `string_concat` in a loop (A-23)
+diff --git a/meta/roadmap/0.3/README.md b/meta/roadmap/0.3/README.md
+index 7401dc6..ac3624e 100644
+--- a/meta/roadmap/0.3/README.md
++++ b/meta/roadmap/0.3/README.md
+@@ -28,7 +28,7 @@ drop to three).
+ 
+ ### 0.3.0 — `TcpStream` and the traits
+ - [ ] `TcpStream` with its recorded `peer` and `local` (T-1)
+-- [ ] `impl:TcpStream:Reader` and `impl:TcpStream:Writer` with the prelude's **exact** signatures — `Self->`, `async`, `Duration:within` (TYPE-048 requires the impl to keep the trait's `async`)
++- [ ] `impl:TcpStream:Reader` and `impl:TcpStream:Writer` with the prelude's **exact** signatures — `Self->`, `async`, `Duration:within`, `fixed uint8[]:wsrc` on `write` (`NITPICK-TYPE-014` otherwise, probe 06b) and `Writer`'s `flush` (TYPE-048 requires the impl to keep the trait's `async`; @@PD-161@@)
+ - [ ] **the `Writer` impl uses `sendto` with `MSG_NOSIGNAL`, not the floor's `write`** (T-5), with a comment at the site saying why it cannot share `ByteWriter`'s body
+ - [ ] `flush` is `pass NIL` and a comment says why that is correct (T-4)
+ - [ ] a `TcpStream` driven through `dyn Writer`, and through `TextWriter<TcpStream>` — the interoperability property `SK-027` exists for
+diff --git a/meta/roadmap/0.5/README.md b/meta/roadmap/0.5/README.md
+index 2a10442..bfc242f 100644
+--- a/meta/roadmap/0.5/README.md
++++ b/meta/roadmap/0.5/README.md
+@@ -26,7 +26,7 @@ recommendation: keep it).
+ 
+ ### 0.5.0 — the one `msghdr`
+ - [ ] `MsgHdr` (56), `IoVec` (16), `CMsg` (16 + payload) as Nitpick structs over
+-      one fixed block, `#size_of` asserted for each
++      one constant-size block, `#size_of` asserted for each
+ - [ ] `msg_namelen` and `msg_flags` as single 8-byte words covering the `int32`
+       and its padding (N-1) — layout-identical, and what the compiler's Bridge
+       does
+@@ -34,7 +34,7 @@ recommendation: keep it).
+ - [ ] `CMSG_LEN(n) == 16 + n` and `CMSG_SPACE(n)` rounded to 8, **as separate
+       named functions**, because conflating them is the most common
+       `SCM_RIGHTS` bug (N-2)
+-- [ ] the control buffer a fixed 256-byte stack array (N-4), taking no `wild`
++- [ ] the control buffer a 256-byte stack array (N-4), taking no `wild`
+       bytes
+ - [ ] the `cmsghdr` walk with its invariant and variant written as comments in
+       the syntax they will take (`specs/VERIFICATION.md` Z-3)
+diff --git a/meta/specs/ADDRESS_MODEL.md b/meta/specs/ADDRESS_MODEL.md
+index 6724d76..652f9ee 100644
+--- a/meta/specs/ADDRESS_MODEL.md
++++ b/meta/specs/ADDRESS_MODEL.md
+@@ -102,7 +102,7 @@ with a per-field table rather than "swap everything on the way out".
+ ### `sockaddr_storage` — 128 bytes
+ 
+ The receiving buffer for `accept4`, `recvfrom` and `getpeername`, big enough
+-for any family. `nsockets` uses it as a fixed 128-byte array and decodes by
++for any family. `nsockets` uses it as a 128-byte array and decodes by
+ reading `family` at offset 0 first.
+ 
+ **Rule A-4.** Every one of those sizes is asserted by a probe that fills a
+@@ -118,9 +118,9 @@ program that round-trips it is a measurement.
+ 
+ ```nitpick
+ addr_encode(SocketAddr, uint8[]:dest) -> int64        // bytes written = the addrlen to pass
+-addr_decode(uint8[]:src, int64:len)   -> SocketAddr   // family read from offset 0
++addr_decode(fixed uint8[]:src, int64:len)   -> SocketAddr   // family read from offset 0
+ unix_encode(UnixAddr, uint8[]:dest)   -> int64
+-unix_decode(uint8[]:src, int64:len)   -> UnixAddr
++unix_decode(fixed uint8[]:src, int64:len)   -> UnixAddr
+ ```
+ 
+ The returned length is the `addrlen` the syscall takes. It is **not** the
+@@ -190,7 +190,8 @@ D-054) requires an **absolute** path — `path_parse` fails `BadPath` on anythin
+ whose first byte is not `/` — and an abstract address is not a filesystem
+ object at all. Unix socket addresses are routinely relative (`./app.sock`) and
+ routinely abstract, so `Path` is the wrong type twice over. `unix_addr_path`
+-takes a byte slice; `unix_addr_from_path(Path)` exists as the convenience for
++takes the read-only byte view, `fixed uint8[]` (@@PD-161@@);
++`unix_addr_from_path(Path)` exists as the convenience for
+ callers who genuinely have an absolute path and want the check.
+ 
+ **Rule A-15 — an unnamed address is a real answer.** `getsockname` on a
+@@ -255,9 +256,12 @@ suffix. Uppercase and lowercase hex both accepted; nothing else.
+ in its own right — and the bracket form is what every RFC and every tool uses.
+ Unbracketed IPv6 with a port is `ESockAddr`.
+ 
+-**Rule A-22 — a parser is a pure function over `uint8[]`** and allocates
+-nothing. It takes a byte slice, not a `string`, so a caller parsing out of a
+-buffer does not build one first.
++**Rule A-22 — a parser is a pure function over `fixed uint8[]`** and allocates
++nothing. It takes the read-only byte view, not a `string`, so a caller parsing
++out of a buffer does not build one first, and a caller holding a `string`
++passes `string_bytes(s)` — which a plain `uint8[]` parameter refuses,
++`NITPICK-TYPE-007` (probe 14b), while the view takes both (probe 14;
++@@PD-161@@). The encoders' `dest` stays a plain `uint8[]`: they write.
+ 
+ ---
+ 
+diff --git a/meta/specs/ANCILLARY_MODEL.md b/meta/specs/ANCILLARY_MODEL.md
+index 893eb93..5605690 100644
+--- a/meta/specs/ANCILLARY_MODEL.md
++++ b/meta/specs/ANCILLARY_MODEL.md
+@@ -61,7 +61,7 @@ says the same about itself, in its section title, for the same reason: the
+ layout is fiddly, the alignment rules are unobvious, and three copies would
+ be three chances to get `CMSG_SPACE` wrong in one of them.
+ 
+-**Rule N-4 — the control buffer is a fixed-size stack array**
++**Rule N-4 — the control buffer is a constant-size stack array**
+ (`SAFETY.md` S-22), sized `NSOCK_CMSG_MAX` = 256 bytes. That holds
+ `SCM_RIGHTS` for up to 60 descriptors, or `SCM_CREDENTIALS`, or both. It takes
+ no `wild` bytes, so the ancillary path cannot trip D-151 on any exit path.
+@@ -178,7 +178,7 @@ its own decision. The `msghdr` layer is built so that adding one is a
+ - **O-Y1 — whether `SCM_RIGHTS` should cap at 16 or expose the kernel's 253.**
+   Sixteen is a named constant chosen for a comfortable control buffer.
+   **Recommendation:** keep 16 at 1.0 and raise it with a measurement if a
+-  consumer asks; a higher cap costs a bigger fixed buffer on every ancillary
++  consumer asks; a higher cap costs a bigger control buffer on every ancillary
+   receive, paid by everyone.
+ - **O-Y2 — descriptor passing to a process that is not `AF_UNIX`-adjacent.**
+   Nothing to do; recorded because "can I pass a descriptor over TCP" is asked
+diff --git a/meta/specs/SAFETY.md b/meta/specs/SAFETY.md
+index 5ad0dff..b3bcf1c 100644
+--- a/meta/specs/SAFETY.md
++++ b/meta/specs/SAFETY.md
+@@ -107,7 +107,7 @@ error identities `nsockets` declares is a hard budget, and it is four.**
+ |---|---|---|
+ | `ESockAddr` | an address could not be parsed, or does not fit its family's kernel structure | `src/addr/` |
+ | `ESockState` | an API was used out of order in a way the type system could not prevent — a second `connect`, a `bind` after `listen`, an operation on a socket whose peer half is shut down | `src/socket/` |
+-| `ESockCapacity` | a fixed-capacity structure is full — the ancillary control buffer, a received address longer than its family allows | `src/socket/` |
++| `ESockCapacity` | a constant-capacity structure is full — the ancillary control buffer, a received address longer than its family allows | `src/socket/` |
+ | `ESockProtocol` | received ancillary data is not what the wire promised — `MSG_CTRUNC`, a `cmsghdr` of the wrong level or type, a control length the kernel could not have produced | `src/ancillary/` |
+ 
+ **Rule S-5 — four is a ceiling, not a target**, and adding a fifth is a
+@@ -228,8 +228,8 @@ and it is the one place this library asks an application to clean up after it.
+ suspends tasks. An application that wants a thread per connection creates it,
+ and `CONCURRENCY_MODEL.md` §3 says what the language permits.
+ 
+-**Rule S-22 — ancillary buffers are fixed-size and stack-shaped.** The control
+-buffer for a `sendmsg`/`recvmsg` is a fixed array sized by
++**Rule S-22 — ancillary buffers are constant-size and stack-shaped.** The control
++buffer for a `sendmsg`/`recvmsg` is a stack array of constant size, sized by
+ `ANCILLARY_MODEL.md` §4's bound, not a growable allocation, so the ancillary
+ path takes no `wild` bytes and cannot trip D-151 on any exit path.
+ 
+diff --git a/meta/specs/SOCKET_MODEL.md b/meta/specs/SOCKET_MODEL.md
+index 0b64fb9..7b2724d 100644
+--- a/meta/specs/SOCKET_MODEL.md
++++ b/meta/specs/SOCKET_MODEL.md
+@@ -182,7 +182,7 @@ Options that may be set at any time are on the concrete types
+ **Rule K-13.** `bind(descr, addr_bytes, addr_len)` where the bytes and the
+ length come from `ADDRESS_MODEL.md`'s encoder. The length is **not**
+ `sizeof(sockaddr_storage)`: for `AF_UNIX` it is significant to the kernel
+-(§9), and passing a fixed 128 there changes the meaning of the address.
++(§9), and passing a constant 128 there changes the meaning of the address.
+ 
+ **Rule K-14 — an ephemeral bind is read back.** Binding to port 0 asks the
+ kernel to choose; the chosen port is only knowable through `getsockname`.
+diff --git a/meta/specs/VERIFICATION.md b/meta/specs/VERIFICATION.md
+index 8f4bd07..6dce528 100644
+--- a/meta/specs/VERIFICATION.md
++++ b/meta/specs/VERIFICATION.md
+@@ -61,7 +61,7 @@ The obligations below are the ones that remain.
+ field** (`SAFETY.md` S-16), and the accessor carries the obligation:
+ 
+ ```nitpick
+-func:sin_port_at = uint16(uint8[]:sa)
++func:sin_port_at = uint16(fixed uint8[]:sa)
+     requires (sa.len >= 16i64)
+     never fails { … };
+ ```
+diff --git a/tests/probe/probe05_ownedfd_drop.npk b/tests/probe/probe05_ownedfd_drop.npk
+new file mode 100644
+index 0000000..ae9e9e3
+--- /dev/null
++++ b/tests/probe/probe05_ownedfd_drop.npk
+@@ -0,0 +1,78 @@
++// expect-exit: 0
++//
++// PROBE 05 -- AN `OwnedFd`'S DROP IS THE CLOSE.
++//
++// ASKS: `own_fd` on a socket inside a block: at the closing brace the descriptor is closed --
++// `fcntl(F_GETFD)` answers the error a closed descriptor does, measured against a witness. Then
++// the other path: `release_fd(move(o))` inside a block, whose vacated owner's drop must NOT close
++// (landing 105's unconditional drop of an address-taken owner leaves a moved-out slot a no-op,
++// D-225) -- the descriptor is still open after that block -- and an explicit `close` whose
++// verdict is observable, a second `close` answering the same error as the witness.
++// DEPENDS ON THE ANSWER: SK-011 (`SAFETY.md` S-17): the drop is the whole lifetime story, and there
++// is no `close` in the surface; `close(release_fd(move s))` is the spelling for a caller that must
++// see close's verdict, with no double close spellable.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
++mod:probe05_ownedfd_drop;
++
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:SYS_FCNTL = 72i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:F_GETFD = 1i64;
++fixed int64:NO_SUCH_DESCR = 987654i64;
++
++func:main = int32(cstring[]:_~argv) {
++    wild int8->:sv = alloc(8i64);
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
++    if (rp.is_error) { exit 10i32; }
++    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
++    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
++    dalloc(sv);
++    Result<int64>:witness = sys(SYS_CLOSE, NO_SUCH_DESCR);
++    if (!witness.is_error) { exit 11i32; }
++
++    // the drop closes
++    {
++        OwnedFd:o = own_fd((a =>! int32) =>! fd);
++        Result<int64>:open_inside = sys(SYS_FCNTL, o.value, F_GETFD);
++        if (open_inside.is_error) { exit 12i32; }
++    }
++    Result<int64>:after = sys(SYS_FCNTL, a, F_GETFD);
++    if (!after.is_error) { exit 13i32; }
++    if (after.err != witness.err) { exit 14i32; }
++
++    // a released owner's drop does not close; the explicit close's verdict is observable, once
++    int64:kept = 0i64 - 1i64;
++    {
++        OwnedFd:p = own_fd((b =>! int32) =>! fd);
++        fd:bare = release_fd(move(p));
++        kept = (bare =>! int32) => int64;
++    }
++    if (kept != b) { exit 15i32; }
++    Result<int64>:still = sys(SYS_FCNTL, b, F_GETFD);
++    if (still.is_error) { exit 16i32; }
++    Result<NIL>:first = close((b =>! int32) =>! fd);
++    if (first.is_error) { exit 17i32; }
++    Result<NIL>:second = close((b =>! int32) =>! fd);
++    if (!second.is_error) { exit 18i32; }
++    if (second.err != witness.err) { exit 19i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe06_reader_writer.npk b/tests/probe/probe06_reader_writer.npk
+new file mode 100644
+index 0000000..a01b12f
+--- /dev/null
++++ b/tests/probe/probe06_reader_writer.npk
+@@ -0,0 +1,136 @@
++// expect-exit: 0
++//
++// PROBE 06 -- THE PRELUDE'S `Reader` AND `Writer` OVER A STRUCT HOLDING AN `OwnedFd`.
++//
++// ASKS: a struct with one `OwnedFd` field implementing the prelude's two stream traits with their
++// exact signatures -- `async`, a `Self->` receiver, `write`'s `fixed uint8[]:wsrc`, `read`'s plain
++// `uint8[]:dest`, `Duration:within`, and `Writer`'s `flush` -- driven through a generic bound and
++// through `dyn Writer` (an explicit `move(x) => dyn Writer`). `write` is `sendto` with
++// `MSG_NOSIGNAL`, from the view's own `.ptr` and `.len` (the pointer-and-length a `fixed` view
++// gives a syscall), never the floor's `write` (SK-013's corollary, `SAFETY.md` S-2); a would-block
++// waits on `io_ready` with what remains of the deadline, the descriptor converted `fd` -> `int32`
++// at the reactor.
++// DEPENDS ON THE ANSWER: SK-027 (`STREAM_MODEL.md` T-6), the library's interoperability property;
++// `TYPE-014` holds an impl to its trait's spelling (probe 06b refuses the dropped `fixed`).
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
++mod:probe06_reader_writer;
++
++fixed int64:SYS_SENDTO = 44i64;
++fixed int64:SYS_RECVFROM = 45i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:MSG_NOSIGNAL = 16384i64;
++
++struct:Sock = { OwnedFd:descr; };
++
++impl:Sock:Writer = {
++    async func:write = int64(Sock->:self, fixed uint8[]:wsrc, Duration:within) {
++        int64:give_up = (mono_now()) + within.ns;
++        // a retry loop over WouldBlock, bounded by the deadline `within` (DeadlineExceeded), not by a count
++        while (true) unbounded {
++            Result<int64>:r = sys(SYS_SENDTO, self.descr.value, wsrc.ptr, wsrc.len, MSG_NOSIGNAL, 0i64, 0i64);
++            if (!r.is_error) { pass r.value; }
++            if (r.err != WouldBlock) { fail r.err; }
++            int64:rem = give_up - (mono_now());
++            if (rem <= 0i64) { fail DeadlineExceeded; }
++            Result<NIL>:w = await io_ready((self.descr.value) =>! int32, 4i32, raw duration_ns(rem));
++            if (w.is_error) { fail w.err; }
++        }
++    };
++    async func:flush = NIL(Sock->:self, Duration:_~within) {
++        pass NIL;
++    };
++};
++
++impl:Sock:Reader = {
++    async func:read = int64(Sock->:self, uint8[]:dest, Duration:within) {
++        int64:give_up = (mono_now()) + within.ns;
++        // a retry loop over WouldBlock, bounded by the deadline `within` (DeadlineExceeded), not by a count
++        while (true) unbounded {
++            Result<int64>:r = sys(SYS_RECVFROM, self.descr.value, dest.ptr, dest.len, 0i64, 0i64, 0i64);
++            if (!r.is_error) {
++                if (r.value == 0i64) { fail IoEof; }
++                pass r.value;
++            }
++            if (r.err != WouldBlock) { fail r.err; }
++            int64:rem = give_up - (mono_now());
++            if (rem <= 0i64) { fail DeadlineExceeded; }
++            Result<NIL>:w = await io_ready((self.descr.value) =>! int32, 1i32, raw duration_ns(rem));
++            if (w.is_error) { fail w.err; }
++        }
++    };
++};
++
++async func:push<W: Writer> = int64(W->:w, fixed uint8[]:msg) {
++    int64:n = relay await w.write(msg, raw duration_ms(1000i64));
++    pass n;
++};
++
++async func:pull<R: Reader> = int64(R->:r, uint8[]:dest) {
++    int64:n = relay await r.read(dest, raw duration_ms(1000i64));
++    pass n;
++};
++
++async func:push_dyn = int64(dyn Writer:w, fixed uint8[]:msg) {
++    int64:n = relay await w.write(msg, raw duration_ms(1000i64));
++    pass n;
++};
++
++async func:main = int32(cstring[]:_~argv) {
++    wild int8->:sv = alloc(8i64);
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
++    if (rp.is_error) { exit 10i32; }
++    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
++    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
++    dalloc(sv);
++    Sock:wr = Sock{ descr: own_fd((a =>! int32) =>! fd) };
++    Sock:rd = Sock{ descr: own_fd((b =>! int32) =>! fd) };
++
++    // through a bound
++    string:ping = string_concat("ping", "");
++    fixed uint8[]:msg = string_bytes(ping);
++    Result<int64>:sent = await push(@wr, msg);
++    if (sent.is_error) { exit 11i32; }
++    if (sent.value != 4i64) { exit 12i32; }
++    uint8[8]:space = [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
++    uint8[]:dest = space[0i64...8i64];
++    Result<int64>:got = await pull(@rd, dest);
++    if (got.is_error) { exit 13i32; }
++    if (got.value != 4i64) { exit 14i32; }
++    if (space[0i64] != 112u8) { exit 15i32; }
++    if (space[3i64] != 103u8) { exit 16i32; }
++
++    // through `dyn`, the owner moved into the erased cell
++    string:pong = string_concat("pong!", "");
++    fixed uint8[]:msg2 = string_bytes(pong);
++    Result<int64>:sent2 = await push_dyn(move(wr) => dyn Writer, msg2);
++    if (sent2.is_error) { exit 17i32; }
++    if (sent2.value != 5i64) { exit 18i32; }
++    Result<int64>:got2 = await pull(@rd, dest);
++    if (got2.is_error) { exit 19i32; }
++    if (got2.value != 5i64) { exit 20i32; }
++    if (space[4i64] != 33u8) { exit 21i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (DecreasesViolated) { exit 108i32; },
++        (DeadlineExceeded)  { exit 111i32; },
++        (IoEof)             { exit 112i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe14_view_codec.npk b/tests/probe/probe14_view_codec.npk
+new file mode 100644
+index 0000000..d9f57fc
+--- /dev/null
++++ b/tests/probe/probe14_view_codec.npk
+@@ -0,0 +1,48 @@
++// expect-exit: 0
++//
++// PROBE 14 -- THE READ-ONLY VIEW AT A DECODER'S EDGE.
++//
++// ASKS: a decoder shaped as `ADDRESS_MODEL.md`'s A-5 and A-22 shape every parser -- a pure
++// function over bytes it only reads, here the family a `sockaddr` begins with -- declared over
++// `fixed uint8[]:src`, and called with what a caller has: `string_bytes` of a `string` (which
++// returns the read-only view since the compiler's landing 103, D-351), a plain view of a local
++// array (which converts INTO a `fixed` slot), and a range of either -- `"\nrest"` begins 10, 114,
++// so its family reads 10 + 114 * 256 = 29194. Probe 14b declares the same
++// decoder over a plain `uint8[]` and calls it with `string_bytes`.
++// DEPENDS ON THE ANSWER: the pin audit's SL-1 -- every read-only byte parameter is `fixed uint8[]`
++// (A-5, A-22, Z-2's accessors, `unix_addr_path`) -- and RX-230's read-only view (PD below).
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 19 are the assertions.
++mod:probe14_view_codec;
++
++// The family a sockaddr's first two bytes hold, host order; -1 when there are fewer than two.
++func:family_of = int64(fixed uint8[]:src) never fails {
++    if (src.len < 2i64) { pass 0i64 - 1i64; }
++    pass (src[0i64] => int64) | ((src[1i64] => int64) << 8i64);
++};
++
++func:main = int32(cstring[]:_~argv) {
++    string:wire = string_concat("\n", "rest");
++    fixed uint8[]:from_text = string_bytes(wire);
++    if ((raw family_of(from_text)) != 29194i64) { exit 10i32; }
++    uint8[4]:arr = [2u8, 0u8, 31u8, 144u8];
++    uint8[]:plain = arr[0i64...4i64];
++    if ((raw family_of(plain)) != 2i64) { exit 11i32; }
++    if ((raw family_of(from_text[0i64...2i64])) != 29194i64) { exit 12i32; }
++    if ((raw family_of(plain[0i64...1i64])) != (0i64 - 1i64)) { exit 13i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe06b_impl_drops_fixed.npk b/tests/probe/refused/probe06b_impl_drops_fixed.npk
+new file mode 100644
+index 0000000..1037c61
+--- /dev/null
++++ b/tests/probe/refused/probe06b_impl_drops_fixed.npk
+@@ -0,0 +1,40 @@
++// expect-error: NITPICK-TYPE-014
++//
++// PROBE 06b -- A `Writer` WHOSE `write` DROPS THE `fixed`.
++//
++// ASKS: probe 06's implementation with one change: `write`'s source spelled a plain `uint8[]:wsrc`
++// where the prelude's trait spells `fixed uint8[]:wsrc`. The compiler's `IO_REFERENCE.md` says an
++// impl declares `wsrc` as the trait does; this asks it.
++// DEPENDS ON THE ANSWER: the pin audit's SL-4 -- the stream checklists name the `fixed`
++// (`STREAM_MODEL.md` T-6, cycle 0.3) -- and SK-027.
++// EXPECTED: refused, `NITPICK-TYPE-014` at the implementation's `write`, and nothing else.
++mod:probe06b_impl_drops_fixed;
++
++struct:Sock = { OwnedFd:descr; };
++
++impl:Sock:Writer = {
++    async func:write = int64(Sock->:self, uint8[]:wsrc, Duration:_~within) {
++        pass wsrc.len;
++    };
++    async func:flush = NIL(Sock->:self, Duration:_~within) {
++        pass NIL;
++    };
++};
++
++async func:main = int32(cstring[]:_~argv) {
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (DeadlineExceeded)  { exit 111i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe14b_view_into_plain.npk b/tests/probe/refused/probe14b_view_into_plain.npk
+new file mode 100644
+index 0000000..307c031
+--- /dev/null
++++ b/tests/probe/refused/probe14b_view_into_plain.npk
+@@ -0,0 +1,35 @@
++// expect-error: NITPICK-TYPE-007
++//
++// PROBE 14b -- `string_bytes` INTO A PLAIN `uint8[]` PARAMETER.
++//
++// ASKS: probe 14's decoder declared as the specifications spell it today, over a plain
++// `uint8[]:src`, and called with `string_bytes(wire)`.
++// DEPENDS ON THE ANSWER: the pin audit's SL-1: a caller holding a `string` -- a configuration value,
++// an argument -- could not reach a decoder or parser spelled this way.
++// EXPECTED: refused, `NITPICK-TYPE-007` at the argument, and nothing else.
++mod:probe14b_view_into_plain;
++
++func:family_of = int64(uint8[]:src) never fails {
++    if (src.len < 2i64) { pass 0i64 - 1i64; }
++    pass src[0i64] => int64;
++};
++
++func:main = int32(cstring[]:_~argv) {
++    string:wire = string_concat("\n", "rest");
++    exit (raw family_of(string_bytes(wire))) =>! int32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};

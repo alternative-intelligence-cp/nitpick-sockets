@@ -1,0 +1,22 @@
+# meta/roadmap/0.0/tools/decisions.txt -- cycle 0.0's proposed decisions, in PD order, and the base they are numbered from.
+#
+# The plan proposes PDs from PD-159 on, in the Team seat's block for this repository (PD-159 ... PD-178, confirmed by
+# nitpick-libs_19 on 2026-10-15), and a line is added here as each subcycle's file reaches the pin. At the libraries'
+# seat's review each accepted PD becomes this repository's next decision number in the order of this file, after
+# `base` -- the decision log's highest by value, read by `grep -o '^### SK-[0-9]*' meta/DECISIONS.md | sort -t- -k2 -n
+# | tail -1` (`PLAYBOOK.md` §7). `apply.py` writes the numbers into every patch at the moment it applies it -- each
+# `@@PD-nnn@@` becomes `SK-<base + rank>`, and a patch whose added lines hold a bare `PD-` label or a number past the
+# base is refused -- and an Expect writes a number past the base as its label, which `blocks.py` reads a run's number
+# as; so no file of this plan states a number before the review gives it.
+#
+# If the review declines a PD, it deletes that line here, and re-cuts the hunks that declare or cite it and the plan's
+# text that names it; every later number then moves down by one, in every patch and in every run's output. A label an
+# Expect writes for a number a run prints is read back through this file, so it stands while the PD it names is
+# accepted. The Expect lines a decline moves are named, block by block, in each subcycle file's gate item 3, and each
+# is retaken with the re-cut, from a run in plan order.
+base SK-100
+PD-159
+PD-160
+PD-161
+PD-162
+PD-163

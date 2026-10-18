@@ -1,0 +1,662 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 7f79b83..69b8909 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -95,8 +95,9 @@ Full statement in `meta/specs/SAFETY.md` §1. The ones that bite hardest here:
+ 
+ `meta/specs/BUILD.md` §7 has the table. The ones this domain wants most:
+ `fd`, `raw`, `in`, `any`, `buffer`, `move`, `end`, `limit`, `error`, `on`,
+-`thread`, `channel`, `atomic`, `is`, `is_err`, `never`, `fails`, `with`,
+-`where`, `as`, `mod`, `unit`, `oflags`, `prot`, `mflags`, `fmode`.
++`thread`, `atomic`, `is`, `is_err`, `never`, `fails`, `with`, `where`, `as`,
++`mod`, `unit`, `oflags`, `prot`, `mflags`, `fmode`, and `pid`, `uid`, `gid`,
++`old`, `result`, `release` (@@PD-160@@; `channel` is not one).
+ 
+ **The substitutes this library uses**, so the tree stays consistent: `descr`
+ for a raw descriptor number; `sock` for a `Sock`; `sink`/`src` for a byte
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index 923cfa3..623d528 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -130,6 +130,10 @@ a task suspension, and a blocking descriptor in the reactor parks the thread.
+ The one place `fcntl` appears is `sock_adopt` (`SOCKET_MODEL.md` K-9), where a
+ descriptor arrived from outside and there is nothing atomic to do.
+ 
++*(2026-10-18, cycle 0.0.0: RUN at compiler `c9baa9e` — a TCP socket, an IPv6 datagram socket and a `socketpair`, each
++created with `SOCK_NONBLOCK | SOCK_CLOEXEC` in the creating call, read back non-blocking and close-on-exec by
++`fcntl` with no follow-up call (`tests/probe/probe01_sys_socket.npk`). This decision holds as written.)*
++
+ ### SK-013 — every send carries `MSG_NOSIGNAL`, without exception
+ > **SUPERSEDED IN PART by @@PD-159@@ (2026-10-18): its stated fact.** At compiler `c9baa9e` the floor catches
+ > `SIGPIPE` with a handler that returns (probe 04); the rule stands, with its reason restated there.
+@@ -216,6 +220,12 @@ bytes. The socket equivalents are `sockaddr_un` (110, not 128) and `cmsghdr`'s
+ `CMSG_LEN` versus `CMSG_SPACE`. A comment stating a size is a comment; a
+ program that round-trips it through the kernel is a measurement.
+ 
++*(2026-10-18, cycle 0.0.0, @@PD-160@@: the running programs exist — `sockaddr_in` 16, `sockaddr_in6` 28,
++`sockaddr_un` 110 and `sockaddr_storage` 128 laid out as Nitpick structs and round-tripped through `bind` and
++`getsockname` with a sentinel past each end (probe 02), `msghdr` 56, `iovec` 16, `cmsghdr` 16 and `ucred` 12 through
++`sendmsg` and `recvmsg` (probe 03), and the address types' own sizes (probe 12) — every one as the specifications
++state it.)*
++
+ ### SK-017 — byte-order conversion lives in one module
+ **2026-09-03.** `src/addr/order.npk`, four functions, and every port, every
+ IPv4 word and every `sin6_flowinfo` goes through one of them. Nothing else in
+@@ -286,6 +296,10 @@ container of moves and an address could not be sent to another task. Addresses
+ are small, fixed-size and copied constantly; inlining 108 bytes is the cheap
+ answer to all of it.
+ 
++*(2026-10-18, cycle 0.0.0, @@PD-160@@: measured at compiler `c9baa9e` — 4 096 `SocketAddr` values in a `wild` array,
++filled, read back through a `pick`, copied whole by value and read through a generic `T: Copy` function, with every
++address type derived `Copy` (probe 12). This decision holds as written.)*
++
+ ### SK-023 — `UnixAddr` is not a `Path`
+ **2026-09-03.** The prelude's `Path` (D-051, D-054) requires an **absolute**
+ path — `path_parse` fails `BadPath` on anything whose first byte is not `/` —
+@@ -522,3 +536,31 @@ and a marker with no subject of its own is a marker nobody keeps working.
+ *Reversal:* if a later runtime stops installing the handler, probe 04's first assertion fails (exit 11) and its
+ no-flags send dies by signal 13 — red on that pin's first run — and a decision restores `SK-013`'s premise and the
+ marker, with probe 04 its consumer.
++
++### @@PD-160@@ — the kernel layouts and the address types at their measured sizes; the names the pin refuses are not used
++**2026-10-18, cycle 0.0.0 step 2, probes 01, 02, 03 and 12.**
++
++*What was measured* at compiler `c9baa9e`, at `-O0` and through `opt -O2`: the kernel structures, declared as
++Nitpick structs with natural alignment, are the kernel's sizes and round-trip through it — `sockaddr_in` 16,
++`sockaddr_in6` 28, `sockaddr_un` 110 (an `AF_UNIX` socket autobinds into the abstract namespace, 2 + 1 + 5 bytes),
++`sockaddr_storage` 128 (probe 02); `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 (probe 03). The address types
++of `ADDRESS_MODEL.md` §1, each derived `Copy`, measure `Ipv4Addr` 4 and `Ipv6Addr` 20 as stated there, and — stated
++nowhere until now — `IpAddr` 24, `SocketAddrV4` 6, `SocketAddrV6` 28, `SocketAddr` 32 and `UnixAddr` 110: a
++payload enum is an `int32` tag and then its widest payload (probe 12). And three of `ucred`'s field names, `pid`,
++`uid` and `gid`, are keywords at the pin — landing 113 refuses a keyword declared as a name of any kind,
++`NITPICK-PARSE-001` — as are `old`, `result`, `release`, `range` and the rest `specs/BUILD.md` §7 now lists; a name
++the prelude declares, such as `O_CLOEXEC`, is `NITPICK-RESOLVE-001` when declared again.
++
++*So:* `ADDRESS_MODEL.md` §1 states each address type's measured size and derives `Copy` on each; probe 02 and probe
++12, not probe 03, are the programs that assert them (its first sentence said probe 03); the library's `Ucred` names
++its fields `cpid`, `cuid` and `cgid`; and `specs/BUILD.md` §7 is the measured table, `channel` struck from it (it is
++not a keyword).
++
++*Alternatives declined:* **sum the sizes from field widths** — `PLAYBOOK.md` §2's rule, and the enum's tag is
++exactly what a sum leaves out; **keep the kernel's C names for `ucred` with a prefix applied only where the compiler
++objects** — a public type whose fields are named by exception is a type every reader re-learns; **state no sizes in
++the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, and probe 12 asserts each.
++
++*Reversal:* none for the sizes, which are measurements — a later pin that moves one reddens probe 02, 03 or 12 on its
++first run, and the specification follows. If a later compiler frees `pid`, `uid` or `gid` as names, the fields keep
++the names they have, since renaming a public field is a major version.
+diff --git a/meta/specs/ADDRESS_MODEL.md b/meta/specs/ADDRESS_MODEL.md
+index 2bb41d6..6724d76 100644
+--- a/meta/specs/ADDRESS_MODEL.md
++++ b/meta/specs/ADDRESS_MODEL.md
+@@ -6,29 +6,42 @@ with no kernel at all, and the only module besides `src/sys/` that a program can
+ import without owning a socket.
+ 
+ **Every offset and size in this document was measured on the target platform on
+-2026-09-03** and is re-asserted by a running program in cycle 0.0's probe 03
+-(`SK-016`).
++2026-09-03** and is re-asserted by a running program: the kernel structures by
++cycle 0.0's probe 02, the address types' own sizes by its probe 12 (`SK-016`,
++@@PD-160@@). *(Corrected 2026-10-18: this said probe 03, which measures the
++message structures of `ANCILLARY_MODEL.md` §1.)*
+ 
+ ---
+ 
+ ## 1. The types
+ 
+ ```nitpick
++#[derive(Copy)]
+ pub struct:Ipv4Addr = { uint8[4]:octets; };                      // 4 bytes
++#[derive(Copy)]
+ pub struct:Ipv6Addr = { uint8[16]:octets; uint32:scope; };       // 20 bytes
+-pub enum:IpAddr     = { V4(Ipv4Addr); V6(Ipv6Addr); };
+-
+-pub struct:SocketAddrV4 = { Ipv4Addr:ip; uint16:port; };
+-pub struct:SocketAddrV6 = { Ipv6Addr:ip; uint16:port; uint32:flow; };
+-pub enum:SocketAddr     = { V4(SocketAddrV4); V6(SocketAddrV6); };
+-
+-pub struct:UnixAddr = {
++#[derive(Copy)]
++pub enum:IpAddr     = { V4(Ipv4Addr); V6(Ipv6Addr); };           // 24 bytes: an int32 tag, then the payload
++
++#[derive(Copy)]
++pub struct:SocketAddrV4 = { Ipv4Addr:ip; uint16:port; };          // 6 bytes
++#[derive(Copy)]
++pub struct:SocketAddrV6 = { Ipv6Addr:ip; uint16:port; uint32:flow; };  // 28 bytes
++#[derive(Copy)]
++pub enum:SocketAddr     = { V4(SocketAddrV4); V6(SocketAddrV6); };  // 32 bytes
++
++#[derive(Copy)]
++pub struct:UnixAddr = {     // 110 bytes
+     uint8[108]:path;   // the kernel's sun_path, verbatim
+     uint8:len;         // bytes of `path` that are significant, 0..108
+     uint8:kind;        // 0 unnamed, 1 pathname, 2 abstract
+ };
+ ```
+ 
++Each size is `#size_of`, **measured by probe 12** at compiler `c9baa9e`, never summed from field widths
++(`@@PD-160@@`). Each type derives `Copy`, so a container bounded `T: Copy` holds it and a generic read copies it
++(probe 12 reads one through `func:same<T: Copy>`).
++
+ **Rule A-1 (SK-022) — every address type is a plain value with no owning
+ field.** No
+ `string`, no `buffer`, no `Path`. That is what lets an address sit in an array,
+diff --git a/meta/specs/ANCILLARY_MODEL.md b/meta/specs/ANCILLARY_MODEL.md
+index 8df08e0..893eb93 100644
+--- a/meta/specs/ANCILLARY_MODEL.md
++++ b/meta/specs/ANCILLARY_MODEL.md
+@@ -128,7 +128,10 @@ descriptors (`STREAM_MODEL.md` §9).
+ 
+ **Rule N-13.** `SOL_SOCKET` (1) / `SCM_CREDENTIALS` (2), payload a
+ `struct ucred`: **12 bytes**, `pid` at 0, `uid` at 4, `gid` at 8, each an
+-`int32`/`uint32`.
++`int32`/`uint32` — measured by cycle 0.0's probe 03, whose Nitpick mirror names
++the fields `cpid`, `cuid` and `cgid`: `pid`, `uid` and `gid` are keywords at the
++pin, and a keyword declared as a name of any kind is `NITPICK-PARSE-001`
++(@@PD-160@@). The library's `Ucred` uses the same three names.
+ 
+ **Rule N-14 — the receiver must have set `SO_PASSCRED` (16) first**, or no
+ credentials arrive. It is not automatic and there is no error to tell you: the
+@@ -152,7 +155,7 @@ several senders. The documentation says which is which, because reaching for
+ the wrong one produces an authorisation check that is correct in testing and
+ wrong under load.
+ 
+-**Rule N-17 — a pid is not a capability.** A `ucred.pid` may have exited and
++**Rule N-17 — a pid is not a capability.** A `ucred`'s `cpid` may have exited and
+ been reused by the time the receiver acts on it. `uid` and `gid` do not have
+ that problem. The library states this where `ucred` is documented, because
+ "check the pid against a list of allowed processes" is a natural and wrong
+diff --git a/meta/specs/BUILD.md b/meta/specs/BUILD.md
+index 400b178..feca387 100644
+--- a/meta/specs/BUILD.md
++++ b/meta/specs/BUILD.md
+@@ -218,10 +218,19 @@ The compiler's list, filtered to the ones a socket library reaches for:
+ | `any` | the type — and `INADDR_ANY` is a thing |
+ | `on` | a keyword |
+ | `error` | the declaration keyword; `Result`'s field is `.err` |
+-| `thread`, `channel`, `atomic`, `joins`, `gives` | concurrency keywords |
++| `thread`, `atomic`, `joins`, `gives` | concurrency keywords (`channel` is not one: the keyword is the type, `Channel`) |
+ | `unit` | the unit-declaration keyword |
+ | `oflags`, `prot`, `mflags`, `fmode` | the four flag-family type keywords |
+ | `is`, `is_err`, `defaults`, `as`, `with`, `where`, `never`, `fails` | keywords |
++| `pid`, `uid`, `gid`, `tid` | keywords — and `ucred`'s three fields want the first three (`cpid`, `cuid`, `cgid`) |
++| `old`, `result`, `release`, `acquire`, `range`, `stack`, `cfg`, `arena`, `hidden`, `sealed`, `decreases`, `unbounded` | keywords — `old` is the name a saved disposition reaches for (`prior`) |
++
++*(Measured 2026-10-18 at compiler `c9baa9e`, @@PD-160@@: every word in this table checked against the pin's
++`src/frontend/keywords.npk`, 170 words, the same at `7e91730`; from the compiler's landing 113 a keyword declared as
++a name of ANY kind — a field, a parameter, a module — is `NITPICK-PARSE-001`. The row naming `channel` among the
++keywords was wrong: it is not one.)* **A name the prelude declares cannot be declared again** —
++`fixed int64:O_CLOEXEC = …;` is `NITPICK-RESOLVE-001` — so the prelude's `O_*`, `S_*`, `MAP_*` and `PROT_*`
++names are not this library's to define, and a constant that wants one takes another (`PIPE_CLOEXEC`).
+ 
+ **The names this library uses instead**, fixed here so they are used
+ consistently: `descr` for a raw descriptor number; `sock` for a `Sock`; `sink`
+diff --git a/tests/probe/probe01_sys_socket.npk b/tests/probe/probe01_sys_socket.npk
+new file mode 100644
+index 0000000..139b689
+--- /dev/null
++++ b/tests/probe/probe01_sys_socket.npk
+@@ -0,0 +1,90 @@
++// expect-exit: 0
++//
++// PROBE 01 -- `socket` AND `socketpair` WITH THE ATOMIC FLAGS.
++//
++// ASKS: `sys(41, AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP)`, the same for an
++// `AF_INET6` datagram socket, and `sys(53, AF_UNIX, SOCK_STREAM | ..., 0, sv)` with an 8-byte `wild`
++// block for the two descriptors. Each descriptor is >= 3, `fcntl(F_GETFL)` reports `O_NONBLOCK`
++// and `fcntl(F_GETFD)` reports `FD_CLOEXEC` -- set by the creating call, with no follow-up `fcntl`.
++// It is also this library's first `sys` call with a pointer argument (D-192's trampoline).
++// DEPENDS ON THE ANSWER: SK-012 (`SAFETY.md` S-18). Refused or unflagged, the fallback -- `socket`
++// then two `fcntl`s -- reopens the `execve` window SK-012 closes.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 43 are the assertions.
++mod:probe01_sys_socket;
++
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_SOCKET = 41i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:SYS_FCNTL = 72i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:AF_INET = 2i64;
++fixed int64:AF_INET6 = 10i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_DGRAM = 2i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:IPPROTO_TCP = 6i64;
++fixed int64:IPPROTO_UDP = 17i64;
++fixed int64:F_GETFD = 1i64;
++fixed int64:F_GETFL = 3i64;
++fixed int64:FD_CLOEXEC = 1i64;
++fixed int64:FL_NONBLOCK = 2048i64;
++
++// 0 when the descriptor is >= 3, non-blocking and close-on-exec; else the first failed check, 1 ... 4.
++func:flagged = int32(int64:descr) never fails {
++    if (descr < 3i64) { pass 1i32; }
++    Result<int64>:fl = sys(SYS_FCNTL, descr, F_GETFL);
++    if (fl.is_error) { pass 2i32; }
++    if ((fl.value & FL_NONBLOCK) == 0i64) { pass 3i32; }
++    Result<int64>:fd_flags = sys(SYS_FCNTL, descr, F_GETFD);
++    if (fd_flags.is_error) { pass 2i32; }
++    if ((fd_flags.value & FD_CLOEXEC) == 0i64) { pass 4i32; }
++    pass 0i32;
++};
++
++func:main = int32(cstring[]:_~argv) {
++    int64:atomic_flags = SOCK_NONBLOCK | SOCK_CLOEXEC;
++    int64:tcp_kind = SOCK_STREAM | atomic_flags;
++    Result<int64>:r4 = sys(SYS_SOCKET, AF_INET, tcp_kind, IPPROTO_TCP);
++    if (r4.is_error) { exit 10i32; }
++    int32:v4 = raw flagged(r4.value);
++    if (v4 != 0i32) { exit 10i32 + v4; }
++    int64:udp_kind = SOCK_DGRAM | atomic_flags;
++    Result<int64>:r6 = sys(SYS_SOCKET, AF_INET6, udp_kind, IPPROTO_UDP);
++    if (r6.is_error) { exit 20i32; }
++    int32:v6 = raw flagged(r6.value);
++    if (v6 != 0i32) { exit 20i32 + v6; }
++    wild int8->:sv = alloc(8i64);
++    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, tcp_kind, 0i64, sv);
++    if (rp.is_error) { exit 30i32; }
++    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
++    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
++    dalloc(sv);
++    int32:va = raw flagged(a);
++    if (va != 0i32) { exit 30i32 + va; }
++    int32:vb = raw flagged(b);
++    if (vb != 0i32) { exit 35i32 + vb; }
++    Result<int64>:c1 = sys(SYS_CLOSE, r4.value);
++    Result<int64>:c2 = sys(SYS_CLOSE, r6.value);
++    Result<int64>:c3 = sys(SYS_CLOSE, a);
++    Result<int64>:c4 = sys(SYS_CLOSE, b);
++    if (c1.is_error) { exit 40i32; }
++    if (c2.is_error) { exit 41i32; }
++    if (c3.is_error) { exit 42i32; }
++    if (c4.is_error) { exit 43i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe02_sockaddr_layout.npk b/tests/probe/probe02_sockaddr_layout.npk
+new file mode 100644
+index 0000000..0a1165a
+--- /dev/null
++++ b/tests/probe/probe02_sockaddr_layout.npk
+@@ -0,0 +1,141 @@
++// expect-exit: 0
++//
++// PROBE 02 -- THE `sockaddr` LAYOUTS, THROUGH THE KERNEL.
++//
++// ASKS: `sockaddr_in`, `sockaddr_in6` and `sockaddr_un`, declared as Nitpick structs and laid over a
++// 64- or 128-byte `wild` block whose bytes past the structure hold a sentinel (0x5A): each is
++// filled, `bind`ed on loopback to port 0 (an `AF_UNIX` socket autobinds into the abstract
++// namespace), and read back with `getsockname` -- the length the kernel returns, the family, a
++// non-zero port, the loopback address, and the sentinel untouched. `#size_of` of each struct, and
++// of a 128-byte `sockaddr_storage`, is asserted beside it.
++// DEPENDS ON THE ANSWER: SK-016 and `ADDRESS_MODEL.md` §2's tables (A-4): a size or an offset the
++// kernel disagrees with is a table that is wrong, and the kernel wins.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 59 are the assertions.
++mod:probe02_sockaddr_layout;
++
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_SOCKET = 41i64;
++fixed int64:SYS_BIND = 49i64;
++fixed int64:SYS_GETSOCKNAME = 51i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:AF_INET = 2i64;
++fixed int64:AF_INET6 = 10i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed uint8:SENTINEL = 90u8;
++
++struct:SockaddrIn = { uint16:family; uint16:port_be; uint8[4]:addr; uint8[8]:zero; };
++struct:SockaddrIn6 = { uint16:family; uint16:port_be; uint32:flow_be; uint8[16]:addr; uint32:scope; };
++struct:SockaddrUn = { uint16:family; uint8[108]:path; };
++struct:SockaddrStorage = { uint16:family; uint8[126]:rest; };
++
++// A socket of `family`, bound to what `blk` holds (its first `len` bytes), and read back into `blk`
++// by `getsockname` with room for 64: the length the kernel wrote, or a code below 0.
++func:bind_back = int64(int64:family, wild int8->:blk, int64:len) never fails {
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rs = sys(SYS_SOCKET, family, kind, 0i64);
++    if (rs.is_error) { pass 0i64 - 1i64; }
++    Result<int64>:rb = sys(SYS_BIND, rs.value, blk, len);
++    if (rb.is_error) {
++        Result<int64>:c0 = sys(SYS_CLOSE, rs.value);
++        if (c0.is_error) { pass 0i64 - 2i64; }
++        pass 0i64 - 2i64;
++    }
++    wild int8->:lenp = calloc(1i64, 8i64);
++    <-(#ptr_add<int32>(lenp, 0i64)) = 64i32;
++    Result<int64>:rg = sys(SYS_GETSOCKNAME, rs.value, blk, lenp);
++    int64:got = (<-(#ptr_add<int32>(lenp, 0i64))) => int64;
++    dalloc(lenp);
++    Result<int64>:c1 = sys(SYS_CLOSE, rs.value);
++    if (rg.is_error) { pass 0i64 - 3i64; }
++    if (c1.is_error) { pass 0i64 - 4i64; }
++    pass got;
++};
++
++// Every byte of `blk` from `from` up to its 64th still holds the sentinel.
++func:untouched = bool(wild int8->:blk, int64:from) never fails {
++    for (int64:k in from...64i64) {
++        if ((<-(#ptr_add<uint8>(blk, k))) != SENTINEL) { pass false; }
++    }
++    pass true;
++};
++
++func:fill = NIL(wild int8->:blk) never fails {
++    for (int64:k in 0i64...64i64) { <-(#ptr_add<uint8>(blk, k)) = SENTINEL; }
++    pass NIL;
++};
++
++func:main = int32(cstring[]:_~argv) {
++    if (#size_of<SockaddrIn>() != 16i64) { exit 10i32; }
++    if (#size_of<SockaddrIn6>() != 28i64) { exit 11i32; }
++    if (#size_of<SockaddrUn>() != 110i64) { exit 12i32; }
++    if (#size_of<SockaddrStorage>() != 128i64) { exit 13i32; }
++
++    // sockaddr_in: 127.0.0.1, port 0
++    wild int8->:b4 = alloc(64i64);
++    drop fill(b4);
++    wild SockaddrIn->:s4 = b4 =>! wild SockaddrIn->;
++    s4.family = 2u16;
++    s4.port_be = 0u16;
++    s4.addr[0i64] = 127u8;
++    s4.addr[1i64] = 0u8;
++    s4.addr[2i64] = 0u8;
++    s4.addr[3i64] = 1u8;
++    for (int64:k in 0i64...8i64) { s4.zero[k] = 0u8; }
++    int64:n4 = raw bind_back(AF_INET, b4, 16i64);
++    if (n4 != 16i64) { exit 20i32; }
++    if (s4.family != 2u16) { exit 21i32; }
++    if (s4.port_be == 0u16) { exit 22i32; }
++    if (s4.addr[0i64] != 127u8) { exit 23i32; }
++    if (s4.addr[3i64] != 1u8) { exit 24i32; }
++    if (!(raw untouched(b4, 16i64))) { exit 25i32; }
++    dalloc(b4);
++
++    // sockaddr_in6: ::1, port 0
++    wild int8->:b6 = alloc(64i64);
++    drop fill(b6);
++    wild SockaddrIn6->:s6 = b6 =>! wild SockaddrIn6->;
++    s6.family = 10u16;
++    s6.port_be = 0u16;
++    s6.flow_be = 0u32;
++    for (int64:k in 0i64...15i64) { s6.addr[k] = 0u8; }
++    s6.addr[15i64] = 1u8;
++    s6.scope = 0u32;
++    int64:n6 = raw bind_back(AF_INET6, b6, 28i64);
++    if (n6 != 28i64) { exit 30i32; }
++    if (s6.family != 10u16) { exit 31i32; }
++    if (s6.port_be == 0u16) { exit 32i32; }
++    if (s6.addr[15i64] != 1u8) { exit 33i32; }
++    if (s6.addr[0i64] != 0u8) { exit 34i32; }
++    if (!(raw untouched(b6, 28i64))) { exit 35i32; }
++    dalloc(b6);
++
++    // sockaddr_un: the family alone, which autobinds a unique abstract name -- 2 + 1 + 5 bytes
++    wild int8->:bu = alloc(64i64);
++    drop fill(bu);
++    wild SockaddrUn->:su = bu =>! wild SockaddrUn->;
++    su.family = 1u16;
++    int64:nu = raw bind_back(AF_UNIX, bu, 2i64);
++    if (nu != 8i64) { exit 40i32; }
++    if (su.family != 1u16) { exit 41i32; }
++    if (su.path[0i64] != 0u8) { exit 42i32; }
++    if (!(raw untouched(bu, 8i64))) { exit 43i32; }
++    dalloc(bu);
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe03_cmsg_layout.npk b/tests/probe/probe03_cmsg_layout.npk
+new file mode 100644
+index 0000000..8f15f2a
+--- /dev/null
++++ b/tests/probe/probe03_cmsg_layout.npk
+@@ -0,0 +1,107 @@
++// expect-exit: 0
++//
++// PROBE 03 -- `msghdr`, `iovec`, `cmsghdr` AND `ucred`.
++//
++// ASKS: `#size_of` of the Nitpick structs mirroring each kernel structure -- 56, 16, 16 and 12
++// bytes -- and a `sendmsg`/`recvmsg` round trip over a `socketpair` through them, one `iovec` and
++// NO control payload: the bytes arrive whole and `msg_flags` comes back zero. `ucred`'s fields are
++// `cpid`, `cuid` and `cgid`, because `pid`, `uid` and `gid` are keywords at the pin (landing 113:
++// a keyword declared as a name of any kind is `NITPICK-PARSE-001`).
++// DEPENDS ON THE ANSWER: `ANCILLARY_MODEL.md` §1's layouts, and SK-016. The compiler's Bridge
++// (`lib/nbridge.npk`) depends on the same numbers; this measures them independently.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
++mod:probe03_cmsg_layout;
++
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_SENDMSG = 46i64;
++fixed int64:SYS_RECVMSG = 47i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:MSG_NOSIGNAL = 16384i64;
++
++// `msg_namelen` and `msg_flags` as one 8-byte word each, covering the `int32` and its padding (N-1).
++struct:MsgHdr = {
++    wild int8->:name; int64:namelen;
++    wild int8->:iov; uint64:iovlen;
++    wild int8->:control; uint64:controllen;
++    int64:flags;
++};
++struct:IoVec = { wild int8->:base; uint64:len; };
++struct:CmsgHdr = { uint64:len; int32:level; int32:ctype; };
++struct:Ucred = { int32:cpid; uint32:cuid; uint32:cgid; };
++
++func:main = int32(cstring[]:_~argv) {
++    if (#size_of<MsgHdr>() != 56i64) { exit 10i32; }
++    if (#size_of<IoVec>() != 16i64) { exit 11i32; }
++    if (#size_of<CmsgHdr>() != 16i64) { exit 12i32; }
++    if (#size_of<Ucred>() != 12i64) { exit 13i32; }
++
++    wild int8->:sv = alloc(8i64);
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
++    if (rp.is_error) { exit 14i32; }
++    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
++    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
++    dalloc(sv);
++
++    // send five bytes, "hello"
++    wild int8->:out = calloc(1i64, 8i64);
++    <-(#ptr_add<uint8>(out, 0i64)) = 104u8;
++    <-(#ptr_add<uint8>(out, 1i64)) = 101u8;
++    <-(#ptr_add<uint8>(out, 2i64)) = 108u8;
++    <-(#ptr_add<uint8>(out, 3i64)) = 108u8;
++    <-(#ptr_add<uint8>(out, 4i64)) = 111u8;
++    wild int8->:sblk = calloc(1i64, 72i64);
++    wild MsgHdr->:sm = sblk =>! wild MsgHdr->;
++    wild IoVec->:siv = (#ptr_add<int8>(sblk, 56i64)) =>! wild IoVec->;
++    siv.base = out;
++    siv.len = 5u64;
++    sm.iov = #ptr_add<int8>(sblk, 56i64);
++    sm.iovlen = 1u64;
++    Result<int64>:rs = sys(SYS_SENDMSG, a, sblk, MSG_NOSIGNAL);
++    dalloc(sblk);
++    dalloc(out);
++    if (rs.is_error) { exit 15i32; }
++    if (rs.value != 5i64) { exit 16i32; }
++
++    // receive into sixteen, with no room for control
++    wild int8->:inb = calloc(1i64, 16i64);
++    wild int8->:rblk = calloc(1i64, 72i64);
++    wild MsgHdr->:rm = rblk =>! wild MsgHdr->;
++    wild IoVec->:riv = (#ptr_add<int8>(rblk, 56i64)) =>! wild IoVec->;
++    riv.base = inb;
++    riv.len = 16u64;
++    rm.iov = #ptr_add<int8>(rblk, 56i64);
++    rm.iovlen = 1u64;
++    rm.flags = 7i64;
++    Result<int64>:rr = sys(SYS_RECVMSG, b, rblk, 0i64);
++    if (rr.is_error) { exit 17i32; }
++    if (rr.value != 5i64) { exit 18i32; }
++    if (rm.flags != 0i64) { exit 19i32; }
++    if ((<-(#ptr_add<uint8>(inb, 0i64))) != 104u8) { exit 20i32; }
++    if ((<-(#ptr_add<uint8>(inb, 4i64))) != 111u8) { exit 21i32; }
++    if (rm.controllen != 0u64) { exit 22i32; }
++    dalloc(rblk);
++    dalloc(inb);
++    Result<int64>:ca = sys(SYS_CLOSE, a);
++    Result<int64>:cb = sys(SYS_CLOSE, b);
++    if (ca.is_error) { exit 23i32; }
++    if (cb.is_error) { exit 24i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe12_pod_addr_array.npk b/tests/probe/probe12_pod_addr_array.npk
+new file mode 100644
+index 0000000..c09d326
+--- /dev/null
++++ b/tests/probe/probe12_pod_addr_array.npk
+@@ -0,0 +1,107 @@
++// expect-exit: 32
++//
++// PROBE 12 -- A POD ADDRESS ARRAY.
++//
++// ASKS: `ADDRESS_MODEL.md` §1's address types, declared as written and derived `Copy`, at their
++// MEASURED sizes; then a `Vec`-shaped `wild` array of 4 096 `SocketAddr` values -- filled
++// alternately `V4` and `V6`, read back through a `pick`, copied whole into a second array by
++// value, compared, and freed -- and a generic `T: Copy` read of one (the bound `src/core/`'s
++// `Vec<T: Copy>` will take).
++// DEPENDS ON THE ANSWER: SK-022 (A-1: every address type is a plain value with no owning field,
++// precisely so this works) and `ADDRESS_MODEL.md` §1's declarations. A `#size_of` is measured,
++// never summed (`PLAYBOOK.md` §2).
++// EXPECTED: exit 32 -- `#size_of<SocketAddr>()`, the probe's subject -- at -O0 and through
++// `opt -O2`. Codes 10 ... 29 are the assertions, the other sizes among them: `Ipv4Addr` 4,
++// `Ipv6Addr` 20, `IpAddr` 24, `SocketAddrV4` 6, `SocketAddrV6` 28, `UnixAddr` 110.
++mod:probe12_pod_addr_array;
++
++#[derive(Copy)]
++struct:Ipv4Addr = { uint8[4]:octets; };
++#[derive(Copy)]
++struct:Ipv6Addr = { uint8[16]:octets; uint32:scope; };
++#[derive(Copy)]
++enum:IpAddr = { V4(Ipv4Addr); V6(Ipv6Addr); };
++#[derive(Copy)]
++struct:SocketAddrV4 = { Ipv4Addr:ip; uint16:port; };
++#[derive(Copy)]
++struct:SocketAddrV6 = { Ipv6Addr:ip; uint16:port; uint32:flow; };
++#[derive(Copy)]
++enum:SocketAddr = { V4(SocketAddrV4); V6(SocketAddrV6); };
++#[derive(Copy)]
++struct:UnixAddr = { uint8[108]:path; uint8:len; uint8:kind; };
++
++fixed int64:COUNT = 4096i64;
++
++func:same<T: Copy> = T(T:x) never fails {
++    pass x;
++};
++
++// The address the array holds at `k`: even k a V4 on port k, odd k a V6 on port k with flow k.
++func:addr_at = SocketAddr(int64:k) never fails {
++    uint16:port = (k =>! int32) =>! uint16;
++    if ((k & 1i64) == 0i64) {
++        Ipv4Addr:v4 = Ipv4Addr{ octets: [127u8, 0u8, 0u8, 1u8] };
++        pass SocketAddr.V4(SocketAddrV4{ ip: v4, port: port });
++    }
++    Ipv6Addr:v6 = Ipv6Addr{ octets: [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 1u8], scope: 0u32 };
++    pass SocketAddr.V6(SocketAddrV6{ ip: v6, port: port, flow: (k =>! int32) =>! uint32 });
++};
++
++// The port `a` carries, and whether its family is the one `k`'s parity names: the port, or -1.
++func:port_of = int64(SocketAddr:a, int64:k) never fails {
++    pick (a) {
++        (SocketAddr.V4(s)) {
++            if ((k & 1i64) != 0i64) { pass 0i64 - 1i64; }
++            pass s.port => int64;
++        },
++        (SocketAddr.V6(s)) {
++            if ((k & 1i64) == 0i64) { pass 0i64 - 1i64; }
++            if ((s.flow => int64) != k) { pass 0i64 - 1i64; }
++            pass s.port => int64;
++        }
++    }
++};
++
++func:main = int32(cstring[]:_~argv) {
++    if (#size_of<Ipv4Addr>() != 4i64) { exit 10i32; }
++    if (#size_of<Ipv6Addr>() != 20i64) { exit 11i32; }
++    if (#size_of<IpAddr>() != 24i64) { exit 12i32; }
++    if (#size_of<SocketAddrV4>() != 6i64) { exit 13i32; }
++    if (#size_of<SocketAddrV6>() != 28i64) { exit 14i32; }
++    if (#size_of<UnixAddr>() != 110i64) { exit 15i32; }
++
++    int64:width = #size_of<SocketAddr>();
++    wild SocketAddr->:first = (alloc(COUNT * width)) =>! wild SocketAddr->;
++    wild SocketAddr->:second = (alloc(COUNT * width)) =>! wild SocketAddr->;
++    for (int64:k in 0i64...COUNT) {
++        <-(#ptr_add<SocketAddr>(first, k)) = raw addr_at(k);
++    }
++    for (int64:k in 0i64...COUNT) {
++        SocketAddr:one = <-(#ptr_add<SocketAddr>(first, k));
++        SocketAddr:copy = one;
++        <-(#ptr_add<SocketAddr>(second, k)) = copy;
++        if ((raw port_of(one, k)) != k) { exit 16i32; }
++    }
++    for (int64:k in 0i64...COUNT) {
++        SocketAddr:back = raw same(<-(#ptr_add<SocketAddr>(second, k)));
++        if ((raw port_of(back, k)) != k) { exit 17i32; }
++    }
++    dalloc(first);
++    dalloc(second);
++    exit (width =>! int32);
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};

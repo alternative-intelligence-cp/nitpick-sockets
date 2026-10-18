@@ -1,0 +1,855 @@
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index e751c88..a00b314 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -44,8 +44,9 @@ never for concluding.
+    only server shape the language permits. `meta/specs/CONCURRENCY_MODEL.md` §2
+    has the two compiler rules and where they live in its source.
+ 
+-3. **Every public `error:` this library declares becomes a mandatory `pick` arm
+-   in every consuming program's `failsafe`.** The budget is four, it is a
++3. **Every identity this library's code can raise becomes a mandatory `pick`
++   arm in every consuming program's `failsafe`** — public or private, qualified
++   by its module, beside the floor's six (@@PD-163@@). The budget is four, it is a
+    ceiling, and adding a fifth is a major version. Kernel errnos are forwarded
+    verbatim and cost nothing — that is the mechanism that keeps the budget
+    small, and it is why `ECONNREFUSED` is not an identity.
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index 9b7c023..86ab08e 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -179,6 +179,8 @@ call site in `src/`, with a whitelist of zero (`TESTING.md` V-11), because a
+ rule about every call site is a rule that will be broken by the twentieth one.
+ 
+ ### SK-014 — connect's `EINPROGRESS` protocol, including the `SO_ERROR` read
++> **SUPERSEDED IN PART by @@PD-162@@ (2026-10-18): its mechanism.** At compiler `c9baa9e` no program can name
++> `EINPROGRESS` or make an error of `SO_ERROR`'s number; a second `connect` after the wait answers the outcome (probe 08).
+ **2026-09-03.** On a non-blocking socket, `connect` returning `EINPROGRESS`
+ means the handshake is running; the socket becomes **writable** on both success
+ and failure, so writability is not the answer. The library waits for
+@@ -414,6 +416,11 @@ failing the loop on it kills a server because a client pressed Ctrl-C. `EMFILE`
+ leaves the connection pending, so a naive retry spins at 100% CPU accepting
+ nothing; a bounded back-off turns a melt into a degradation.
+ 
++*(2026-10-18, cycle 0.0.0, @@PD-162@@: at compiler `c9baa9e` the `EINTR` and `EAGAIN` rows compare — they are the
++prelude's `Interrupted` and `WouldBlock` — and the `ECONNABORTED` and `EMFILE`/`ENFILE` rows cannot: nothing names
++them that an error can be compared with (probes 13, 13b). Those rows, and the back-off, wait on the compiler's answer
++to O-N5; the table's design holds as written.)*
++
+ ### SK-032 — `SO_REUSEADDR` on by default for listeners; `SO_REUSEPORT` never
+ **2026-09-03.** Without `SO_REUSEADDR`, a server restarted within the
+ `TIME_WAIT` window fails `EADDRINUSE` — the most common surprise in socket
+@@ -606,3 +613,57 @@ edge** — a copy per call to undo a type the compiler hands out.
+ *Reversal:* if a later compiler lets `string_bytes` fill a plain slot, nothing need move: a `fixed` parameter takes a
+ plain view too (probe 14). If it removes the read-only view, the parameters return to `uint8[]` by a later decision,
+ probe 14 reddening first.
++
++### @@PD-162@@ — an errno is compared only with the prelude's identities or another error; what needs more waits on O-N5
++**2026-10-18, cycle 0.0.0 step 4, probes 08, 13 and 13b. Supersedes `SK-014` in part: its mechanism.**
++
++*What was measured* at compiler `c9baa9e`: a program's `error:EInProgress = 115i32;` is `NITPICK-RESOLVE-010` at the
++declaration — an explicit error code is the prelude's alone (D-179) — and `int32:code = r.err =>! int32;` is
++`NITPICK-TYPE-032` (probes 13, 13b); an error compares with a prelude identity (`r.err == WouldBlock`) and with
++another error, equal when the errno is (probes 04, 05, 08 and 10 identify `EPIPE` and `EBADF` against witnesses). A
++non-blocking TCP `connect` on loopback answers an error none of the prelude's five — the same one whether the port
++is closed or listening, so `EINPROGRESS` — and the socket turns writable either way; `SO_ERROR` then reads 111 as data
++and 0 on a second read; and a second `connect` after the wait answers success once the connection is made, and
++otherwise the pending error itself — unlike the first, and leaving `SO_ERROR` at 0 (probe 08, legs A, B and C).
++
++*So:* this library compares an errno only with an identity the prelude declares or with another error, and names
++none. `SK-014`'s protocol keeps its reasoning — writability is not success — and changes its mechanism: after any
++`connect` error but `WouldBlock` and `Interrupted`, it waits for writability within the deadline, and a second
++`connect` answers the outcome, its error forwarded verbatim (`SAFETY.md` S-6); `SO_ERROR`'s number, which no
++program can make an error of, is not what reports the failure. `SK-031`'s `ECONNABORTED` and `EMFILE`/`ENFILE` rows,
++`SOCKET_MODEL.md` K-19.1 and cycle 0.8.2's back-off cannot be spelled at the pin, and wait on the compiler's answer
++to O-N5, which asks the prelude to name the errnos a socket library decides on.
++
++*Alternatives declined:* **read the error's bytes through a pointer to the `Result`** — reading a representation
++the language does not define, a workaround its R6 forbids; **manufacture a witness error per errno at startup**
++(`EPIPE` from a pipe, as probe 04 does) — a probe's measuring device, not a library's mechanism, and no syscall
++yields `EMFILE` on demand without spending the descriptor table; **treat every accept error but the prelude's two
++as retryable** — a broken listener becomes a busy loop, the failure K-19 exists to prevent.
++
++*Reversal:* when the compiler names these errnos, `SK-014`'s first-answer comparison and K-19's two rows return as
++written, by a decision that cites the landing; probes 13 and 13b keep their verdicts, since a program still may not
++name an errno with its code.
++
++### @@PD-163@@ — what a consumer of each module shape owes, measured; the tests' arm codes beyond the convention
++**2026-10-18, cycle 0.0.0 step 4.**
++
++*What was measured* — `NITPICK-REACH-003`, a root importing one module and declaring no `failsafe`, the compiler as
++the oracle (`PLAYBOOK.md` §6), at compiler `c9baa9e`, re-measured by block 0b: a `sys` wrapper forwarding the
++kernel's errno verbatim owes the floor's six alone; a module raising a public identity owes it qualified by the
++module, `m.ESockAddr`, and one raising a private identity owes it the same way, `m.ESockState`; a public identity
++declared and never raised costs nothing; a decoder that indexes its view and shifts owes `IntOverflow` and
++`OutOfBounds` beside the six; and a wait on the reactor owes `DeadlineExceeded` and `IntOverflow` beside them.
++
++*So:* `SAFETY.md` S-6 holds as written — a forwarded errno costs no arm. S-8's "owes exactly one arm" counted the
++library's identities, not the bill, and now says both; `SAFETY.md` §1's REACH-002 row and `CONTRIBUTING.md`'s third
++surprise say what is owed — every identity a reachable `fail` raises, public or private, qualified by its module —
++the sentence the early ecosystem audit's EC3 found here, which `PLAYBOOK.md` §2 corrected for the ecosystem;
++cycle 0.0.3's `check_error_budget` is what enforces it. And the arm codes this cycle's programs use beyond
++`PLAYBOOK.md` §3 item 8: `DeadlineExceeded` 111 and `IoEof` 112, above 99 and clear of every code item 8 assigns.
++No probe here reaches `DivByZero` or `DivOverflow`; one that does takes nitpick-parse's 97 and 98.
++
++*Alternatives declined:* **state the bill from the declarations** — EC3's own fault; **give the reactor's identities
++the wildcard's 99** — a test could not tell a deadline from any other trap.
++
++*Reversal:* none for the bills, which are measurements a later pin re-takes; the codes move by a later decision if
++`PLAYBOOK.md` §3 item 8 assigns these identities others, every `failsafe` that names them following.
+diff --git a/meta/OPEN_QUESTIONS.md b/meta/OPEN_QUESTIONS.md
+index 739b4ba..1243329 100644
+--- a/meta/OPEN_QUESTIONS.md
++++ b/meta/OPEN_QUESTIONS.md
+@@ -13,10 +13,12 @@ A question that gets answered moves to `DECISIONS.md` as a numbered decision
+ and is struck through here with the decision's number, **never deleted** — the
+ question is part of the record of how the answer was reached.
+ 
+-**No cycle in this plan is blocked on a question.** What is open below is open
+-by design: two measurements, three defaults that want a number rather than a
+-taste, one item gated on the compiler's tooling, and three that are the
+-compiler's rather than ours.
++**One cycle's items wait on the compiler:** two rows of cycle 0.3's accept loop
++and cycle 0.8.2's back-off wait on O-N5 (@@PD-162@@). Everything else below is
++open by design, and each entry says why — a measurement, a default that wants a
++number rather than a taste, or the compiler's. *(2026-10-18: this said "No cycle
++in this plan is blocked on a question", and counted the entries, which the
++entries now do themselves.)*
+ 
+ ---
+ 
+@@ -43,7 +45,9 @@ socket-specific error space are not specified here. `ARCHIVE/nsocket` exists
+ and has not been assessed."*
+ **This library is the answer.** The ask is a one-line amendment pointing at it
+ once `nsockets` exists, so the language's specification stops carrying an open
+-item that has been closed elsewhere.
++item that has been closed elsewhere. *(This id is this repository's own; a
++workbench registry id for it is the orchestrator's to assign — the early
++ecosystem audit's ED2.)*
+ 
+ ### O-N2 — `npkg` cannot build a library, and `[dependencies]` resolves to nothing
+ Measured at the compiler's 1.5.0 and recorded in `specs/BUILD.md` §1.
+@@ -65,7 +69,8 @@ so explicitly. The code is right and the comment is loose.
+ designing a server will look, and `SK-035` is built on the code's behaviour
+ rather than the comment's. *(2026-10-18, cycle 0.0.0: the behaviour RUN at compiler
+ `c9baa9e` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
+-so, `src/frontend/types.npk:1733`. The ask stands.)*
++so, `src/frontend/types.npk:1733`. The ask stands.)* *(This id is this repository's
++own; a workbench registry id for it is the orchestrator's to assign — ED2.)*
+ 
+ ### O-N4 — no `sigaction` and no signal-mask primitive in the language
+ Stated as an observation rather than a request: `nsockets` needs neither
+@@ -76,7 +81,29 @@ have one library that wants it and one that does not. *(2026-10-18, cycle
+ 0.0.0: the floor's runtime itself installs handlers — `SIGPIPE`'s returns,
+ measured by probe 04 through a raw `rt_sigaction` read — so the language's
+ programs have a disposition that is not the default; `nsockets` still needs no
+-signal facility, @@PD-159@@.)*
++signal facility, @@PD-159@@.)* *(This id is this repository's own; a workbench
++registry id for it is the orchestrator's to assign — ED2.)*
++
++### O-N5 — an errno the prelude does not name can be forwarded, but neither named nor compared
++Measured at compiler `c9baa9e` by cycle 0.0.0's probes 13 and 13b: a program's
++`error:EInProgress = 115i32;` is `NITPICK-RESOLVE-010` — *"an explicit error
++code is the prelude's alone (D-179)"* — and `r.err =>! int32` is
++`NITPICK-TYPE-032`. An error compares only with an identity the prelude
++declares — five errnos beside `IoEof` — or with another error (probes 04, 05,
++08 and 10 identify theirs against a witness). So `connect`'s `EINPROGRESS` and
++the accept loop's `ECONNABORTED`, `EMFILE` and `ENFILE` cannot be told apart
++from any other failure, though each is forwarded verbatim at no cost
++(`SAFETY.md` S-6).
++**Ask:** the prelude names the errnos a socket library decides on —
++`EINPROGRESS` (115), `EALREADY` (114), `ECONNABORTED` (103), `EMFILE` (24) and
++`ENFILE` (23) at least — as it names `WouldBlock` and `Interrupted`, where its
++own comment says naming more "is a decision for the code that needs it"; no
++wrapper `fail`s one by name, so naming them costs no `failsafe` an arm.
++**Until then** cycle 0.3.1's connect is spelled without `EINPROGRESS`, by a
++second `connect` after the wait (probe 08), and `SOCKET_MODEL.md` K-19's
++`ECONNABORTED` and `EMFILE`/`ENFILE` rows, K-19.1 and cycle 0.8.2's back-off
++wait on this answer (@@PD-162@@). *(This id is this repository's own; a
++workbench registry id for it is the orchestrator's to assign — ED2.)*
+ 
+ ---
+ 
+diff --git a/meta/roadmap/0.3/README.md b/meta/roadmap/0.3/README.md
+index ac3624e..6d4ce47 100644
+--- a/meta/roadmap/0.3/README.md
++++ b/meta/roadmap/0.3/README.md
+@@ -6,7 +6,7 @@ that makes the library usable.
+ 
+ ## Decisions in
+ 
+-`SK-010`, `SK-014`, `SK-018`, `SK-019`, `SK-027`, `SK-031`. All settled.
++`SK-010`, `SK-014`, `SK-018`, `SK-019`, `SK-027`, `SK-031`. All settled; two rows of `SK-031`'s table wait on the compiler's answer to O-N5 (@@PD-162@@).
+ 
+ **Open questions to settle:** `O-T1` (`TCP_NODELAY`'s default — **against a
+ measurement**), `O-T2` (how `write_all` reports a partial count), `O-S1`
+@@ -35,7 +35,7 @@ drop to three).
+ - [ ] `check_no_floor_write` covering the new impls
+ 
+ ### 0.3.1 — connect
+-- [ ] the full sequence from `STREAM_MODEL.md` T-8: immediate success, `EINPROGRESS`, wait `EPOLLOUT`, `SO_ERROR` **once**
++- [ ] the full sequence from `STREAM_MODEL.md` T-8: immediate success, `EINPROGRESS`, wait `EPOLLOUT`, `SO_ERROR` **once** — spelled, at the pin, without naming `EINPROGRESS`: a second `connect` after the wait answers the outcome (@@PD-162@@, probe 08)
+ - [ ] **a connect to a closed loopback port reporting `ECONNREFUSED`** — the test that proves writability is not success
+ - [ ] a second `SO_ERROR` read returning 0, asserted, so the read-once rule has a test (T-9)
+ - [ ] `EINTR` during connect does **not** re-call `connect` (T-8.5); a test that a re-call would spin on `EALREADY`
+@@ -49,9 +49,9 @@ drop to three).
+ - [ ] a truncated returned address is `ESockCapacity`, never a silently short address (K-18)
+ - [ ] K-19's error table implemented arm by arm, each with a test:
+   - [ ] `EINTR` retries immediately
+-  - [ ] **`ECONNABORTED` retries immediately** — the test connects and resets before the accept, and asserts the server survives (T-13)
++  - [ ] **`ECONNABORTED` retries immediately** — the test connects and resets before the accept, and asserts the server survives (T-13) — **waits on O-N5** (@@PD-162@@)
+   - [ ] `EAGAIN` waits on `EPOLLIN`
+-  - [ ] `EMFILE` is returned with the connection still pending (K-19.1)
++  - [ ] `EMFILE` is returned with the connection still pending (K-19.1) — **waits on O-N5** (@@PD-162@@)
+ - [ ] a loopback accept loop under `// stress: 40`
+ 
+ ### 0.3.3 — `write_all` and partial writes
+diff --git a/meta/roadmap/0.8/README.md b/meta/roadmap/0.8/README.md
+index faaff7b..b7f87c3 100644
+--- a/meta/roadmap/0.8/README.md
++++ b/meta/roadmap/0.8/README.md
+@@ -52,7 +52,7 @@ measurement**: what a scope with ten thousand joined tasks costs), `O-C3`
+ 
+ ### 0.8.2 — the `EMFILE` back-off
+ - [ ] `EMFILE`/`ENFILE` from `accept4` returned with the connection pending
+-      (K-19.1)
++      (K-19.1) — **waits on O-N5** (@@PD-162@@)
+ - [ ] `NSOCK_EMFILE_BACKOFF` (50 ms, a named constant) before a retry
+ - [ ] **a test that actually exhausts the descriptor table** — `setrlimit`
+       through `sys`, then accept — and asserts the server stays alive, does not
+diff --git a/meta/roadmap/ROADMAP.md b/meta/roadmap/ROADMAP.md
+index 0dc5edd..d09fa23 100644
+--- a/meta/roadmap/ROADMAP.md
++++ b/meta/roadmap/ROADMAP.md
+@@ -3,11 +3,14 @@
+ The specification set (`meta/specs/`) is written and the decisions it rests on
+ are in `meta/DECISIONS.md`. This is the plan built on them.
+ 
+-**`SK-001` … `SK-037` are settled.** What remains open in
+-`../OPEN_QUESTIONS.md` is open *by design*: two measurements taken in the
+-cycles that can take them, three defaults that want a number rather than a
+-taste, one item gated on the compiler's tooling, and four that are the
+-compiler's rather than ours. **No cycle in this plan is blocked on a decision.**
++**Every decision in `../DECISIONS.md` is settled, or proposed with its
++reversal.** What remains open in `../OPEN_QUESTIONS.md` is open *by design*,
++each entry saying why — a measurement taken in the cycle that can take it, a
++default that wants a number rather than a taste, or the compiler's. **Two rows
++of cycle 0.3's accept loop and cycle 0.8.2's back-off wait on the compiler**
++(O-N5, @@PD-162@@); no other cycle waits on a decision. *(2026-10-18: this
++paragraph counted the decisions, `SK-001` … `SK-037`, and the open entries,
++which the files now do themselves — the early ecosystem audit's E2-10.)*
+ 
+ ## How this is organised
+ 
+diff --git a/meta/specs/SAFETY.md b/meta/specs/SAFETY.md
+index b3bcf1c..396feeb 100644
+--- a/meta/specs/SAFETY.md
++++ b/meta/specs/SAFETY.md
+@@ -17,7 +17,7 @@ costs a library that talks to the kernel over descriptors.
+ | **The runtime catches `SIGPIPE` with a handler that returns** | measured, §2 (probe 04) | a send to a dead peer answers `EPIPE` on the floor's runtime, and kills a process whose disposition is the default. **Every send carries `MSG_NOSIGNAL`**, which answers `EPIPE` under either. §2 |
+ | `defer` does **not** run on a trap | D-014 | a socket open at trap time is closed by process exit and by nothing else. §6 |
+ | A trap is a **whole-program** event; no task resumes | D-063 | there is no "the connection task cleans up" |
+-| `failsafe`'s `pick` must **name** every error that can reach it | REACH-002 | every public `error:` we declare is an arm every consuming program owes. §3 |
++| `failsafe`'s `pick` must **name** every error that can reach it | REACH-002 | every identity a reachable `fail` raises — public or private, qualified by its module — is an arm every consuming program owes, beside the floor's six and what its code reaches; an identity never raised costs nothing (measured, §3). §3 |
+ | Reachability is **import-scoped** | 1.4.8's `nsys` note | module decomposition decides what a consumer's `failsafe` owes. §3 |
+ | An `OwnedFd` is **refused as a channel element** | TYPE-057, D-235; measured, probes 09 and 09b | a connection cannot be queued to a worker pool. This decides the server model outright. `CONCURRENCY_MODEL.md` §3 |
+ | An `OwnedFd` does **not** hold a pointer | `escape.npk`, D-185; measured, probes 10 and 10b | a **move** into a spawned task *is* legal, and a borrow across the spawn is `BORROW-004`. The two rules together are the whole concurrency story. `CONCURRENCY_MODEL.md` §3 |
+@@ -134,7 +134,10 @@ import-scoped:
+ 
+ - `src/sys/` declares **no error at all** — every failure is an errno.
+ - `src/addr/` declares **`ESockAddr` only**. A program that parses and formats
+-  addresses and never opens a socket owes exactly one arm.
++  addresses and never opens a socket owes one arm of this library's — `ESockAddr`,
++  qualified by its module — beside the floor's six and what the parser's code
++  reaches (`IntOverflow`, `OutOfBounds`), measured by cycle 0.0.0's block 0b
++  (@@PD-163@@).
+ - `src/socket/`, `src/stream/`, `src/datagram/`, `src/option/`, `src/server/`
+   declare `ESockState` and `ESockCapacity`.
+ - `src/ancillary/` declares `ESockProtocol`.
+diff --git a/meta/specs/SOCKET_MODEL.md b/meta/specs/SOCKET_MODEL.md
+index 7b2724d..64ae2b0 100644
+--- a/meta/specs/SOCKET_MODEL.md
++++ b/meta/specs/SOCKET_MODEL.md
+@@ -237,6 +237,11 @@ conflating them is how an accept loop becomes a busy loop or a dead server:
+ | `EMFILE` / `ENFILE` | the process or system is out of descriptors | §7.1 |
+ | anything else | the listener is broken | fail, forwarded verbatim |
+ 
++*(2026-10-18, @@PD-162@@: `EAGAIN` and `EINTR` are the prelude's `WouldBlock` and `Interrupted`, and compare; at
++compiler `c9baa9e` nothing names `ECONNABORTED`, `EMFILE` or `ENFILE` that a program can compare an error with
++(probes 13 and 13b), so the loop cannot tell their rows from "anything else". Those two rows, and K-19.1, wait on
++the compiler's answer to O-N5.)*
++
+ **Rule K-19.1 — `EMFILE` does not kill the server and does not spin.** Out of
+ descriptors, `accept4` fails immediately and the connection stays pending, so a
+ naive retry loop spins at 100% CPU accepting nothing. `nsockets`' accept
+diff --git a/meta/specs/STREAM_MODEL.md b/meta/specs/STREAM_MODEL.md
+index 21a25fc..e2417c7 100644
+--- a/meta/specs/STREAM_MODEL.md
++++ b/meta/specs/STREAM_MODEL.md
+@@ -107,6 +107,14 @@ socket `connect` almost never completes immediately. The sequence is:
+    - otherwise → **fail with that errno**, forwarded verbatim, so a caller sees
+      `ECONNREFUSED` (`-111`), `ETIMEDOUT` (`-110`) or `EHOSTUNREACH` (`-113`)
+      and can tell them apart.
++
++   *(2026-10-18, @@PD-162@@: at compiler `c9baa9e` no program can make an error
++   of `SO_ERROR`'s number, nor name `EINPROGRESS` to compare step 2's answer
++   with (probes 13 and 13b). Probe 08 measures the spelling that needs neither:
++   after the wait, a SECOND `connect` answers success once the connection is
++   made and otherwise hands back the kernel's own error — `ECONNREFUSED` for a
++   closed port — to forward verbatim, leaving `SO_ERROR` at 0. Cycle 0.3.1
++   writes steps 2 and 4 by it.)*
+ 5. **`EINTR`** — the handshake continues in the background. Do **not** re-call
+    `connect`; go to step 3. A second `connect` on a socket already connecting
+    returns `EALREADY`, and a loop that retries on `EINTR` by re-calling
+diff --git a/tests/probe/probe07_io_ready.npk b/tests/probe/probe07_io_ready.npk
+new file mode 100644
+index 0000000..fb3813e
+--- /dev/null
++++ b/tests/probe/probe07_io_ready.npk
+@@ -0,0 +1,110 @@
++// expect-exit: 0
++//
++// PROBE 07 -- `io_ready` AND `io_ready2` ON SOCKETS.
++//
++// ASKS: the prelude's reactor waits on a `socketpair`, each with a deadline: `io_ready(descr, 1,
++// within)` (EPOLLIN) with a byte pending returns well before its deadline; the same with nothing
++// pending answers `DeadlineExceeded`, no sooner than the deadline; `io_ready(descr, 4, within)`
++// (EPOLLOUT) on a writable socket returns; `io_ready2` over both ends with only one readable
++// returns; and over two with neither readable answers `DeadlineExceeded`. A descriptor is the
++// reactor's `int32` -- `(o.value) =>! int32` at each call.
++// DEPENDS ON THE ANSWER: `CONCURRENCY_MODEL.md` §1 -- every wait in the library is one of these --
++// and `io_ready2` is what makes fan-in expressible without a `select` the language does not have.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions; the time
++// bounds are wide (a ready wait under 900 ms of a 1 s deadline; an expired one no sooner than its
++// 20 ms), so the probe states a verdict, not a rate.
++mod:probe07_io_ready;
++
++fixed int64:SYS_SENDTO = 44i64;
++fixed int64:SYS_RECVFROM = 45i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:MSG_NOSIGNAL = 16384i64;
++fixed int32:EV_IN = 1i32;
++fixed int32:EV_OUT = 4i32;
++fixed int64:MS = 1000000i64;
++
++error:ESend;
++error:ERecv;
++
++func:send_one = NIL(OwnedFd->:o) {
++    wild int8->:one = calloc(1i64, 8i64);
++    <-one = 7i8;
++    Result<int64>:r = sys(SYS_SENDTO, o.value, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);
++    dalloc(one);
++    if (r.is_error) { fail ESend; }
++    pass NIL;
++};
++
++func:recv_one = NIL(OwnedFd->:o) {
++    wild int8->:one = calloc(1i64, 8i64);
++    Result<int64>:r = sys(SYS_RECVFROM, o.value, one, 1i64, 0i64, 0i64, 0i64);
++    dalloc(one);
++    if (r.is_error) { fail ERecv; }
++    pass NIL;
++};
++
++async func:main = int32(cstring[]:_~argv) {
++    wild int8->:sv = alloc(8i64);
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
++    if (rp.is_error) { exit 10i32; }
++    OwnedFd:a = own_fd(((<-(#ptr_add<int32>(sv, 0i64)))) =>! fd);
++    OwnedFd:b = own_fd(((<-(#ptr_add<int32>(sv, 1i64)))) =>! fd);
++    dalloc(sv);
++    int32:ia = (a.value) =>! int32;
++    int32:ib = (b.value) =>! int32;
++
++    // readable with a byte pending: well inside the deadline
++    send_one(@a) ?! ESend;
++    int64:t0 = mono_now();
++    Result<NIL>:w1 = await io_ready(ib, EV_IN, raw duration_ms(1000i64));
++    if (w1.is_error) { exit 11i32; }
++    if (((mono_now()) - t0) >= (900i64 * MS)) { exit 12i32; }
++    recv_one(@b) ?! ERecv;
++
++    // nothing pending: the deadline's, no sooner than it
++    int64:t1 = mono_now();
++    Result<NIL>:w2 = await io_ready(ib, EV_IN, raw duration_ms(20i64));
++    if (!w2.is_error) { exit 13i32; }
++    if (w2.err != DeadlineExceeded) { exit 14i32; }
++    if (((mono_now()) - t1) < (20i64 * MS)) { exit 15i32; }
++
++    // writable
++    Result<NIL>:w3 = await io_ready(ia, EV_OUT, raw duration_ms(1000i64));
++    if (w3.is_error) { exit 16i32; }
++
++    // two descriptors, one readable
++    send_one(@a) ?! ESend;
++    int64:t2 = mono_now();
++    Result<NIL>:w4 = await io_ready2(ia, EV_IN, ib, EV_IN, raw duration_ms(1000i64));
++    if (w4.is_error) { exit 17i32; }
++    if (((mono_now()) - t2) >= (900i64 * MS)) { exit 18i32; }
++    recv_one(@b) ?! ERecv;
++
++    // two descriptors, neither readable
++    Result<NIL>:w5 = await io_ready2(ia, EV_IN, ib, EV_IN, raw duration_ms(20i64));
++    if (!w5.is_error) { exit 19i32; }
++    if (w5.err != DeadlineExceeded) { exit 20i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (ESend)             { exit 21i32; },
++        (ERecv)             { exit 22i32; },
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (DeadlineExceeded)  { exit 111i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe08_connect_inprogress.npk b/tests/probe/probe08_connect_inprogress.npk
+new file mode 100644
+index 0000000..1daff9c
+--- /dev/null
++++ b/tests/probe/probe08_connect_inprogress.npk
+@@ -0,0 +1,196 @@
++// expect-exit: 0
++//
++// PROBE 08 -- `connect`'S IN-PROGRESS PATH, ITS FAILURE AND ITS SUCCESS.
++//
++// ASKS: a non-blocking TCP `connect` on 127.0.0.1, three times, each waited on for EPOLLOUT:
++//   A. to a CLOSED port (one bound to port 0, read back, and closed): `connect` answers an error that
++//      is none of the prelude's named five; the socket turns writable; `getsockopt(SOL_SOCKET,
++//      SO_ERROR)` reads 111, `ECONNREFUSED`, as data; and a second read reads 0;
++//   B. the same, but after the wait `getpeername` fails and a SECOND `connect` answers the pending
++//      error itself -- an error unlike the first, which then leaves `SO_ERROR` at 0;
++//   C. to a listener on port 0 in this program: `connect` answers the SAME error as A's first --
++//      `EINPROGRESS`, identified by identity, since no program can name it (probe 13) -- the socket
++//      turns writable, `SO_ERROR` reads 0, `getpeername` succeeds, a second `connect` answers
++//      SUCCESS, a third an error unlike every other here (`EISCONN`), and the listener's `accept4`
++//      takes the peer.
++// DEPENDS ON THE ANSWER: SK-014's protocol. At this pin a program compares an errno only with a
++// prelude identity or another error (probe 13), so the protocol must tell its cases apart
++// without naming `EINPROGRESS`: by readiness and a second `connect`, which answers success once the
++// connection is made and otherwise hands back the kernel's own error, to forward verbatim
++// (`SAFETY.md` S-6).
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 59 are the assertions. A loopback
++// connect may complete or fail at once on another kernel; at this machine's it does neither.
++mod:probe08_connect_inprogress;
++
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_SOCKET = 41i64;
++fixed int64:SYS_CONNECT = 42i64;
++fixed int64:SYS_BIND = 49i64;
++fixed int64:SYS_LISTEN = 50i64;
++fixed int64:SYS_GETSOCKNAME = 51i64;
++fixed int64:SYS_GETPEERNAME = 52i64;
++fixed int64:SYS_GETSOCKOPT = 55i64;
++fixed int64:SYS_ACCEPT4 = 288i64;
++fixed int64:AF_INET = 2i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:SOL_SOCKET = 1i64;
++fixed int64:SO_ERROR = 4i64;
++fixed int32:EV_OUT = 4i32;
++fixed int64:ECONNREFUSED_NUMBER = 111i64;
++
++struct:SockaddrIn = { uint16:family; uint16:port_be; uint8[4]:addr; uint8[8]:zero; };
++
++// A fresh non-blocking TCP socket, or -1.
++func:tcp_socket = int64() never fails {
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:r = sys(SYS_SOCKET, AF_INET, kind, 0i64);
++    if (r.is_error) { pass 0i64 - 1i64; }
++    pass r.value;
++};
++
++// 127.0.0.1 and `port_be` (already in network order) written into a zeroed 16-byte block.
++func:loopback = wild int8->(uint16:port_be) never fails {
++    wild int8->:blk = calloc(1i64, 16i64);
++    wild SockaddrIn->:sa = blk =>! wild SockaddrIn->;
++    sa.family = 2u16;
++    sa.port_be = port_be;
++    sa.addr[0i64] = 127u8;
++    sa.addr[3i64] = 1u8;
++    pass blk;
++};
++
++// The socket's `SO_ERROR`, read as data, or -1.
++func:so_error = int64(int64:s) never fails {
++    wild int8->:val = calloc(1i64, 8i64);
++    wild int8->:len = calloc(1i64, 8i64);
++    <-(#ptr_add<int32>(len, 0i64)) = 4i32;
++    Result<int64>:r = sys(SYS_GETSOCKOPT, s, SOL_SOCKET, SO_ERROR, val, len);
++    int64:v = (<-(#ptr_add<int32>(val, 0i64))) => int64;
++    dalloc(val);
++    dalloc(len);
++    if (r.is_error) { pass 0i64 - 1i64; }
++    pass v;
++};
++
++// A socket bound to 127.0.0.1:0, its port read back (network order) into `out`, the socket returned.
++func:bound_any = int64(wild int8->:out) never fails {
++    int64:s = raw tcp_socket();
++    if (s < 0i64) { pass 0i64 - 1i64; }
++    wild int8->:blk = raw loopback(0u16);
++    wild int8->:len = calloc(1i64, 8i64);
++    <-(#ptr_add<int32>(len, 0i64)) = 16i32;
++    Result<int64>:rb = sys(SYS_BIND, s, blk, 16i64);
++    Result<int64>:rg = sys(SYS_GETSOCKNAME, s, blk, len);
++    wild SockaddrIn->:sa = blk =>! wild SockaddrIn->;
++    <-(#ptr_add<uint16>(out, 0i64)) = sa.port_be;
++    dalloc(blk);
++    dalloc(len);
++    if (rb.is_error) { pass 0i64 - 1i64; }
++    if (rg.is_error) { pass 0i64 - 1i64; }
++    pass s;
++};
++
++async func:main = int32(cstring[]:_~argv) {
++    // a closed port: bound, read back, closed
++    wild int8->:portw = calloc(1i64, 8i64);
++    int64:gone = raw bound_any(portw);
++    if (gone < 0i64) { exit 10i32; }
++    uint16:closed_port = <-(#ptr_add<uint16>(portw, 0i64));
++    Result<int64>:cg = sys(SYS_CLOSE, gone);
++    if (cg.is_error) { exit 11i32; }
++    wild int8->:to_closed = raw loopback(closed_port);
++
++    // A: SO_ERROR after the wait, then again
++    int64:sa = raw tcp_socket();
++    if (sa < 0i64) { exit 12i32; }
++    Result<int64>:ca = sys(SYS_CONNECT, sa, to_closed, 16i64);
++    if (!ca.is_error) { exit 13i32; }
++    if (ca.err == WouldBlock) { exit 14i32; }
++    if (ca.err == Interrupted) { exit 15i32; }
++    if (ca.err == NotFound) { exit 16i32; }
++    if (ca.err == Exists) { exit 17i32; }
++    if (ca.err == CrossDevice) { exit 18i32; }
++    Result<NIL>:wa = await io_ready((sa =>! int32), EV_OUT, raw duration_ms(1000i64));
++    if (wa.is_error) { exit 19i32; }
++    if ((raw so_error(sa)) != ECONNREFUSED_NUMBER) { exit 20i32; }
++    if ((raw so_error(sa)) != 0i64) { exit 21i32; }
++    Result<int64>:xa = sys(SYS_CLOSE, sa);
++    if (xa.is_error) { exit 22i32; }
++
++    // B: getpeername, then a second connect hands back the pending error
++    int64:sb = raw tcp_socket();
++    if (sb < 0i64) { exit 23i32; }
++    Result<int64>:cb1 = sys(SYS_CONNECT, sb, to_closed, 16i64);
++    if (!cb1.is_error) { exit 24i32; }
++    if (cb1.err != ca.err) { exit 25i32; }
++    Result<NIL>:wb = await io_ready((sb =>! int32), EV_OUT, raw duration_ms(1000i64));
++    if (wb.is_error) { exit 26i32; }
++    wild int8->:peer = calloc(1i64, 16i64);
++    wild int8->:peerlen = calloc(1i64, 8i64);
++    <-(#ptr_add<int32>(peerlen, 0i64)) = 16i32;
++    Result<int64>:pb = sys(SYS_GETPEERNAME, sb, peer, peerlen);
++    if (!pb.is_error) { exit 27i32; }
++    Result<int64>:cb2 = sys(SYS_CONNECT, sb, to_closed, 16i64);
++    if (!cb2.is_error) { exit 28i32; }
++    if (cb2.err == cb1.err) { exit 29i32; }
++    if ((raw so_error(sb)) != 0i64) { exit 30i32; }
++    Result<int64>:xb = sys(SYS_CLOSE, sb);
++    if (xb.is_error) { exit 31i32; }
++
++    // C: a listener, and the same first answer
++    int64:lsn = raw bound_any(portw);
++    if (lsn < 0i64) { exit 32i32; }
++    Result<int64>:rl = sys(SYS_LISTEN, lsn, 8i64);
++    if (rl.is_error) { exit 33i32; }
++    wild int8->:to_lsn = raw loopback(<-(#ptr_add<uint16>(portw, 0i64)));
++    int64:sc = raw tcp_socket();
++    if (sc < 0i64) { exit 34i32; }
++    Result<int64>:cc1 = sys(SYS_CONNECT, sc, to_lsn, 16i64);
++    if (!cc1.is_error) { exit 35i32; }
++    if (cc1.err != ca.err) { exit 36i32; }
++    Result<NIL>:wc = await io_ready((sc =>! int32), EV_OUT, raw duration_ms(1000i64));
++    if (wc.is_error) { exit 37i32; }
++    if ((raw so_error(sc)) != 0i64) { exit 38i32; }
++    <-(#ptr_add<int32>(peerlen, 0i64)) = 16i32;
++    Result<int64>:pc = sys(SYS_GETPEERNAME, sc, peer, peerlen);
++    if (pc.is_error) { exit 39i32; }
++    Result<int64>:cc2 = sys(SYS_CONNECT, sc, to_lsn, 16i64);
++    if (cc2.is_error) { exit 40i32; }
++    Result<int64>:cc3 = sys(SYS_CONNECT, sc, to_lsn, 16i64);
++    if (!cc3.is_error) { exit 41i32; }
++    if (cc3.err == cc1.err) { exit 42i32; }
++    if (cc3.err == cb2.err) { exit 47i32; }
++    int64:kind = SOCK_NONBLOCK | SOCK_CLOEXEC;
++    Result<int64>:acc = sys(SYS_ACCEPT4, lsn, 0i64, 0i64, kind);
++    if (acc.is_error) { exit 43i32; }
++    dalloc(peer);
++    dalloc(peerlen);
++    dalloc(portw);
++    dalloc(to_closed);
++    dalloc(to_lsn);
++    Result<int64>:x1 = sys(SYS_CLOSE, acc.value);
++    Result<int64>:x2 = sys(SYS_CLOSE, sc);
++    Result<int64>:x3 = sys(SYS_CLOSE, lsn);
++    if (x1.is_error) { exit 44i32; }
++    if (x2.is_error) { exit 45i32; }
++    if (x3.is_error) { exit 46i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (DeadlineExceeded)  { exit 111i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe11_scm_rights.npk b/tests/probe/probe11_scm_rights.npk
+new file mode 100644
+index 0000000..2d7ac95
+--- /dev/null
++++ b/tests/probe/probe11_scm_rights.npk
+@@ -0,0 +1,152 @@
++// expect-exit: 0
++//
++// PROBE 11 -- `SCM_RIGHTS` OVER A `socketpair`, RECEIVED WITH `MSG_CMSG_CLOEXEC`.
++//
++// ASKS: a pipe holding three bytes, its read end passed over a `socketpair` by `sendmsg` with one
++// payload byte and one `cmsghdr` of `SOL_SOCKET`/`SCM_RIGHTS` -- `cmsg_len` = `CMSG_LEN(4)` = 20 in a
++// control buffer of `CMSG_SPACE(4)` = 24 -- and received by `recvmsg` with `MSG_CMSG_CLOEXEC`
++// (0x40000000) in its flags word. The received descriptor is a different number, the control
++// length and the header come back as sent, reading through it gives the pipe's bytes, and
++// `fcntl(F_GETFD)` reports `FD_CLOEXEC` -- so the flag reached the kernel through `sys`.
++// DEPENDS ON THE ANSWER: `ANCILLARY_MODEL.md` end to end -- N-2's distinction between `CMSG_LEN`
++// and `CMSG_SPACE`, and the rule that every received descriptor is close-on-exec atomically.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 39 are the assertions.
++mod:probe11_scm_rights;
++
++fixed int64:SYS_READ = 0i64;
++fixed int64:SYS_WRITE = 1i64;
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_SENDMSG = 46i64;
++fixed int64:SYS_RECVMSG = 47i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:SYS_FCNTL = 72i64;
++fixed int64:SYS_PIPE2 = 293i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:PIPE_CLOEXEC = 524288i64;
++fixed int64:MSG_NOSIGNAL = 16384i64;
++fixed int64:MSG_CMSG_CLOEXEC = 1073741824i64;
++fixed int32:SOL_SOCKET = 1i32;
++fixed int32:SCM_RIGHTS = 1i32;
++fixed int64:F_GETFD = 1i64;
++fixed int64:FD_CLOEXEC = 1i64;
++fixed int64:CMSG_LEN_ONE_FD = 20i64;
++fixed int64:CMSG_SPACE_ONE_FD = 24i64;
++
++// `msg_namelen` and `msg_flags` as one 8-byte word each, covering the `int32` and its padding (N-1).
++struct:MsgHdr = {
++    wild int8->:name; int64:namelen;
++    wild int8->:iov; uint64:iovlen;
++    wild int8->:control; uint64:controllen;
++    int64:flags;
++};
++struct:IoVec = { wild int8->:base; uint64:len; };
++struct:CmsgFd = { uint64:len; int32:level; int32:ctype; int32:passed; int32:pad; };
++
++func:main = int32(cstring[]:_~argv) {
++    if (#size_of<CmsgFd>() != CMSG_SPACE_ONE_FD) { exit 10i32; }
++    // the pipe, three bytes in it
++    wild int8->:pv = alloc(8i64);
++    Result<int64>:rp = sys(SYS_PIPE2, pv, PIPE_CLOEXEC);
++    if (rp.is_error) { exit 11i32; }
++    int64:pr = (<-(#ptr_add<int32>(pv, 0i64))) => int64;
++    int64:pw = (<-(#ptr_add<int32>(pv, 1i64))) => int64;
++    dalloc(pv);
++    wild int8->:xyz = calloc(1i64, 8i64);
++    <-(#ptr_add<uint8>(xyz, 0i64)) = 120u8;
++    <-(#ptr_add<uint8>(xyz, 1i64)) = 121u8;
++    <-(#ptr_add<uint8>(xyz, 2i64)) = 122u8;
++    Result<int64>:rw = sys(SYS_WRITE, pw, xyz, 3i64);
++    dalloc(xyz);
++    if (rw.is_error) { exit 12i32; }
++
++    // the socketpair
++    wild int8->:sv = alloc(8i64);
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rs = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
++    if (rs.is_error) { exit 13i32; }
++    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
++    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
++    dalloc(sv);
++
++    // send the read end: one payload byte, one SCM_RIGHTS header
++    wild int8->:blk = calloc(1i64, 128i64);
++    wild MsgHdr->:sm = blk =>! wild MsgHdr->;
++    wild IoVec->:siv = (#ptr_add<int8>(blk, 56i64)) =>! wild IoVec->;
++    wild CmsgFd->:sc = (#ptr_add<int8>(blk, 72i64)) =>! wild CmsgFd->;
++    siv.base = #ptr_add<int8>(blk, 120i64);
++    siv.len = 1u64;
++    sc.len = CMSG_LEN_ONE_FD =>! uint64;
++    sc.level = SOL_SOCKET;
++    sc.ctype = SCM_RIGHTS;
++    sc.passed = pr =>! int32;
++    sm.iov = #ptr_add<int8>(blk, 56i64);
++    sm.iovlen = 1u64;
++    sm.control = #ptr_add<int8>(blk, 72i64);
++    sm.controllen = CMSG_SPACE_ONE_FD =>! uint64;
++    Result<int64>:rsend = sys(SYS_SENDMSG, a, blk, MSG_NOSIGNAL);
++    dalloc(blk);
++    if (rsend.is_error) { exit 14i32; }
++    if (rsend.value != 1i64) { exit 15i32; }
++
++    // receive it, close-on-exec atomically
++    wild int8->:rblk = calloc(1i64, 128i64);
++    wild MsgHdr->:rm = rblk =>! wild MsgHdr->;
++    wild IoVec->:riv = (#ptr_add<int8>(rblk, 56i64)) =>! wild IoVec->;
++    wild CmsgFd->:rc = (#ptr_add<int8>(rblk, 72i64)) =>! wild CmsgFd->;
++    riv.base = #ptr_add<int8>(rblk, 120i64);
++    riv.len = 1u64;
++    rm.iov = #ptr_add<int8>(rblk, 56i64);
++    rm.iovlen = 1u64;
++    rm.control = #ptr_add<int8>(rblk, 72i64);
++    rm.controllen = CMSG_SPACE_ONE_FD =>! uint64;
++    Result<int64>:rrecv = sys(SYS_RECVMSG, b, rblk, MSG_CMSG_CLOEXEC);
++    if (rrecv.is_error) { exit 16i32; }
++    if (rrecv.value != 1i64) { exit 17i32; }
++    if ((rm.flags & 8i64) != 0i64) { exit 18i32; }
++    if ((rm.controllen =>! int64) != CMSG_SPACE_ONE_FD) { exit 19i32; }
++    if ((rc.len =>! int64) != CMSG_LEN_ONE_FD) { exit 20i32; }
++    if (rc.level != SOL_SOCKET) { exit 21i32; }
++    if (rc.ctype != SCM_RIGHTS) { exit 22i32; }
++    int64:got = rc.passed => int64;
++    dalloc(rblk);
++    if (got == pr) { exit 23i32; }
++    if (got < 3i64) { exit 24i32; }
++    Result<int64>:fl = sys(SYS_FCNTL, got, F_GETFD);
++    if (fl.is_error) { exit 25i32; }
++    if ((fl.value & FD_CLOEXEC) == 0i64) { exit 26i32; }
++
++    // the pipe's bytes, through the received descriptor
++    wild int8->:inb = calloc(1i64, 8i64);
++    Result<int64>:rr = sys(SYS_READ, got, inb, 8i64);
++    if (rr.is_error) { exit 27i32; }
++    if (rr.value != 3i64) { exit 28i32; }
++    if ((<-(#ptr_add<uint8>(inb, 2i64))) != 122u8) { exit 29i32; }
++    dalloc(inb);
++    Result<int64>:c1 = sys(SYS_CLOSE, got);
++    Result<int64>:c2 = sys(SYS_CLOSE, pr);
++    Result<int64>:c3 = sys(SYS_CLOSE, pw);
++    Result<int64>:c4 = sys(SYS_CLOSE, a);
++    Result<int64>:c5 = sys(SYS_CLOSE, b);
++    if (c1.is_error) { exit 30i32; }
++    if (c2.is_error) { exit 31i32; }
++    if (c3.is_error) { exit 32i32; }
++    if (c4.is_error) { exit 33i32; }
++    if (c5.is_error) { exit 34i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe13_errno_declared.npk b/tests/probe/refused/probe13_errno_declared.npk
+new file mode 100644
+index 0000000..53aa2dc
+--- /dev/null
++++ b/tests/probe/refused/probe13_errno_declared.npk
+@@ -0,0 +1,32 @@
++// expect-error: NITPICK-RESOLVE-010
++//
++// PROBE 13 -- AN ERRNO NAMED BY THE PROGRAM, WITH ITS CODE.
++//
++// ASKS: may a library name a kernel errno the prelude does not -- `error:EInProgress = 115i32;`, so
++// that `connect`'s answer could be compared with it? The prelude names five beside `IoEof`
++// (`WouldBlock`, `Interrupted`, `NotFound`, `Exists`, `CrossDevice`) and says naming more "is a
++// decision for the code that needs it".
++// DEPENDS ON THE ANSWER: SK-014 (`connect`'s `EINPROGRESS`), SK-031 (the accept loop's error
++// table) and `SAFETY.md` S-6: what this library can tell apart, and what it can only forward.
++// EXPECTED: refused, `NITPICK-RESOLVE-010` at the declaration -- an explicit error code is the
++// prelude's alone (D-179) -- and nothing else. Probe 13b asks the other way in: a cast.
++mod:probe13_errno_declared;
++
++error:EInProgress = 115i32;
++
++func:main = int32(cstring[]:_~argv) {
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe13b_errno_number.npk b/tests/probe/refused/probe13b_errno_number.npk
+new file mode 100644
+index 0000000..0757785
+--- /dev/null
++++ b/tests/probe/refused/probe13b_errno_number.npk
+@@ -0,0 +1,32 @@
++// expect-error: NITPICK-TYPE-032
++//
++// PROBE 13b -- AN ERROR READ AS A NUMBER.
++//
++// ASKS: may a program read the code a kernel errno carries -- `int32:code = r.err =>! int32;` -- so
++// that it could compare it with a number where it cannot name an identity (probe 13)?
++// DEPENDS ON THE ANSWER: with probe 13, SK-014, SK-031 and S-6.
++// EXPECTED: refused, `NITPICK-TYPE-032` at the cast, and nothing else. An error compares only with
++// an identity the prelude declares, or with another error (probes 04, 05, 08 and 10 do both).
++mod:probe13b_errno_number;
++
++fixed int64:SYS_CLOSE = 3i64;
++
++func:main = int32(cstring[]:_~argv) {
++    Result<int64>:r = sys(SYS_CLOSE, 987654i64);
++    if (!r.is_error) { exit 10i32; }
++    int32:code = r.err =>! int32;
++    exit code;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};

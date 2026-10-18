@@ -1,0 +1,16 @@
+# 0.0.0's stale-claim sweep: one subject per claim the steps changed, in more than one wording. `tools/sweep.py`.
+no disposition installed | installs no (signal|SIGPIPE) dispositions?|no rt_sigaction|SIGPIPE.{0,30}default is live|runtime installs no
+SIGPIPE kills the process | SIGPIPE.{0,60}(terminates|kills|lethal)|dead peer (kills|terminates)|whole process down|terminates the (process|runtime)
+death by signal 13 | expect-signal|died? of signal 13|death by signal|dies of 13
+probe 04 proves lethality | probe 04 proves|SIGPIPE.{0,4}s lethality
+read rather than run | read out of compiler source|measured in the compiler.s own source|read rather than run
+the ucred field names | ucred\.pid|\bpid at 0
+channel as a keyword | thread, channel|channel, atomic
+a reader over a plain slice | over uint8\[\]|takes uint8\[\]|\(uint8\[\]:src|uint8\[\]:sa\)|takes a byte slice|unix_addr_path\(uint8
+fixed as a size | fixed-(size|capacity|length)|a fixed \d+|fixed (array|buffer|block)\b
+SO_ERROR as the failure | fail with that errno|SO_ERROR.{0,40}forwarded|non-zero value is failed
+no cycle blocked | no cycle in this plan is blocked|nothing in this cycle is blocked
+owes exactly one arm | owes exactly one arm|every public error.{0,40}(arm|owes)
+twelve probes | twelve (small )?(programs|probes)
+the probe-12 sizes | 128-byte POD|20-byte and a 6-byte
+probe 03 for addresses | probe 03 \(.?SK-016
