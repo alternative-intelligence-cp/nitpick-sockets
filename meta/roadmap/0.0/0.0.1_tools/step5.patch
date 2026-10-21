@@ -1,8 +1,8 @@
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index be7b49c..cb5c619 100644
+index 7f72455..47f2c38 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -763,3 +763,33 @@ it needs is the input this decision removes.
+@@ -771,3 +771,33 @@ currency row for cycle 0.0.2.
  
  *Reversal:* to cache, or to use any action, name it by full commit sha with its release beside it, as a currency row
  checked at the action's own repository on a named date, and restore the cached steps `nitpick-regex`'s workflow has.
@@ -38,10 +38,10 @@ index be7b49c..cb5c619 100644
 +count the library routine, strike `CURRENCY.md`'s research section and its three rows, and the gate with them.
 diff --git a/meta/research/CURRENCY.md b/meta/research/CURRENCY.md
 new file mode 100644
-index 0000000..91fa1a6
+index 0000000..8aa72a0
 --- /dev/null
 +++ b/meta/research/CURRENCY.md
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,58 @@
 +# Currency — the facts from outside the compiler tree this plan rests on
 +
 +One row per standard, kernel fact, reference implementation, test-vector set and outside tool the plan names, with
@@ -55,6 +55,7 @@ index 0000000..91fa1a6
 +| GitHub Actions' runner image — CI's `runs-on` | `ubuntu-24.04` | by cycle 0.0.1's first CI run, whose first step prints it, quoted in that subcycle's record | github.com/actions/runner-images | @@PD-167@@ |
 +| The runner's loopback — what the `loopback` stage runs over (`BUILD.md` B-5) | `127.0.0.1` and `::1`, each bound at port 0 | by the same run's first step | the run's log | @@PD-167@@ |
 +| LLVM's release asset — what CI installs | `LLVM-20.1.8-Linux-X64.tar.xz` at `llvmorg-20.1.8`; the version is the compiler's D-349, read in its tree | by the same run, which downloads it and asserts each tool's version | github.com/llvm/llvm-project/releases | @@PD-166@@ |
++| LLVM's release asset by content — its sha256 and size | not pinned: CI fetches the asset by its version and asserts each tool's `--version` (@@PD-167@@) | not yet — cycle 0.0.2, which holds the toolchain to its pin: the asset's sha256 and size, measured on a named date, become two rows CI asserts | github.com/llvm/llvm-project/releases | @@PD-167@@ |
 +| Python — the harness's interpreter | none chosen yet; the runner's version is printed by CI's first step | not yet — cycle 0.0.2, which writes the harness, names the version it needs | python.org | `SK-004` |
 +| The x86-64 socket syscall numbers (`SOCKET_MODEL.md` §1) | the fifteen in its table, "measured on the target platform on 2026-09-03", no kernel release named | not yet — cycle 0.2.0, which writes `src/sys/`, against the kernel's table at a named release; cycle 0.0.0's probes ran on them | the kernel's `arch/x86/entry/syscalls/syscall_64.tbl` | `SK-016`, `SK-007` |
 +| The kernel's structure layouts (`ADDRESS_MODEL.md` §1, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |

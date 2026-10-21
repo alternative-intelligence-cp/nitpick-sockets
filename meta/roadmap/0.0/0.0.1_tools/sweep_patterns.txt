@@ -4,12 +4,15 @@ llvm-config as the version check | llvm-config
 the four surprises | four things that will surprise|four things
 the manifest's four tables | four tables|four of the tables
 the layering's column rule | import (a module|one) to its (left|right)|direction of every (dependency )?arrow|server ─+► stream
+the layering as a drawing | (§ ?6|B-18).{0,3}s? (diagram|drawing|picture)|(layering|dependency|module|import) (diagram|drawing|picture)|(diagram|drawing) (in|of) .{0,12}BUILD
 the generic option form in raw | raw\.npk|option/raw\b|module named raw
 the planning status | status: planning|no code yet|no library code exists yet
 the compiler at cycle 1.5 | compiler.{0,20}cycle 1\.5\b|compiler.s 1\.5\.0|cycle 1\.5\.0|discharge in cycle 1\.5|when 1\.5\.\d lands
 the empty heading | What this is Before starting
 the consumer under accept | accept.{0,4}tests/conformance|conformance/.{0,6}accept|accepted by tools/check|accept.{0,4}the public API compiles
-owes one arm | owes (exactly )?one (failsafe )?arm
 rootlist_add called from nowhere | rootlist_add.{0,30}(never called|called from (nowhere|anywhere))|never populated
 npkg has no update | no install and no update|written only by npkg update
 the builder returns a stream type | listen\(backlog\)\s+-> TcpListener|connect\(addr, within\) -> TcpStream
+# The subject fix round 1 added by subject (the plan verification's findings 4 and 5(c)) is proved on its claim in
+# other words than its old text's (`tools/sweep.py`).
+twin: the layering as a drawing | each import is checked against the module drawing in BUILD.md

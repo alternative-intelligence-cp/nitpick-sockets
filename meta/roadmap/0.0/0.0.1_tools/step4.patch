@@ -1,24 +1,27 @@
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
 new file mode 100644
-index 0000000..36ae8a9
+index 0000000..f78e082
 --- /dev/null
 +++ b/.github/workflows/ci.yml
-@@ -0,0 +1,201 @@
+@@ -0,0 +1,204 @@
 +# nsockets CI.
 +#
-+# EVERY INPUT IS PINNED, AND THE PIN IS ENFORCED RATHER THAN REQUESTED (cycle 0.0.1's
-+# plan; the compiler's D-204: the toolchain is a build input). The compiler is a
-+# COMMIT, never a branch: a library whose CI tracks another repository's `main` goes
-+# red for reasons that are not its own. Bumping a pin is a deliberate commit, and the
-+# commit that bumps it is the one that runs the full suite. Modelled on
++# WHAT IS PINNED, AND HOW (@@PD-167@@; the compiler's D-204: the toolchain is a build
++# input). The compiler is a COMMIT, never a branch -- a library whose CI tracks
++# another repository's `main` goes red for reasons that are not its own -- and the
++# checkout is asserted at it and clean, and its emission by digest and size. LLVM
++# is a VERSION: its release tarball is fetched by name and each tool's `--version`
++# asserted; the tarball's own digest and size are not pinned yet, a row of
++# `meta/research/CURRENCY.md` for cycle 0.0.2. The runner image is a NAME, and the
++# first step prints its release and kernel. Bumping a pin is a deliberate commit,
++# and the commit that bumps it is the one that runs the full suite. Modelled on
 +# `nitpick-regex`'s workflow and `nitpick-parse`'s plan for one.
 +#
 +# IT RUNS NO ACTION (@@PD-167@@). Every step is a script of its own: the two checkouts
 +# are `git`, LLVM is its release tarball, and nothing is cached, so every run downloads
 +# and builds what it uses. An action is code run with this repository's token, and the
 +# early ecosystem audit's EK2 found `actions/checkout@v4` and `actions/cache@v4` on
-+# floating tags in both the libraries' workflows that use them. The runner image is
-+# the one input pinned by name alone, and the first step prints what it is.
++# floating tags in both the libraries' workflows that use them.
 +#
 +# WHAT A GREEN RUN PROVES AT CYCLE 0.0.1: the pinned compiler builds from a clean
 +# checkout of the pinned commit; its emission is the one the pin recorded; LLVM is
@@ -54,7 +57,7 @@ index 0000000..36ae8a9
 +
 +jobs:
 +  build:
-+    # Pinned, not `ubuntu-latest`: a runner image that rolls forward is an unpinned input.
++    # The runner image, by name (@@PD-167@@); the first step prints its release and kernel.
 +    runs-on: ubuntu-24.04
 +    timeout-minutes: 60
 +
@@ -235,36 +238,41 @@ index 0000000..2472482
 +print("harness: cycle 0.0.1's stub -- nothing is built or judged until cycle 0.0.2")
 +sys.exit(0)
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index f86f31d..be7b49c 100644
+index e618144..7f72455 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -737,3 +737,29 @@ links nor runs a program; **one probe entry** — one entry judges every file it
+@@ -740,3 +740,34 @@ links nor runs a program; **one probe entry** — one entry judges every file it
  0.0.0's nineteen probes are refusals.
  
  *Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
 +
-+### @@PD-167@@ — CI runs no third-party action, and every input it uses is pinned by content and asserted
++### @@PD-167@@ — CI runs no third-party action; it pins the compiler by commit, LLVM by version and the runner image by name
 +**2026-10-18, cycle 0.0.1 step 4.**
 +
 +*What was read* — the early ecosystem audit's EK2, re-checked on 2026-10-15: the two libraries with a workflow,
-+`nitpick-regex` and `nitpick-time`, run `actions/checkout@v4` and `actions/cache@v4`, floating tags and the only
-+inputs those workflows do not pin by content; `nitpick-regex`'s workflow quotes GitHub's annotation on its first
-+green run that both target a deprecated Node 20, and leaves their bump to a research request of the workbench's. And
++`nitpick-regex` and `nitpick-time`, run `actions/checkout@v4` and `actions/cache@v4`, floating tags; and, read on
++2026-10-21 at their `main`s on GitHub, `14817a1` and `1cc801f`, both fetch LLVM's release tarball by its version and
++assert only `llvm-config --version`. `nitpick-regex`'s workflow quotes GitHub's annotation on its first green run
++that both actions target a deprecated Node 20, and leaves their bump to a research request of the workbench's. And
 +the planning guide's G2: LLVM from the release tarball, asserted; the compiler checkout asserted at the pin and
 +clean; the emission asserted against the pin's row; every hex value quoted; actions pinned.
 +
 +*So:* `.github/workflows/ci.yml` runs no action at all. Its two checkouts are `git` — this repository at the commit
-+the run is for, and the compiler at `NITPICK_COMMIT` by full sha, each asserted; LLVM is the `llvmorg-20.1.8` release
-+tarball, with `llc`, `opt` and `ld.lld` each asserted at 20.1.8; the compiler is built from its commit and its
-+`npkc.ll` asserted against notice 118's row; and nothing is cached, so every run downloads and builds what it uses.
-+Its first step prints the runner image, `ubuntu-24.04`, the one input pinned by name alone, and binds a TCP socket to
-+port 0 on `127.0.0.1` and on `::1`, which the `loopback` stage runs over. `harness/run.py` is a stub until cycle
-+0.0.2, and says so.
++the run is for, and the compiler at `NITPICK_COMMIT` by full sha, each asserted; the compiler is built from its
++commit and its `npkc.ll` asserted, digest and size, against notice 118's row. LLVM is pinned by its version: the
++`llvmorg-20.1.8` release tarball, fetched by name, with `llc`, `opt` and `ld.lld` each asserted at 20.1.8 by
++`--version`; the tarball's own digest and size are not pinned, and are a row of `CURRENCY.md` that cycle 0.0.2
++checks. The runner image is pinned by name, `ubuntu-24.04`: the first step prints its release and kernel, and binds a
++TCP socket to port 0 on `127.0.0.1` and on `::1`, which the `loopback` stage runs over; every tool a step calls but
++LLVM's and the compiler's own is the image's. Nothing is cached, so every run downloads and builds what it uses.
++`harness/run.py` is a stub until cycle 0.0.2, and says so.
 +
 +*Alternatives declined:* **`@v4`, as the two libraries' workflows** — EK2's finding, repeated; **each action pinned
 +by a full commit sha** — the pin an action should have, but each sha is an outside fact, and this plan ran no
 +research to check one; **a cache, through a pinned action** — it saves a download and a build per run, and the action
-+it needs is the input this decision removes.
++it needs is the input this decision removes; **LLVM's tarball pinned now by its sha256 and size** — the content pin
++it should have, but its digest is an outside fact this plan neither downloaded nor researched, so it waits as a
++currency row for cycle 0.0.2.
 +
 +*Reversal:* to cache, or to use any action, name it by full commit sha with its release beside it, as a currency row
 +checked at the action's own repository on a named date, and restore the cached steps `nitpick-regex`'s workflow has.
