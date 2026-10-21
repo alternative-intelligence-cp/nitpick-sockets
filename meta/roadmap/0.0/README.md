@@ -229,8 +229,9 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
   stages are 0.0.3's, and 0.0.1's CI binds the runner's loopback itself (@@PD-167@@).
 - **`BUILD.md` §2's drawing linked a library object between the library and every program**, and B-2 derived its
   allowlist from `runtime/npkrt.ll`'s text: `npkc` emits one module per root, and the link resolves against the
-  runtime object (@@PD-169@@). And the first writing's 0.0.2 judged one stage, where 0.0.1's manifest declares a
-  refusal entry beside it (@@PD-171@@).
+  runtime object (@@PD-169@@). And the first writing's 0.0.2 judged the `program` stage alone, while its 0.0.0 wrote
+  refusals among the probes: 0.0.1's manifest gives them an entry of their own (@@PD-166@@), which 0.0.2's runner
+  judges (@@PD-171@@).
 
 ## Subcycles
 
