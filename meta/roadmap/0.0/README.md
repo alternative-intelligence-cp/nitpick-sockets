@@ -4,7 +4,8 @@
 ability to find out whether the rest of the plan is buildable, and the machinery every later cycle is tested by.
 
 **Re-derived at compiler `c9baa9e` (2026-10-18) by the Team seat's planners — T7 for 0.0.0, T7b for 0.0.1 —** one
-subcycle file at a time, each committed and pushed as it reaches the pin. The six files were written at the repository's setup (2026-09-03), against
+subcycle file at a time, each committed and pushed as it reaches the pin, and both corrected by fix round 1
+(2026-10-21) where the first plan verification found them wrong. The six files were written at the repository's setup (2026-09-03), against
 the compiler's cycle 1.5 and LLVM 20.1.2; each is re-measured at the pin, with what the audits found owed carried into
 the step that owes it (the owed-items table below). **`c9baa9e` is the libraries' one re-pin**, landing 118's commit,
 by the author's word on the workbench's question 32 (2026-10-15 12:04:21), taken on 2026-10-16 and committed at the
@@ -20,8 +21,9 @@ workbench's `4540f20`; this cycle is planned at it from the start, and no subcyc
 | [0.0.5](0.0.5.md) | **not yet** — as 0.0.2; its execution, the close, is the libraries' seat's |
 
 A file marked *not yet* is a target, not a plan: its steps are re-derived at the pin before anything is dispatched from
-it, and where it disagrees with 0.0.0's or 0.0.1's verdicts — LLVM 20.1.2, `// expect-signal:`, "seven ways",
-`src/option/raw.npk`, the `accept` stage — those verdicts and the tables below govern.
+it, and where it disagrees with 0.0.0's or 0.0.1's verdicts — `// expect-signal:`, the self-check's "seven cases",
+D-151 trapping a socket left open, `src/option/raw.npk`, the `accept` stage, `BUILD.md` §6's diagram — those
+verdicts and the tables below govern.
 
 ## Why this shape
 
@@ -55,7 +57,7 @@ Each is settled with a recommendation and states its reversal; **none is left op
 | @@PD-164@@ | 0.0.1 | the layering is a table of what each module may import; the drawing's two missing arrows added |
 | @@PD-165@@ | 0.0.1 | the generic option form lives in `src/option/sockopt.npk`, because `raw` is a keyword |
 | @@PD-166@@ | 0.0.1 | the manifest at the pin: LLVM 20.1.8 with the compiler's target rows, and its first three test entries |
-| @@PD-167@@ | 0.0.1 | CI runs no third-party action, and every input it uses is pinned by content and asserted |
+| @@PD-167@@ | 0.0.1 | CI runs no third-party action; it pins the compiler by commit, LLVM by version and the runner image by name |
 | @@PD-168@@ | 0.0.1 | one currency table; the library is security-sensitive, and its three research items gate cycle 0.0's work |
 | PD-169 … PD-178 | 0.0.2 … 0.0.4 | the continuation's, as each file reaches the pin |
 
@@ -102,9 +104,10 @@ taken **between subcycles**, never inside one (the early ecosystem audit's EC9).
 | 127 `1670427` (D-339, DEF-181) | the lock walk's holes closed | **nothing**: no lock; probe 09's channel is refused at its annotation |
 | 128 `463cf93` (D-341, F70) | a `buffer` gets the checked `b[i]` and `b[lo...hi]`; a `#wild_slice` over a header's `.ptr` is a view of its owner (`BORROW-015`, `BORROW-001`); `#ptr_add`'s "`wild` context" sentence struck | **nowhere in 0.0.0**, which writes no `buffer` index and no `#wild_slice`; notice 128 counts no sockets site. **0.0.4's `Bytes` is designed to it**: no raw `.ptr[i]`, no `#wild_slice` over `.ptr` held across a write — nitpick-time's `bytes.npk` line 140 is the shape that breaks |
 
-**At the adoption that carries any landing past the pin, 0.0.1's CI moves**: its three pinned rows —
-`NITPICK_COMMIT`, `NPKC_LL_SHA256`, `NPKC_LL_BYTES` — take the new notice's, and the manifest's `llvm` row only if a
-landing moves the compiler's D-349 (`0.0.1.md` §10, which also names what each item not yet landed would move).
+**At the adoption that carries any landing past the pin, 0.0.1's CI moves**: its three rows that pin the compiler —
+`NITPICK_COMMIT`, `NPKC_LL_SHA256`, `NPKC_LL_BYTES` — take the new notice's, and `LLVM_VERSION`, with the manifest's
+`llvm` row, only if a landing moves the compiler's D-349 (`0.0.1.md` §10, which also names what each item not yet
+landed would move).
 
 ## The shapes this cycle does not write
 
@@ -137,8 +140,8 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 | SL-2, `Bytes::view()` | 0.0.4 | a view, if any, tied to D-341's freeze; the write path takes `fixed uint8[]` (@@PD-161@@'s rule) |
 | SL-3 and E2-4, LLVM 20.1.8 and the manifest's rows | 0.0.1 steps 3, 4 | **FIXED** (@@PD-166@@): `[toolchain]`'s `llvm`, `triple` and `datalayout` as the compiler's manifest gives them at the pin, worded as `nitpick-regex`'s; `CLAUDE.md`, `README.md`; CI asserts the tools |
 | SL-4, `fixed` on the stream checklists | 0.0.0 step 3 | **FIXED**: the 0.3 checklist; probe 06b's `TYPE-014` |
-| SL-5, "cycle 1.5" labels | 0.0.1 step 6; 0.0.4 | **FIXED** at four sites: `README.md`, `BUILD.md` §1, `specs/README.md`, O-N2, with `SK-004`'s dated note; `VERIFICATION.md`'s six sites and `SAFETY.md`'s "discharge in cycle 1.5" with EK1 (0.0.4) |
-| SL-6, "fixed" as a size | 0.0.0 step 3 | **FIXED** at its eight sites; `SK-022`'s settled text left |
+| SL-5, "cycle 1.5" labels | 0.0.1 step 6; 0.0.4 | **FIXED** at four sites: `README.md`, `BUILD.md` §1, `specs/README.md`, O-N2, with `SK-004`'s dated note; `VERIFICATION.md` 7, 22 … 26, 102 and 125 and `SAFETY.md` 193 … 194, "discharge in cycle 1.5", with EK1 (0.0.4) |
+| SL-6, "fixed" as a size | 0.0.0 step 3 | **FIXED**: eleven lines in nine places, the pin audit's ten less `SK-022`'s settled text, which is left |
 | NH-1 and EC1, the `SIGPIPE` premise | 0.0.0 step 1 | **FIXED** at every site of the audit's list and their twins by subject (@@PD-159@@) |
 | NH-2, the Bridge quotation | 0.0.0 step 1 | **FIXED**: `SAFETY.md` §2's dated note reads both sentences at the pin |
 | NH-3, "`exit 0` asserts every descriptor closed" | 0.0.0 §1.3; 0.0.3 | measured false (D-151 sees no descriptor); `TESTING.md` V-14's case rewritten with the self-check |
@@ -154,9 +157,9 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 | E2-10, counts against sets | 0.0.0 step 4 | **FIXED** here: `ROADMAP.md`'s and `OPEN_QUESTIONS.md`'s counts dropped. `LIBRARIES.md:14` is the workbench's (W-16), the orchestrator's |
 | E2-13 and G14, `CURRENCY.md` and the research | 0.0.0 gate item 7; 0.0.1 step 5 | **FIXED**: the three requests in 0.0.0 §13; the gate is cycle 0.0's first work dispatch; `CURRENCY.md` and its three research rows (@@PD-168@@) |
 | E2-15, `CLAUDE.md`'s empty heading | 0.0.1 step 6 | **FIXED**: the paragraph under "What this is" |
-| EC3 and G6, "every public `error:`" | 0.0.0 step 4; 0.0.3 | **FIXED** at its cost sentences (`SAFETY.md`:20, `CONTRIBUTING.md`:46), measured (@@PD-163@@); `TESTING.md`:127 and the check, keyed by module and name, at 0.0.3 |
+| EC3 and G6, "every public `error:`" | 0.0.0 step 4; 0.0.3 | **FIXED** at its cost sentences (`SAFETY.md`:20, `CONTRIBUTING.md`:46), measured (@@PD-163@@), with S-8's twins by subject, `src/addr/README.md` and the 1.0 checklist's line; `TESTING.md`:127 and the check, keyed by module and name, at 0.0.3 |
 | ED2, local `O-N` ids | 0.0.0 step 4 | **FIXED**: O-N1, O-N3, O-N4 and the new fifth each say its id is this repository's own |
-| G2, CI; EK2 by subject | 0.0.1 step 4; 0.0.2 | **FIXED** (@@PD-167@@): LLVM asserted, the compiler at the pin and clean, `npkc.ll`'s row, every hex value quoted, and no action to pin; the harness step's unqualified green summary, 0.0.2 |
+| G2, CI; EK2 by subject | 0.0.1 step 4; 0.0.2 | **FIXED** (@@PD-167@@): LLVM asserted, the compiler at the pin and clean, `npkc.ll`'s row, every hex value quoted, and no action to pin; the harness step's unqualified green summary, and LLVM's content pin — the tarball's sha256 and size, a currency row — 0.0.2 |
 | G5, one reading of source | 0.0.3 | the tree checks over blanked bytes, with clean controls |
 | G7, the bill from `REACH-003` | 0.0.0 §1.4; 0.0.3 | measured; `check_failsafe_arms` from cycle 0.2 |
 | G9, refusals their own dispatch | 0.0.0; 0.0.1 step 3 | **FIXED**: `tests/probe/` and `refused/`, and the manifest's `probe` and `probe-refused` |
@@ -245,6 +248,7 @@ states its own acceptance when it reaches the pin, and where the two differ, the
 ### 0.0.2 — the harness, part 1
 - [ ] `harness/run.py`: the manifest reader, the toolchain pin check against the manifest's target rows, the module-graph walk
 - [ ] the build pipeline — one module per program root and `npkrt.o` — with the undefined-symbol scan and a call-edge scan as build steps
+- [ ] LLVM's release tarball pinned in CI by its sha256 and size, `CURRENCY.md`'s row checked (@@PD-167@@)
 - [ ] the `program` stage at -O0 and again under `opt -O2`, same exit required; `expect-exit`, `stress` and `mem-cap-mib` honoured — no `expect-signal` (@@PD-159@@)
 - [ ] the `repro` check: two builds from different working directories, each copy with its manifest
 - [ ] 0.0.0's `tests/probe/` green as the first real `program` suite
