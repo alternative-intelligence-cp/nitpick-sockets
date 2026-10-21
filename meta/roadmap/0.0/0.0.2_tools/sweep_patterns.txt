@@ -1,0 +1,20 @@
+# 0.0.2's stale-claim sweep: one subject per claim the steps changed, in more than one wording, each proved on a twin
+# phrased in other words than its old text's (`tools/sweep.py`).
+the harness's stub | stub until (cycle )?0\.0\.2|run\.py is a stub|cycle 0\.0\.1.s stub|(stub|placeholder) that (builds|judges|runs) (nothing|no)|judges nothing until
+probes run by hand | probes (are|were) run by hand|probes? (is|are) run by hand|(compiled|built) and (run|executed) manually
+a library object linked in | build/nsockets\.(o|ll|opt\.ll)|nsockets\.o\b|one build of the library|a library object|library.s (single |one )?(compiled )?object
+the allowlist from the runtime's text | allowlist derived from .{0,40}npkrt\.ll|npkrt\.ll.s own .?defines?|runtime.s IR (source )?text
+the consumer built in a step of its own | all four steps|conformance consumer.{0,10}four|consumer in a (step|job) of its own
+two probes run forty times | probes? 0?7 and 0?8 (have|run)|two of them run forty|only .{0,40}probes? .{0,30}forty
+LLVM's tarball not pinned by content | not pinned yet|digest and size (are|were) not pinned|checksum is not (yet )?recorded|not (yet )?checked by content
+the Python row unchecked | none chosen yet|names the version it needs|no interpreter version
+the library adds no marker | adds none to the compiler.s marker grammar|carries no marker the compiler.s grammar does not|marker grammar is the compiler.s, marker for marker|no marker of (its|their) own
+twin: the harness's stub | until the second harness subcycle the runner is a placeholder that runs no test
+twin: probes run by hand | until the runner exists each probe is compiled and executed manually
+twin: a library object linked in | each test program links against the library's single compiled object
+twin: the allowlist from the runtime's text | the permitted symbols are read from the runtime's IR source text
+twin: the consumer built in a step of its own | CI compiles, links and runs the consumer in a step of its own
+twin: two probes run forty times | only the reactor probe and the connect probe are repeated forty times
+twin: LLVM's tarball not pinned by content | the release archive's checksum is not yet recorded anywhere CI looks
+twin: the Python row unchecked | no interpreter version has been fixed for the harness
+twin: the library adds no marker | the test files carry no marker of their own beyond the compiler's

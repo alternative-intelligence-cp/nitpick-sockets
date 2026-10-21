@@ -1,0 +1,40 @@
+# 0.0.2's mutants of the harness's checks -- each one facet of one check broken alone, by the edits of one name;
+# `mutants.py` makes each edit exactly once in a copy of the tree's HEAD and runs the harness there. Two rows are
+# controls the other way: `library-shapes-allowed` adds the library's own facets to `src/core/core.npk` and must stay
+# GREEN, and `library-shapes-no-failsafe` shows the allowance B-2 gives a module compiled alone is what keeps it so.
+# TAB-separated: name, file, the text replaced, its replacement; `\n` is a newline and `\t` a tab.
+llvm-pin	nitpick.toml	llvm          = "20.1.8"	llvm          = "20.1.7"
+layout-pin	nitpick.toml	datalayout    = "e-m:e-p270	datalayout    = "e-m:o-p270
+schema-key	nitpick.toml	opt-level = 0\n	opt-level = 0\nlto       = true\n
+stage-unjudged	nitpick.toml	name  = "probe"\nstage = "program"	name  = "probe"\nstage = "check"
+python-old	harness/toolchain.py	PYTHON = (3, 12)	PYTHON = (3, 99)
+scan-blind	harness/runtime_symbols.tsv	npk_write\tdeny: the floor's write (S-2)	npk_write\tfloor: the heap
+scan-overreach	harness/runtime_symbols.tsv	npk_sys6\tlibrary: the kernel through sys (K-1, K-4)	npk_sys6\tdeny: the kernel (a mutant)
+write-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\npub func:core_write = int64() {\n    wild int8->:none = calloc(1i64, 8i64);\n    Result<int64>:r = write((1i32) =>! fd, none, 0i64);\n    dalloc(none);\n    if (r.is_error) { pass 0i64; }\n    pass r.value;\n};\n
+close-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\npub func:core_close = int64() {\n    Result<NIL>:r = close((3i32) =>! fd);\n    if (r.is_error) { pass 1i64; }\n    pass 0i64;\n};\n
+file-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\npub func:core_path = bool(cstring:path) {\n    pass path_exists(path);\n};\n
+process-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\npub func:core_retire = int64(int64:slot) {\n    driver_retire(slot);\n    pass 0i64;\n};\n
+thread-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\nfixed Duration:JOIN_5S = Duration{ ns: 5000000000i64 };\n\nthread async func:core_slow = NIL(int32:_~v) joins JOIN_5S {\n    pass NIL;\n};\n\npub async func:core_spawn = NIL() {\n    drop core_slow(1i32);\n    pass NIL;\n};\n
+lock-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\npub async func:core_lock = NIL() {\n    Mutex<int32, 3i32>:m = mutex(0i32) ?! Unreachable;\n    Guard<int32>:g = await m.acquire(raw duration_ms(10i64)) ?! Unreachable;\n    pass NIL;\n};\n
+channel-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\npub func:core_chan = int32() {\n    Channel<int32, 3i32, 4i64>:ch = channel() ?! Unreachable;\n    pass 0i32;\n};\n
+machine-code-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\npub func:core_jit = int64() {\n    wildx int8->:p = wildx_alloc(4096i64);\n    pass 0i64;\n};\n
+environment-in-library	src/core/core.npk	mod:core;\n	mod:core;\n\npub func:core_env = int64() {\n    cstring[]:e = environ();\n    pass e.len;\n};\n
+library-shapes-allowed	src/core/core.npk	mod:core;\n	mod:core;\n\npub async func:core_wait = NIL(int32:descr) {\n    Result<NIL>:w = await io_ready(descr, 1i32, raw duration_ms(1000i64));\n    if (w.is_error) { fail w.err; }\n    pass NIL;\n};\n\npub func:core_pid = int64() {\n    Result<int64>:r = sys(39i64);\n    if (r.is_error) { pass 0i64; }\n    pass r.value;\n};\n
+library-shapes-no-failsafe	src/core/core.npk	mod:core;\n	mod:core;\n\npub async func:core_wait = NIL(int32:descr) {\n    Result<NIL>:w = await io_ready(descr, 1i32, raw duration_ms(1000i64));\n    if (w.is_error) { fail w.err; }\n    pass NIL;\n};\n
+library-shapes-no-failsafe	harness/build.py	    allowed = ctx.runtime_defined | ({ROOT_FAILSAFE} if library else set())	    allowed = ctx.runtime_defined
+runtime-unclassed	harness/runtime_symbols.tsv	npk_exit\tfloor: the trap route\ta guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`\n	
+runtime-stale-row	harness/runtime_symbols.tsv	npk_exit\tfloor: the trap route\t	npk_exit_gone\tfloor: the trap route\t
+runtime-lacks-symbol	harness/run.py	    runtime_defined = rt.defined()\n	    runtime_defined = [s for s in rt.defined() if s != "npk_trap"]\n
+repro-no-manifest	harness/run.py	        shutil.copy2(os.path.join(ROOT, "nitpick.toml"), c)\n	
+exit-wrong	tests/probe/probe12_pod_addr_array.npk	// expect-exit: 32\n	// expect-exit: 33\n
+marker-unreadable	tests/probe/probe01_sys_socket.npk	// expect-exit: 0\n	// expect-exit: 0 -- the first probe\n
+marker-unjudged	tests/probe/probe02_sockaddr_layout.npk	// expect-exit: 0\n	// expect-exit: 0\n// argv: one\n
+marker-retired	tests/probe/probe04_sigpipe.npk	// expect-exit: 0\n	// expect-exit: 0\n// expect-signal: 13\n
+stress-three	tests/probe/probe03_cmsg_layout.npk	// expect-exit: 0\n	// expect-exit: 1\n// stress: 3\n
+cap-loader	tests/probe/probe12_pod_addr_array.npk	// expect-exit: 32\n	// expect-exit: 32\n// mem-cap-mib: 1\n
+floor-control	tests/probe/probe12_pod_addr_array.npk	// expect-exit: 32\n	// expect-exit: 32\n// mem-cap-mib: 64\n
+floor-control	harness/stages.py	        return self.floor_under[mib] == 0	        return self.floor_under[mib] == 1
+negative-wrong-code	tests/probe/refused/probe09_ownedfd_channel.npk	// expect-error: NITPICK-TYPE-057\n	// expect-error: NITPICK-TYPE-058\n
+negative-wrong-place	tests/probe/refused/probe09_ownedfd_channel.npk	// expect-error: NITPICK-TYPE-057\n	// expect-error: NITPICK-TYPE-057\n// expect-error-at: 99:1\n
+negative-no-expectation	tests/probe/refused/probe09_ownedfd_channel.npk	// expect-error: NITPICK-TYPE-057\n	// no expectation\n
+negative-program-marker	tests/probe/refused/probe09_ownedfd_channel.npk	// expect-error: NITPICK-TYPE-057\n	// expect-error: NITPICK-TYPE-057\n// stress: 3\n

@@ -1,0 +1,195 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 8859f79..3ab62c0 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -4,13 +4,15 @@
+ # input). The compiler is a COMMIT, never a branch -- a library whose CI tracks
+ # another repository's `main` goes red for reasons that are not its own -- and the
+ # checkout is asserted at it and clean, and its emission by digest and size. LLVM
+-# is a VERSION: its release tarball is fetched by name and each tool's `--version`
+-# asserted; the tarball's own digest and size are not pinned at this cycle --
+-# cycle 0.0.2 pins them by content, a row of `meta/research/CURRENCY.md` until
+-# then. The runner image is a NAME, and the first step prints its release and
+-# kernel. Bumping a pin is a deliberate commit, and the commit that bumps it is
+-# the one that runs the full suite. Modelled on `nitpick-regex`'s workflow and
+-# `nitpick-parse`'s plan for one.
++# is a VERSION and, since cycle 0.0.2, a CONTENT (@@PD-172@@): its release tarball is
++# fetched by name, its size and sha256 are checked against the one line the
++# research digest `meta/research/llvm-20.1.8-tarball.md` records before it is
++# unpacked, and each tool's `--version` is asserted. *(Cycle 0.0.1's line: the
++# tarball's own digest and size were not pinned at that cycle, a row of
++# `CURRENCY.md` until this one.)* The runner image is a NAME, and the first step
++# prints its release and kernel. Bumping a pin is a deliberate commit,
++# and the commit that bumps it is the one that runs the full suite. Modelled on
++# `nitpick-regex`'s workflow and `nitpick-parse`'s plan for one.
+ #
+ # IT RUNS NO ACTION (@@PD-167@@). Every step is a script of its own: the two checkouts
+ # are `git`, LLVM is its release tarball, and nothing is cached, so every run downloads
+@@ -18,11 +20,13 @@
+ # early ecosystem audit's EK2 found `actions/checkout@v4` and `actions/cache@v4` on
+ # floating tags in both the libraries' workflows that use them.
+ #
+-# WHAT A GREEN RUN PROVES AT CYCLE 0.0.1: the pinned compiler builds from a clean
++# WHAT A GREEN RUN PROVES SINCE CYCLE 0.0.2: the pinned compiler builds from a clean
+ # checkout of the pinned commit; its emission is the one the pin recorded; LLVM is
+-# exactly 20.1.8; the runner has loopback on 127.0.0.1 and ::1; and the conformance
+-# consumer compiles, links, runs and exits 0. `harness/run.py` is a stub that judges
+-# nothing until cycle 0.0.2, and says so.
++# exactly 20.1.8, from the release tarball the research digest records; the runner
++# has loopback on 127.0.0.1 and ::1; and `harness/run.py` printed its UNQUALIFIED
++# green summary -- its three build steps and every suite `nitpick.toml` declares
++# (`harness/README.md`). *(Cycle 0.0.1's line: the conformance consumer was built
++# and run here by hand, and `harness/run.py` was a stub that judged nothing.)*
+ #
+ # EVERY HEX VALUE IS QUOTED. GitHub reads a workflow as YAML 1.2, where a bare run of
+ # digits, one `e` and digits is a NUMBER -- `7e91730` is infinity -- so a commit, a
+@@ -49,6 +53,10 @@ env:
+   # nitpick.toml's [toolchain] llvm: an exact patch release. Upstream publishes
+   # `LLVM-20.1.8-Linux-X64.tar.xz` at its `llvmorg-20.1.8` release.
+   LLVM_VERSION: "20.1.8"
++  # THE TARBALL BY CONTENT (@@PD-172@@): the research digest whose one line
++  # `LLVM-20.1.8-Linux-X64.tar.xz sha256 <hex> bytes <n>` the install step checks the
++  # download against. A new LLVM pin is a new digest, never an edit of this one.
++  LLVM_DIGEST: "meta/research/llvm-20.1.8-tarball.md"
+ 
+ jobs:
+   build:
+@@ -119,13 +127,34 @@ jobs:
+           echo "compiler HEAD == $have (clean)"
+ 
+       # The upstream release tarball: apt.llvm.org packages by MAJOR version and would
+-      # give whatever 20.1.x is current. Downloaded on every run, since nothing is cached.
+-      - name: Install LLVM ${{ env.LLVM_VERSION }}
++      # give whatever 20.1.x is current. Downloaded on every run, since nothing is cached,
++      # to a FILE, so it is checked by content before anything of it is unpacked
++      # (@@PD-172@@): its size and sha256 against the research digest's one line. A tarball
++      # that is not the one the digest recorded is a finding to report, never a pin to move.
++      - name: Install LLVM ${{ env.LLVM_VERSION }}, its tarball checked by content
+         run: |
+           set -euo pipefail
++          asset="LLVM-${LLVM_VERSION}-Linux-X64.tar.xz"
++          esc="${LLVM_VERSION//./\\.}"
++          pin="$(grep -E "^LLVM-${esc}-Linux-X64\.tar\.xz sha256 [0-9a-f]{64} bytes [0-9]+\$" "$LLVM_DIGEST" || true)"
++          if [ "$(printf '%s\n' "$pin" | grep -c .)" != 1 ]; then
++            echo "$LLVM_DIGEST records no single line '$asset sha256 <hex> bytes <n>': nothing to check the download against" >&2
++            exit 1
++          fi
++          read -r _ _ want_sha _ want_bytes <<< "$pin"
++          url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/${asset}"
++          tarball="$RUNNER_TEMP/$asset"
++          curl -fsSL -o "$tarball" "$url"
++          have_sha="$(sha256sum "$tarball" | cut -d' ' -f1)"
++          have_bytes="$(stat -c '%s' "$tarball")"
++          if [ "$have_sha" != "$want_sha" ] || [ "$have_bytes" != "$want_bytes" ]; then
++            echo "$asset is $have_bytes B / $have_sha; $LLVM_DIGEST records $want_bytes B / $want_sha." >&2
++            echo "A release asset that is not the one the digest recorded is a finding to report, never a pin to move." >&2
++            exit 1
++          fi
++          echo "$asset == the research digest's line, $have_bytes B / $have_sha"
+           mkdir -p ~/llvm
+-          url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/LLVM-${LLVM_VERSION}-Linux-X64.tar.xz"
+-          curl -fsSL "$url" | tar -xJ --strip-components=1 -C ~/llvm
++          tar -xJf "$tarball" --strip-components=1 -C ~/llvm
+ 
+       - name: Put LLVM on PATH and assert the pin
+         run: |
+@@ -181,25 +210,23 @@ jobs:
+           fi
+           echo "npkc.ll == the pin's emission, $size B / $have"
+ 
+-      # A STUB UNTIL CYCLE 0.0.2, and it says so in its output. 0.0.2 replaces this step's
+-      # body with one that asserts the runner's unqualified green summary.
++      # THE HARNESS, AND ITS SUMMARY ASSERTED, NOT ONLY ITS STATUS (`nitpick-regex`'s CI is
++      # the model). The runner prints its verdict LAST, `harness: GREEN -- ...` when nothing
++      # failed; this step requires that line as the log's last, so an exit 0 that does not
++      # end in it -- a runner that stopped short -- is red here. It judges the conformance
++      # consumer among its suites, which cycle 0.0.1 built and ran in a step of its own.
+       - name: Run the harness
+-        run: python3 -B harness/run.py
+-
+-      # Until the harness judges it (cycle 0.0.2), the one thing 0.0.1 establishes is run
+-      # here in full: the consumer compiles, links, RUNS and exits 0. `npkc` exiting 0
+-      # does not mean `llc` accepts the module, so all four steps run and the last is judged.
+-      - name: The conformance consumer, all four steps
+         run: |
+-          set -euo pipefail
+-          work="$RUNNER_TEMP/conformance"
+-          mkdir -p "$work"
+-          ( cd tests/conformance && "$NPKC" import.npk -o "$work/import.ll" )
+-          llc -O0 -filetype=obj -relocation-model=static "$work/import.ll" -o "$work/import.o"
+-          ld.lld -static "$work/import.o" "$NPKRT" -o "$work/import"
+           set +e
+-          "$work/import"
++          set -uo pipefail
++          python3 --version
++          log="$RUNNER_TEMP/harness.log"
++          python3 -B harness/run.py > "$log" 2>&1
+           status=$?
+-          set -e
+-          echo "tests/conformance/import.npk exits $status"
+-          test "$status" -eq 0
++          cat "$log"
++          if [ "$status" -ne 0 ]; then exit "$status"; fi
++          last="$(tail -n 1 "$log")"
++          case "$last" in
++            "harness: GREEN -- "*) echo "the harness's summary is the unqualified green one" ;;
++            *) echo "the harness exited 0 without its unqualified green summary last: $last" >&2; exit 1 ;;
++          esac
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index 9c18f5b..02f8b2d 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -747,6 +747,8 @@ links nor runs a program; **one probe entry** — one entry judges every file it
+ *Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
+ 
+ ### @@PD-167@@ — CI runs no third-party action; it pins the compiler by commit, LLVM by version and the runner image by name
++> **SUPERSEDED IN PART by @@PD-172@@ (2026-10-21): LLVM's pin.** From cycle 0.0.2 the release tarball is pinned by
++> content too: its size and sha256, from a research digest, checked against every download before it is unpacked.
+ **2026-10-18, cycle 0.0.1 step 4.**
+ 
+ *What was read* — the early ecosystem audit's EK2, re-checked on 2026-10-15: the two libraries with a workflow,
+@@ -914,3 +916,29 @@ retired; **unknown markers ignored** — an expectation nobody checks.
+ 
+ *Reversal:* none for the rule; each marker the runner does not read yet joins the judged ones with the stage that
+ needs it, and a pending marker comes by a decision the day a unit is correct and red on a pinned defect.
++
++### @@PD-172@@ — LLVM's release tarball is pinned by content: its size and sha256 from a research digest, checked before it is unpacked
++**2026-10-21, cycle 0.0.2 step 3. Supersedes `@@PD-167@@` in part: LLVM's pin by version alone.**
++
++*What was read* — `@@PD-167@@`, which pinned LLVM by version and left the tarball's digest and size to a currency row for
++this subcycle, as the content pin LLVM should have and an outside fact its plan neither downloaded nor researched;
++and the workbench research skill: an outside fact is a dated digest from a primary source, filed in
++`meta/research/` and cited by the decision that rests on it, never a number typed from memory.
++
++*So:* the tarball's size and sha256 are what the release's own record states, filed as the research digest
++`meta/research/llvm-20.1.8-tarball.md` — per that digest, as of its date — whose answer holds the one line
++`LLVM-20.1.8-Linux-X64.tar.xz sha256 <hex> bytes <n>`. CI downloads the tarball to a file and checks both against
++that line before anything of it is unpacked; a digest without exactly one such line, or a download that differs,
++fails the step, and nothing is installed. A tarball that is not the one the digest recorded is a finding to report,
++never a pin to move. Each tool's `--version` is asserted after it, as before, and the version stays the
++compiler's D-349.
++
++*Alternatives declined:* **two rows in the workflow holding the digest and the size** — a second copy of the
++digest's fact, which a later edit can move apart from it; **a digest measured from one download on a named date** —
++it says what one download held, not what the release published, and it would check every later download against
++the first; **the version alone** — `@@PD-167@@`'s pin, which a re-uploaded asset passes.
++
++*Reversal:* if the release's record names no digest, or the request finds no second primary for it, the content pin
++waits: the install step's check of the digest's line and the `LLVM_DIGEST` row go, CI fetches the tarball by its
++version as `@@PD-167@@` has it, and `CURRENCY.md`'s row says the pin waits. A new LLVM pin is a new digest, filed beside
++this one, and the row the workflow reads names it.
+diff --git a/meta/research/CURRENCY.md b/meta/research/CURRENCY.md
+index f3550cb..348c305 100644
+--- a/meta/research/CURRENCY.md
++++ b/meta/research/CURRENCY.md
+@@ -11,8 +11,8 @@ are never rows here; they are read in the compiler's tree at the pinned commit.
+ | GitHub Actions' runner image — CI's `runs-on` | `ubuntu-24.04` | by cycle 0.0.1's first CI run, whose first step prints it, quoted in that subcycle's record | github.com/actions/runner-images | @@PD-167@@ |
+ | The runner's loopback — what the `loopback` stage runs over (`BUILD.md` B-5) | `127.0.0.1` and `::1`, each bound at port 0 | by the same run's first step | the run's log | @@PD-167@@ |
+ | LLVM's release asset — what CI installs | `LLVM-20.1.8-Linux-X64.tar.xz` at `llvmorg-20.1.8`; the version is the compiler's D-349, read in its tree | by the same run, which downloads it and asserts each tool's version | github.com/llvm/llvm-project/releases | @@PD-166@@ |
+-| LLVM's release asset by content — its sha256 and size | not pinned: CI fetches the asset by its version and asserts each tool's `--version` (@@PD-167@@) | not yet — cycle 0.0.2, which pins it: the asset's sha256 and size from a research digest its dispatch carries, which CI then checks every download against before unpacking it | github.com/llvm/llvm-project/releases | @@PD-167@@ |
+-| Python — the harness's interpreter | none chosen yet; the runner's version is printed by CI's first step | not yet — cycle 0.0.2, which writes the harness, names the version it needs | python.org | `SK-004` |
++| LLVM's release asset by content — its sha256 and size | `LLVM-20.1.8-Linux-X64.tar.xz`'s sha256 and size, the one line [`llvm-20.1.8-tarball.md`](llvm-20.1.8-tarball.md) records (@@PD-172@@) | by that research digest, as of its date, from the release's own record (cycle 0.0.2's request), and by every CI run from cycle 0.0.2's push, whose install step checks the download against the line before it unpacks it | github.com/llvm/llvm-project/releases, the `llvmorg-20.1.8` release | @@PD-172@@ |
++| Python — the harness's interpreter | 3.12 or later — what the harness is run on and measured on, and refuses below (@@PD-171@@) | 2026-10-21, cycle 0.0.2: `python3 --version` on the workbench, 3.12.3; on `ubuntu-24.04` by the first CI run of the harness, whose log prints it and the record quotes | python.org | @@PD-171@@ |
+ | The x86-64 socket syscall numbers (`SOCKET_MODEL.md` §1) | the fifteen in its table, "measured on the target platform on 2026-09-03", no kernel release named | not yet — cycle 0.2.0, which writes `src/sys/`, against the kernel's table at a named release; cycle 0.0.0's probes ran on them | the kernel's `arch/x86/entry/syscalls/syscall_64.tbl` | `SK-016`, `SK-007` |
+ | The kernel's structure layouts (`ADDRESS_MODEL.md` §1, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
+ | The kernel feature floor (`COMPAT.md` W-3) | `accept4` 2.6.28, `SOCK_NONBLOCK`/`SOCK_CLOEXEC` 2.6.27, `MSG_CMSG_CLOEXEC` 2.6.23, `SO_REUSEPORT` 3.9; the floor Linux 3.9 | not yet — cycle 0.2.0, before it starts | man-pages at a named release | `SK-003`, `SK-007` |

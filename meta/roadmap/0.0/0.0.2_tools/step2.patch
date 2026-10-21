@@ -1,0 +1,72 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index a2a85ea..cee2b7f 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -114,9 +114,12 @@ trailing semicolon; declarations end `};` and control-flow blocks do not.
+ 
+ **`npkg` cannot build this yet** (`meta/specs/BUILD.md` §1): it is the
+ compiler's own bootstrap ladder, and `[dependencies]` resolves to nothing.
+-`harness/run.py` is the runner until that changes (`SK-004`). Until cycle 0.0.2
+-lands it, probes are run by hand — `meta/roadmap/0.0/0.0.0.md` §2 has the
+-command.
++`harness/run.py` is the runner until that changes (`SK-004`), since cycle 0.0.2:
++`NPKC=… NPKRT=… python3 -B harness/run.py` builds and scans every module under
++`src/`, judges every suite `nitpick.toml` declares — each program at −O0 and
++through `opt -O2`, each refusal by its exact codes — and prints its verdict last
++(`harness/README.md`). *(Until cycle 0.0.2 the probes
++were run by hand, by `meta/roadmap/0.0/0.0.0.md` §2's command.)*
+ 
+ Almost the whole suite runs over `socketpair` and loopback: no network, no
+ port, no privilege. The `network` stage is two tests and is skipped loudly.
+diff --git a/tests/probe/README.md b/tests/probe/README.md
+index 178d830..d48cccc 100644
+--- a/tests/probe/README.md
++++ b/tests/probe/README.md
+@@ -14,10 +14,16 @@ deleted**; one whose answer changes is re-measured, and the specification follow
+ - **`tests/probe/`** — programs that run. Each states its expected exit in its first line, `// expect-exit: N`, and
+   exits with that code at `-O0` and through `opt -O2`; every assertion it fails has a code of its own, below 60, so a
+   failure names itself. Probe 12 exits with the size it measures (32); every other one exits 0, which also asserts,
+-  through D-151, that no `wild` byte leaked. Probes 07 and 08 have a timing dimension and run forty times.
++  through D-151, that no `wild` byte leaked. Probes 07, 08 and 11 state `// stress: 40` in their second line, so
++  each leg runs forty times: 07 and 08 have a timing dimension, and 11 is an ancillary round trip, which
++  `TESTING.md` V-16 runs forty times. *(Until cycle 0.0.2 this read "Probes 07 and 08 have a timing dimension and run
++  forty times", by hand.)*
+ - **`tests/probe/refused/`** — programs the compiler refuses on purpose. Each states the refusal in its first line,
+   `// expect-error: NITPICK-<CODE>`, and its verdict is that code at its site and nothing else.
+ 
++`harness/run.py` runs the two directories as `nitpick.toml`'s `probe` and `probe-refused` suites, since cycle 0.0.2:
++the first by each program's exit at both legs, the second by the exact-code rule (`meta/specs/BUILD.md` B-8).
++
+ A compiler defect a probe finds would go in a third directory, `tests/probe/defect/`, with its controls: none exists
+ at the pin.
+ 
+diff --git a/tests/probe/probe07_io_ready.npk b/tests/probe/probe07_io_ready.npk
+index fb3813e..c9dec85 100644
+--- a/tests/probe/probe07_io_ready.npk
++++ b/tests/probe/probe07_io_ready.npk
+@@ -1,4 +1,5 @@
+ // expect-exit: 0
++// stress: 40
+ //
+ // PROBE 07 -- `io_ready` AND `io_ready2` ON SOCKETS.
+ //
+diff --git a/tests/probe/probe08_connect_inprogress.npk b/tests/probe/probe08_connect_inprogress.npk
+index 1daff9c..100fc7e 100644
+--- a/tests/probe/probe08_connect_inprogress.npk
++++ b/tests/probe/probe08_connect_inprogress.npk
+@@ -1,4 +1,5 @@
+ // expect-exit: 0
++// stress: 40
+ //
+ // PROBE 08 -- `connect`'S IN-PROGRESS PATH, ITS FAILURE AND ITS SUCCESS.
+ //
+diff --git a/tests/probe/probe11_scm_rights.npk b/tests/probe/probe11_scm_rights.npk
+index 2d7ac95..2194739 100644
+--- a/tests/probe/probe11_scm_rights.npk
++++ b/tests/probe/probe11_scm_rights.npk
+@@ -1,4 +1,5 @@
+ // expect-exit: 0
++// stress: 40
+ //
+ // PROBE 11 -- `SCM_RIGHTS` OVER A `socketpair`, RECEIVED WITH `MSG_CMSG_CLOEXEC`.
+ //

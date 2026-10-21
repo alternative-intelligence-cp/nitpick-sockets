@@ -1,9 +1,9 @@
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
 new file mode 100644
-index 0000000..f78e082
+index 0000000..8859f79
 --- /dev/null
 +++ b/.github/workflows/ci.yml
-@@ -0,0 +1,204 @@
+@@ -0,0 +1,205 @@
 +# nsockets CI.
 +#
 +# WHAT IS PINNED, AND HOW (@@PD-167@@; the compiler's D-204: the toolchain is a build
@@ -11,11 +11,12 @@ index 0000000..f78e082
 +# another repository's `main` goes red for reasons that are not its own -- and the
 +# checkout is asserted at it and clean, and its emission by digest and size. LLVM
 +# is a VERSION: its release tarball is fetched by name and each tool's `--version`
-+# asserted; the tarball's own digest and size are not pinned yet, a row of
-+# `meta/research/CURRENCY.md` for cycle 0.0.2. The runner image is a NAME, and the
-+# first step prints its release and kernel. Bumping a pin is a deliberate commit,
-+# and the commit that bumps it is the one that runs the full suite. Modelled on
-+# `nitpick-regex`'s workflow and `nitpick-parse`'s plan for one.
++# asserted; the tarball's own digest and size are not pinned at this cycle --
++# cycle 0.0.2 pins them by content, a row of `meta/research/CURRENCY.md` until
++# then. The runner image is a NAME, and the first step prints its release and
++# kernel. Bumping a pin is a deliberate commit, and the commit that bumps it is
++# the one that runs the full suite. Modelled on `nitpick-regex`'s workflow and
++# `nitpick-parse`'s plan for one.
 +#
 +# IT RUNS NO ACTION (@@PD-167@@). Every step is a script of its own: the two checkouts
 +# are `git`, LLVM is its release tarball, and nothing is cached, so every run downloads
@@ -238,10 +239,10 @@ index 0000000..2472482
 +print("harness: cycle 0.0.1's stub -- nothing is built or judged until cycle 0.0.2")
 +sys.exit(0)
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index e618144..7f72455 100644
+index e618144..4da12d4 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -740,3 +740,34 @@ links nor runs a program; **one probe entry** — one entry judges every file it
+@@ -740,3 +740,35 @@ links nor runs a program; **one probe entry** — one entry judges every file it
  0.0.0's nineteen probes are refusals.
  
  *Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
@@ -261,8 +262,9 @@ index e618144..7f72455 100644
 +the run is for, and the compiler at `NITPICK_COMMIT` by full sha, each asserted; the compiler is built from its
 +commit and its `npkc.ll` asserted, digest and size, against notice 118's row. LLVM is pinned by its version: the
 +`llvmorg-20.1.8` release tarball, fetched by name, with `llc`, `opt` and `ld.lld` each asserted at 20.1.8 by
-+`--version`; the tarball's own digest and size are not pinned, and are a row of `CURRENCY.md` that cycle 0.0.2
-+checks. The runner image is pinned by name, `ubuntu-24.04`: the first step prints its release and kernel, and binds a
++`--version`; the tarball's own digest and size are not pinned at this step: cycle 0.0.2 pins them by content, and
++`CURRENCY.md` holds them as a row until then.
++The runner image is pinned by name, `ubuntu-24.04`: the first step prints its release and kernel, and binds a
 +TCP socket to port 0 on `127.0.0.1` and on `::1`, which the `loopback` stage runs over; every tool a step calls but
 +LLVM's and the compiler's own is the image's. Nothing is cached, so every run downloads and builds what it uses.
 +`harness/run.py` is a stub until cycle 0.0.2, and says so.

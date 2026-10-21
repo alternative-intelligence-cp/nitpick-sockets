@@ -3,9 +3,10 @@
 **The probes, the harness, and `src/core/`.** Nothing in this cycle opens a socket in anger. What it produces is the
 ability to find out whether the rest of the plan is buildable, and the machinery every later cycle is tested by.
 
-**Re-derived at compiler `c9baa9e` (2026-10-18) by the Team seat's planners — T7 for 0.0.0, T7b for 0.0.1 —** one
-subcycle file at a time, each committed and pushed as it reaches the pin, and both corrected by fix round 1
-(2026-10-21) where the first plan verification found them wrong. The six files were written at the repository's setup (2026-09-03), against
+**Re-derived at compiler `c9baa9e` by the Team seat's planners — T7 for 0.0.0 and T7b for 0.0.1 (2026-10-18), T7c2
+for 0.0.2 (2026-10-21) —** one subcycle file at a time, each committed and pushed as it reaches the pin; 0.0.0 and
+0.0.1 corrected by fix round 1 (2026-10-21) where the first plan verification found them wrong, and 0.0.1's steps 4
+and 5 by 0.0.2's planner, so that each says what CI pins at its step. The six files were written at the repository's setup (2026-09-03), against
 the compiler's cycle 1.5 and LLVM 20.1.2; each is re-measured at the pin, with what the audits found owed carried into
 the step that owes it (the owed-items table below). **`c9baa9e` is the libraries' one re-pin**, landing 118's commit,
 by the author's word on the workbench's question 32 (2026-10-15 12:04:21), taken on 2026-10-16 and committed at the
@@ -15,15 +16,16 @@ workbench's `4540f20`; this cycle is planned at it from the start, and no subcyc
 |---|---|
 | [0.0.0](0.0.0.md) | **yes** — probes measured, five patches, blocks with filled Expects |
 | [0.0.1](0.0.1.md) | **yes** — the layout, the skeleton, the manifest, CI and the currency table; six patches, blocks with filled Expects |
-| [0.0.2](0.0.2.md) | **not yet** — the setup-era text; the pass's continuation re-derives it |
-| [0.0.3](0.0.3.md) | **not yet** — as 0.0.2 |
-| [0.0.4](0.0.4.md) | **not yet** — as 0.0.2 |
-| [0.0.5](0.0.5.md) | **not yet** — as 0.0.2; its execution, the close, is the libraries' seat's |
+| [0.0.2](0.0.2.md) | **yes** — the harness, part 1: the runner, its two scans and their controls, `repro`, three stages, the probes as suites, CI's summary and LLVM by content; three patches, the mutants, blocks with filled Expects |
+| [0.0.3](0.0.3.md) | **not yet** — the setup-era text; the pass's continuation re-derives it |
+| [0.0.4](0.0.4.md) | **not yet** — as 0.0.3 |
+| [0.0.5](0.0.5.md) | **not yet** — as 0.0.3; its execution, the close, is the libraries' seat's |
 
 A file marked *not yet* is a target, not a plan: its steps are re-derived at the pin before anything is dispatched from
 it, and where it disagrees with 0.0.0's or 0.0.1's verdicts — `// expect-signal:`, the self-check's "seven cases",
 D-151 trapping a socket left open, `src/option/raw.npk`, the `accept` stage, `BUILD.md` §6's diagram — those
-verdicts and the tables below govern.
+verdicts and the tables below govern; and 0.0.2 judges `compile`/`negative`, so 0.0.3's stages are the `parse` sweep
+and `check` (@@PD-171@@).
 
 ## Why this shape
 
@@ -57,9 +59,13 @@ Each is settled with a recommendation and states its reversal; **none is left op
 | @@PD-164@@ | 0.0.1 | the layering is a table of what each module may import; the drawing's two missing arrows added |
 | @@PD-165@@ | 0.0.1 | the generic option form lives in `src/option/sockopt.npk`, because `raw` is a keyword |
 | @@PD-166@@ | 0.0.1 | the manifest at the pin: LLVM 20.1.8 with the compiler's target rows, and its first three test entries |
-| @@PD-167@@ | 0.0.1 | CI runs no third-party action; it pins the compiler by commit, LLVM by version and the runner image by name |
+| @@PD-167@@ | 0.0.1 | CI runs no third-party action; it pins the compiler by commit, LLVM by version and the runner image by name — LLVM's tarball by content from 0.0.2 (@@PD-172@@) |
 | @@PD-168@@ | 0.0.1 | one currency table; the library is security-sensitive, and its three research items gate cycle 0.0's work |
-| PD-169 … PD-178 | 0.0.2 … 0.0.4 | the continuation's, as each file reaches the pin |
+| @@PD-169@@ | 0.0.2 | the build is one module per root, held to the target rows, scanned on both legs, and reproducible from two directories |
+| @@PD-170@@ | 0.0.2 | the call-edge scan holds the library to the runtime facets its rules give it, from a table of the whole runtime |
+| @@PD-171@@ | 0.0.2 | the runner judges `program`, `compile`/`positive` and `compile`/`negative`, and reads one marker of its own |
+| @@PD-172@@ | 0.0.2 | LLVM's release tarball is pinned by content: its size and sha256 from a research digest, checked before it is unpacked |
+| PD-173 … PD-178 | 0.0.3 … 0.0.4 | the continuation's, as each file reaches the pin |
 
 ## The pin, and what each landing would move
 
@@ -89,13 +95,15 @@ taken **between subcycles**, never inside one (the early ecosystem audit's EC9).
 | 118 (DEF-253, DEF-254) | a `Self->` method through a bound links; a default's sibling call links | **probe 06 measures it**: an `async` `Self->` `write` through a bound runs; no default calls a sibling (`tools/shapes.py`) |
 
 **Not carried** — landed on the compiler's `main` after the pin (`463cf93` by its local ref at 05:43:11 on
-2026-10-18; each read at its own sha in the compiler's `meta/NOTICES.md` there), and where each would move this plan:
+2026-10-18, for 119 … 128; `c72639f`, landing 137, by the 0.0.2 dispatch's `ls-remote` and the Workspace clone's local
+ref on 2026-10-21, for 129 … 137; each read at its own sha in the compiler's `meta/NOTICES.md`), and where each would
+move this plan (`0.0.2.md` §11 has 0.0.2's places for every one):
 
 | Landing | What it does | Where it would move this plan |
 |---|---|---|
 | 119 `34979dc` (D-355, F61) | `NULL` for a plain pointer or an `Optional` is `TYPE-096`; "maybe no pointer" is `T->?` with `NIL` | **nowhere written**: the cycle writes no `NULL` (`tools/rulings.py`), and every pointer field of a kernel-structure mirror is `wild`, where `NULL` stays legal; DEF-257's `(NULL)` arm is not written |
 | 120 `0156326` (D-360, F62) | `??!`, an `Optional`'s unwrap-or-trap | **not used** |
-| 121 `f9a9428` (D-361, F63) | a value of wild provenance enters a plain pointer slot only through `=>! T->`, else `TYPE-097` | **nowhere written**: every `wild` value the probes make goes into a `wild` slot or is dereferenced in place; a view's `.ptr` goes to `sys`, which is no pointer slot. The `#ptr_add` sites are the probes' 63, listed by `tools/shapes.py`, and `src/` has none: the library's count starts at zero and stays few and listed, never confined to `wild` context on `BUILTIN_REFERENCE.md`'s sentence, which landing 128 struck |
+| 121 `f9a9428` (D-361, F63) | a value of wild provenance enters a plain pointer slot only through `=>! T->`, else `TYPE-097` | **nowhere written**: every `wild` value the probes make goes into a `wild` slot or is dereferenced in place; a view's `.ptr` goes to `sys`, which is no pointer slot. The `#ptr_add` sites are the probes' 63, listed by `tools/shapes.py`, and `src/` has none: the library's count starts at zero and stays few and listed, never confined to `wild` context on `BUILTIN_REFERENCE.md`'s sentence, which landing 128 struck; 0.0.2's floor-writer fills the floor's `write`'s `wild any->` slot with its view's `.ptr` |
 | 122 `29e93a9` (D-357) | a `comptime func:` is compile-time only, `TYPE-098` | **nothing**: none written |
 | 123 `284402d` (D-356) | a payload-less variant is a constant outside the evaluator | **nothing**: no initialiser names a variant |
 | 124 `ccf7f95` (D-359) | the orphan rule, `TYPE-099` | **nothing**: every `impl` sits beside its type (`tools/rulings.py`) |
@@ -103,11 +111,22 @@ taken **between subcycles**, never inside one (the early ecosystem audit's EC9).
 | 126 `e709f77` (DEF-242) | the site table holds the emission's sites | **emission only**: no IR is compared |
 | 127 `1670427` (D-339, DEF-181) | the lock walk's holes closed | **nothing**: no lock; probe 09's channel is refused at its annotation |
 | 128 `463cf93` (D-341, F70) | a `buffer` gets the checked `b[i]` and `b[lo...hi]`; a `#wild_slice` over a header's `.ptr` is a view of its owner (`BORROW-015`, `BORROW-001`); `#ptr_add`'s "`wild` context" sentence struck | **nowhere in 0.0.0**, which writes no `buffer` index and no `#wild_slice`; notice 128 counts no sockets site. **0.0.4's `Bytes` is designed to it**: no raw `.ptr[i]`, no `#wild_slice` over `.ptr` held across a write — nitpick-time's `bytes.npk` line 140 is the shape that breaks |
+| 129 `17d26ad` (DEF-244) | the source manager keys a file by its identity, so a root imported back from a sibling is one module | **nothing measured**: its row says the shown path is unchanged (D-236) and every program it compared byte-identical; no module imports another back; 0.0.2's `repro` step re-reads it |
+| 130 `c1e20e8` (DEF-245, DEF-260) | a declaration whose header fails is one report | **nothing**: each refused probe reports one diagnostic at the pin, which the exact-code rule (0.0.2) re-reads at the adoption |
+| 131 `b1a23b8`, 137 `c72639f` (DEF-255, DEF-267) | the qualified trait call reaches a bound and a pointer receiver; awaited and spawned | **nothing**: every trait method is called with the dotted form |
+| 132 `6f0f518` (DEF-256) | a consuming `pick`'s binding re-assigned after a move is live again | **nothing**: none written |
+| 133 `c230073` (DEF-257, D-362) | a `pick` does not select on a pointer; the pipe operators struck | **nothing**: every `pick` selects an `Error` or an enum; no pipe |
+| 134 `a73b68d` (DEF-178, DEF-187) | a `pick`'s value pattern is a constant of the selector's type | **nothing**: no value pattern written |
+| 135 `0280fc9` (DEF-190, DEF-182) | a numeral's digit run ends in a digit; an attribute decorates only what keeps one | **nothing**: no numeral holds an `_`; probe 12's `derive(Copy)` decorates structs |
+| 136 `19d674b` (DEF-258, DEF-259, DEF-261) | a keyword is never a parameter's name; a local `T:keyword` is `PARSE-001`; a function modifier stands before `func:` alone | **nothing measured**: no declared name of 0.0.0's, 0.0.1's or 0.0.2's patched tree is a keyword (`tools/names.py`); 0.0.2's mutant `thread-in-library` writes `thread async func:`, as the compiler's own test does at the pin |
 
 **At the adoption that carries any landing past the pin, 0.0.1's CI moves**: its three rows that pin the compiler —
 `NITPICK_COMMIT`, `NPKC_LL_SHA256`, `NPKC_LL_BYTES` — take the new notice's, and `LLVM_VERSION`, with the manifest's
 `llvm` row, only if a landing moves the compiler's D-349 (`0.0.1.md` §10, which also names what each item not yet
-landed would move).
+landed would move) — and a new LLVM pin is a new research digest (@@PD-172@@). **And 0.0.2's harness is re-read**:
+`harness/runtime_symbols.tsv` stops the run on any global symbol of the runtime it does not class, so a landing that
+rebuilds the floor (D-358, not landed) is classed before a run can be green, and build step 1's printed counts move
+with it (`0.0.2.md` §11).
 
 ## The shapes this cycle does not write
 
@@ -145,30 +164,30 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 | NH-1 and EC1, the `SIGPIPE` premise | 0.0.0 step 1 | **FIXED** at every site of the audit's list and their twins by subject (@@PD-159@@) |
 | NH-2, the Bridge quotation | 0.0.0 step 1 | **FIXED**: `SAFETY.md` §2's dated note reads both sentences at the pin |
 | NH-3, "`exit 0` asserts every descriptor closed" | 0.0.0 §1.3; 0.0.3 | measured false (D-151 sees no descriptor); `TESTING.md` V-14's case rewritten with the self-check |
-| NH-5 and G1, the manifest's target rows | 0.0.1 step 3; 0.0.2 | **FIXED**: the rows (@@PD-166@@); the harness held to them, 0.0.2 |
+| NH-5 and G1, the manifest's target rows | 0.0.1 step 3; 0.0.2 step 1 | **FIXED**: the rows (@@PD-166@@); the harness held to them, B-1a (@@PD-169@@) |
 | NH-7 and EK1, `VERIFICATION.md` Z-1 | 0.0.4 | an obligation a comment unless a decision accepts the arm its live clause costs, as regex's P-1b and parse's P-1a |
 | NH-8 and EC2, what an index does | 0.0.4 | `SAFETY.md`'s row, `VERIFICATION.md` §2 and `CLAUDE.md` with the containers' measured accessors |
 | NH-9, an identity's payload | not this cycle's | no step of cycle 0.0 raises an identity; cycles 0.3 and 0.4 meet `ESockCapacity`'s length, and `PLAYBOOK.md` §2's row stands |
-| NH-10 and G3, G4, the compiler's tools as judges | 0.0.2; 0.0.3 | `npkc` judges the sweep and the refusals; `accept` struck; no separate compilation; a call-edge scan |
-| NH-11 and G8, the floor and the loops | 0.0.0; 0.0.2 | every probe names the floor's six (§1.4); every loop states `decreases` or `unbounded`; the harness's templates |
+| NH-10 and G3, G4, the compiler's tools as judges | 0.0.2 step 1; 0.0.3 | **FIXED** in 0.0.2: no separate compilation, the allowlist from `npkrt.o` (@@PD-169@@), a call-edge scan from a table of the whole runtime (@@PD-170@@), the refusals judged by `npkc` (@@PD-171@@); the `parse` sweep, the `check` stage and `accept` struck, 0.0.3 |
+| NH-11 and G8, the floor and the loops | 0.0.0; 0.0.2 step 1; 0.0.4 | every probe names the floor's six (0.0.0 §1.4); **FIXED** for the harness's templates, the three baseline programs naming the floor's six, with no loop; the planting sweep that every loop of `src/` is reached, 0.0.4, with the first loop |
 | NH-12 and G13, the containers | 0.0.4 | `Vec<T: Copy>`, which the address types satisfy (probe 12) |
 | NH-13 and EC7, names and `raw.npk` | 0.0.0 step 2; 0.0.1 step 1; 0.0.3 | **FIXED**: `BUILD.md` §7 measured (@@PD-160@@); `src/option/sockopt.npk` on the eight lines outside the plans and `SK-026` marked (@@PD-165@@); `0.0.3.md`'s own line when 0.0.3 is re-derived |
 | NH-14, `cstring` paths | not this cycle's | no step of cycle 0.0 writes a path parameter; cycle 0.4's `unix_unlink` decides it |
 | E2-10, counts against sets | 0.0.0 step 4 | **FIXED** here: `ROADMAP.md`'s and `OPEN_QUESTIONS.md`'s counts dropped. `LIBRARIES.md:14` is the workbench's (W-16), the orchestrator's |
-| E2-13 and G14, `CURRENCY.md` and the research | 0.0.0 gate item 7; 0.0.1 step 5 | **FIXED**: the three requests in 0.0.0 §13; the gate is cycle 0.0's first work dispatch; `CURRENCY.md` and its three research rows (@@PD-168@@) |
+| E2-13 and G14, `CURRENCY.md` and the research | 0.0.0 gate item 7; 0.0.1 step 5; 0.0.2 step 3 | **FIXED**: the three requests in 0.0.0 §13; the gate is cycle 0.0's first work dispatch; `CURRENCY.md` and its three research rows (@@PD-168@@); 0.0.2 checks the Python row and LLVM's by content, the latter from its own request (`0.0.2.md` §13) |
 | E2-15, `CLAUDE.md`'s empty heading | 0.0.1 step 6 | **FIXED**: the paragraph under "What this is" |
 | EC3 and G6, "every public `error:`" | 0.0.0 step 4; 0.0.3 | **FIXED** at its cost sentences (`SAFETY.md`:20, `CONTRIBUTING.md`:46), measured (@@PD-163@@), with S-8's twins by subject, `src/addr/README.md` and the 1.0 checklist's line; `TESTING.md`:127 and the check, keyed by module and name, at 0.0.3 |
 | ED2, local `O-N` ids | 0.0.0 step 4 | **FIXED**: O-N1, O-N3, O-N4 and the new fifth each say its id is this repository's own |
-| G2, CI; EK2 by subject | 0.0.1 step 4; 0.0.2 | **FIXED** (@@PD-167@@): LLVM asserted, the compiler at the pin and clean, `npkc.ll`'s row, every hex value quoted, and no action to pin; the harness step's unqualified green summary, and LLVM's content pin — the tarball's sha256 and size, a currency row — 0.0.2 |
+| G2, CI; EK2 by subject | 0.0.1 step 4; 0.0.2 step 3 | **FIXED** (@@PD-167@@): LLVM asserted, the compiler at the pin and clean, `npkc.ll`'s row, every hex value quoted, and no action to pin; in 0.0.2, the harness step's unqualified green summary, and LLVM's tarball by content — its size and sha256 from a research digest, checked before it is unpacked (@@PD-172@@) |
 | G5, one reading of source | 0.0.3 | the tree checks over blanked bytes, with clean controls |
 | G7, the bill from `REACH-003` | 0.0.0 §1.4; 0.0.3 | measured; `check_failsafe_arms` from cycle 0.2 |
 | G9, refusals their own dispatch | 0.0.0; 0.0.1 step 3 | **FIXED**: `tests/probe/` and `refused/`, and the manifest's `probe` and `probe-refused` |
-| G10, transcripts and status | 0.0.0 | every verdict an Expect from a run; status never through a pipe (§2) |
+| G10, transcripts and status | 0.0.0; 0.0.2 | every verdict an Expect from a run; status never through a pipe (0.0.0 §2); the harness prints each exit and code itself, and CI reads its status on its own line (0.0.2) |
 | G11, the self-check | 0.0.3 | far more than seven cases, each with a control, pending printed as pending |
-| G12, the managed-memory gate | 0.0.0 §1.3; 0.0.2; 0.0.4 | D-151 sees only `wild`; `mem-cap-mib` with a floor control |
+| G12, the managed-memory gate | 0.0.0 §1.3; 0.0.2 step 1; 0.0.4 | D-151 sees only `wild`; **FIXED** in 0.0.2: `mem-cap-mib`, after the floor program under the same cap (B-6a, @@PD-171@@); the containers' leak tests, 0.0.4 |
 | G15, the close | 0.0.5 | the audit before it (W-22), the REPORT, a verifier |
-| G16, every command run | this pass | every block run in a stand-in; denominators printed |
-| G17, reproducibility | 0.0.2 | a copied tree carries its manifest |
+| G16, every command run | this pass | every block of each file at the pin run in a stand-in; denominators printed |
+| G17, reproducibility | 0.0.2 step 1 | **FIXED**: the `repro` step's copies each carry the manifest (B-4's re-read, @@PD-169@@), and its mutant without one is red |
 | G18, numbers by command | 0.0.0 gate item 3 | the decision number read by `PLAYBOOK.md` §7's command; no `O-N` id assigned to the registry by a worker |
 | G19, the re-export hazard | retired | the planning guide's §3.3: compiler DEF-7, fixed at `94874ce` |
 | G20, `check_specs_current` | 0.0.3 | fails the run |
@@ -178,7 +197,7 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 | # | Point | Answer |
 |---|---|---|
 | 1 | which compiler | `c9baa9e`, the one re-pin, from the start |
-| 2 | `SK-013` after the handler | settled by 0.0.0: the rule kept, its fact superseded, V-5 rewritten around probe 04, the marker retired (@@PD-159@@) |
+| 2 | `SK-013` after the handler | settled by 0.0.0: the rule kept, its fact superseded, V-5 rewritten around probe 04, the marker retired (@@PD-159@@); 0.0.2's runner fails a file carrying it by name (@@PD-171@@) |
 | 3 | verification clauses (Z-1, Z-4, Z-5) | handed to 0.0.4, with EK1 |
 | 4 | how error detail reaches a caller | not this cycle's (NH-9) |
 | 5 | how errno names are declared | settled by 0.0.0: none can be, nor compared but against the prelude's or another error (@@PD-162@@) |
@@ -191,7 +210,7 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 | 12 | where CI sits | settled by 0.0.1 (@@PD-167@@): GitHub's `ubuntu-24.04`, whose loopback CI's first step binds, a currency row its first run checks; no test needs a user namespace |
 | 13 | names | settled for 0.0.0 and 0.0.1 (`names.py`, `BUILD.md` §7); `NSOCK_*`'s two lists handed to 0.0.4 |
 | 14 | the compiler's stale comments | the orchestrator's to raise (W-27): 0.0.0 §10, §12 |
-| 15 | nothing has been run | every block of this pass ran, in plan order, in a stand-in |
+| 15 | nothing has been run | every block of each file at the pin ran, in plan order, in a stand-in |
 | 16 | landing 105 and probe 05 | settled: a released owner's drop closes nothing, probe 05 |
 
 ## The places the first writing disagreed with itself
@@ -208,6 +227,10 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
   import: held as an `O-K` entry for cycle 0.2 (0.0.1 step 1).
 - **The first writing's 0.0.1 was to show CI's `network` skip line**, at a subcycle whose harness is a stub: the two
   stages are 0.0.3's, and 0.0.1's CI binds the runner's loopback itself (@@PD-167@@).
+- **`BUILD.md` §2's drawing linked a library object between the library and every program**, and B-2 derived its
+  allowlist from `runtime/npkrt.ll`'s text: `npkc` emits one module per root, and the link resolves against the
+  runtime object (@@PD-169@@). And the first writing's 0.0.2 judged one stage, where 0.0.1's manifest declares a
+  refusal entry beside it (@@PD-171@@).
 
 ## Subcycles
 
@@ -215,8 +238,8 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 |---|---|---|
 | [0.0.0](0.0.0.md) | **The language probes** — nineteen programs asking the compiler and the kernel whether the design is spellable, five of them `SK-013`'s and `SK-035`'s | a verdict per probe, the specifications amended by them |
 | [0.0.1](0.0.1.md) | **The skeleton** — the module layout, `src/lib.npk`, the manifest's toolchain rows and test table, CI, `CURRENCY.md` | `npkc` compiles an empty library and a program that imports it |
-| [0.0.2](0.0.2.md) | **The harness, part 1** — build, the `program` stage, the toolchain pin, `repro` | one test program builds, links, runs, and its exit code is judged |
-| [0.0.3](0.0.3.md) | **The harness, part 2** — the refusal and parse stages, `loopback`, `network`, the self-check, the tree checks | the self-check proves the harness can fail in every live way it names |
+| [0.0.2](0.0.2.md) | **The harness, part 1** — build and its two scans, the `program` stage and both `compile` kinds, the toolchain pin, `repro`, CI's summary and LLVM by content | every probe builds, links, runs or is refused, and is judged; every scan seen red by its mutant |
+| [0.0.3](0.0.3.md) | **The harness, part 2** — the `parse` sweep and the `check` stage, `loopback`, `network`, the self-check, the tree checks | the self-check proves the harness can fail in every live way it names |
 | [0.0.4](0.0.4.md) | **`src/core/`** — `Vec<T>`, `Bytes`, `limits.npk` | the primitives, with their suites and their obligations written |
 | [0.0.5](0.0.5.md) | **Close** — the findings, the handoff to 0.1 | `done/0.0/`, and 0.1 openable by a fresh session |
 
@@ -246,15 +269,17 @@ states its own acceptance when it reaches the pin, and where the two differ, the
 - [ ] `CLAUDE.md` and `CONTRIBUTING.md` re-read against 0.0.0's verdicts and extended; `CLAUDE.md`'s empty heading filled
 
 ### 0.0.2 — the harness, part 1
-- [ ] `harness/run.py`: the manifest reader, the toolchain pin check against the manifest's target rows, the module-graph walk
-- [ ] the build pipeline — one module per program root and `npkrt.o` — with the undefined-symbol scan and a call-edge scan as build steps
-- [ ] LLVM's release tarball pinned in CI by its sha256 and size, `CURRENCY.md`'s row checked (@@PD-167@@)
-- [ ] the `program` stage at -O0 and again under `opt -O2`, same exit required; `expect-exit`, `stress` and `mem-cap-mib` honoured — no `expect-signal` (@@PD-159@@)
+- [ ] the research gate's LLVM digest filed before any block runs (`0.0.2.md` gate item 7, §13)
+- [ ] `harness/run.py`: the manifest reader held to the compiler's schema, the interpreter and the toolchain held to the manifest's pin and target rows (@@PD-169@@, @@PD-171@@) — `npkc` walks each root's module graph itself
+- [ ] the build pipeline — one module per root and `npkrt.o` — with the undefined-symbol scan and a call-edge scan from a table of the whole runtime as build steps, their controls seen on every run (@@PD-169@@, @@PD-170@@)
+- [ ] the `program` stage and `compile`/`positive` at -O0 and again under `opt -O2`, same exit required, and `compile`/`negative` by the exact-code rule; `expect-exit`, `stress` and `mem-cap-mib` honoured — `expect-signal` refused (@@PD-159@@, @@PD-171@@)
 - [ ] the `repro` check: two builds from different working directories, each copy with its manifest
-- [ ] 0.0.0's `tests/probe/` green as the first real `program` suite
+- [ ] 0.0.0's `tests/probe/` and `refused/` green as the first suites, probes 07, 08 and 11 forty runs a leg
+- [ ] every check seen red by its mutant (block 4m)
+- [ ] CI: the harness step asserting the unqualified green summary; LLVM's release tarball checked by its size and sha256 against the research digest before it is unpacked, `CURRENCY.md`'s row checked (@@PD-172@@) — green on the push
 
 ### 0.0.3 — the harness, part 2
-- [ ] the parse sweep and the refusal stage judged by `npkc`, the **exact-code** rule; 0.0.0's `refused/` among its entries
+- [ ] the parse sweep and the `check` stage over `tests/rejection/`, judged by `npkc` by the **exact-code** rule 0.0.2's `compile`/`negative` uses (@@PD-171@@)
 - [ ] the `loopback` stage, never skipped; the `network` stage, skipped **loudly** with its reason (V-2)
 - [ ] `--only`, and output that says twice that a filtered run concludes nothing
 - [ ] `harness/selfcheck.py`, its live cases each seen red and its pending ones printed as pending, run first

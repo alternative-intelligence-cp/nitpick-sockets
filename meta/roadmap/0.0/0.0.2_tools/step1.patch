@@ -1,0 +1,1687 @@
+diff --git a/harness/README.md b/harness/README.md
+index 8f1c04d..34ceb50 100644
+--- a/harness/README.md
++++ b/harness/README.md
+@@ -8,8 +8,54 @@ compiler repository. Built in cycles 0.0.2 and 0.0.3.
+ It carries no marker the compiler's grammar does not. *(2026-10-18: it was to
+ carry `// expect-signal: N`, for the `SIGPIPE` test, which @@PD-159@@ retires —
+ at compiler `c9baa9e` that test's send answers `EPIPE`, and nothing in the
+-suite dies by a signal.)*
++suite dies by a signal.)* *(2026-10-21, cycle 0.0.2, @@PD-171@@: it has one
++marker of its own beside the compiler's, `// mem-cap-mib: N` — `BUILD.md`
++B-6a — and a file carrying `// expect-signal:` fails by name.)*
+ 
+ *(2026-10-18, cycle 0.0.1, @@PD-167@@:)* until cycle 0.0.2, `run.py` is a stub that
+ builds and judges nothing and says so; CI runs it, so the workflow's step for it
+ exists before the runner does.
++*(2026-10-21, cycle 0.0.2: the stub is replaced by the runner below; cycle 0.0.3
++adds the `parse` sweep and the `check` stage, the `loopback` and `network`
++stages, the self-check and the tree checks.)*
++
++```
++NPKC=<pinned npkc> NPKRT=<pinned npkrt.o> python3 -B harness/run.py [--verdicts PATH]
++```
++
++`$NPKC` and `$NPKRT` are the pinned toolchain the board names (`../../BOARD.md`), and
++`llc`, `opt` and `ld.lld` are on `PATH` at the manifest's LLVM exactly. The last line a run
++prints is its verdict — `harness: GREEN -- …` or `harness: RED -- …` — and it exits 0, 1, or
++2 when it could not proceed. Its scratch is `build/harness/`, cleared when a run starts.
++
++## The modules
++
++| File | What |
++|---|---|
++| `run.py` | the driver: the manifest and the entries it can honour, the toolchain, three build steps, the suites in manifest order, the summary |
++| `manifest.py` | `nitpick.toml` in the compiler's subset, held to the compiler's schema at the pin |
++| `toolchain.py` | the interpreter; `llc`, `opt`, `ld.lld` at the manifest's LLVM; its `datalayout` the one the pinned `opt` derives (`BUILD.md` B-1a) |
++| `expect.py` | the markers a test file carries (B-6, B-6a) |
++| `build.py` | one root to one module, both legs, the undefined-symbol scan (B-2), and `npkc`'s exit alphabet |
++| `irscan.py` | the call-edge scan, its deny list generated from `runtime_symbols.tsv` (B-2a) |
++| `runtime_symbols.tsv` | every global symbol of the pinned runtime, classed by this library's rules: denied, the library's own, or the floor's |
++| `elf.py` | an ELF64 symbol table, read with `struct` |
++| `stages.py` | the `program` stage, `compile`/`positive` and `compile`/`negative`: both legs, `stress`, the cap, the exact-code rule |
++| `baseline/` | the floor program, the syscaller and the floor-writer (build step 1, and the cap's control) |
++
++## What a green run asserts
++
++- the manifest names no entry this runner cannot judge; the interpreter is the Python the
++  harness is measured on or later, and the toolchain is the manifest's, exactly;
++- the call-edge scan reads the library's facets and the denied ones apart, on this run, at
++  this compiler — the floor, the syscaller and the floor-writer differ by `npk_sys6` and by
++  `npk_write` alone, the syscaller's edge to the kernel through `sys` is left unflagged and
++  the floor-writer's `main` is flagged, `SAFETY.md` S-2;
++- every module under `src/` compiles as a root with no diagnostic, and none needs a symbol the
++  runtime does not define — or the root's `failsafe` — or calls one its rules deny;
++- `[build] entry` and every conformance root emit byte-identical IR from two copies of the tree,
++  each with its manifest (B-4);
++- every program unit was built at -O0 and through `opt -O2`, its modules stating the
++  manifest's target rows, scanned, linked with `npkrt.o` alone, and run `stress` times on each
++  leg — under its cap after the floor program under the same cap — and exited as it expects;
++  and every negative unit was refused, `npkc` exit 1, with exactly the codes it names.
+diff --git a/harness/baseline/floor.npk b/harness/baseline/floor.npk
+new file mode 100644
+index 0000000..8e3e1df
+--- /dev/null
++++ b/harness/baseline/floor.npk
+@@ -0,0 +1,25 @@
++// expect-exit: 0
++//
++// THE FLOOR PROGRAM -- `harness/run.py`'s build step 1, and the control under every memory cap.
++// It allocates nothing and calls nothing: its object's undefined symbols and its IR's call edges
++// to the runtime are what the compiler emits into every program, so a module's edge the floor
++// does not have was written by that module (`irscan.py`). Its `failsafe` is the six-arm floor
++// every root owes (`NITPICK-REACH-003` at the pin) and a catch-all.
++mod:floor;
++
++func:main = int32(cstring[]:_~argv) {
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/harness/baseline/floorwriter.npk b/harness/baseline/floorwriter.npk
+new file mode 100644
+index 0000000..0a948ca
+--- /dev/null
++++ b/harness/baseline/floorwriter.npk
+@@ -0,0 +1,30 @@
++// expect-exit: 0
++//
++// THE FLOOR-WRITER -- the floor program and one call of the floor's `write`, of no bytes, from a
++// string's read-only view, to standard output: build step 1 requires its object to differ from the
++// floor's by `npk_write` alone -- so it allocates nothing -- and the call-edge scan to flag
++// `main`'s edge to it -- `SAFETY.md` S-2, the rule most likely to be broken by accident -- on every
++// full run, so a scan gone blind reddens the run instead of passing everything (`PLAYBOOK.md`:
++// measure the instrument before adopting it).
++mod:floorwriter;
++
++func:main = int32(cstring[]:_~argv) {
++    string:s = "x";
++    fixed uint8[]:b = string_bytes(s);
++    Result<int64>:r = write((1i32) =>! fd, b.ptr, 0i64);
++    if (r.is_error) { exit 70i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/harness/baseline/syscaller.npk b/harness/baseline/syscaller.npk
+new file mode 100644
+index 0000000..2db34b4
+--- /dev/null
++++ b/harness/baseline/syscaller.npk
+@@ -0,0 +1,27 @@
++// expect-exit: 0
++//
++// THE SYSCALLER -- the floor program and one syscall, getpid(2), through `sys`: build step 1
++// requires its object to differ from the floor's by `npk_sys6` alone, and the call-edge scan to
++// read `main`'s edge to it as the library's own -- the kernel through `sys`, K-1's table -- and
++// flag nothing, on every full run, so a scan that denies a facet the library's rules give it
++// reddens the run rather than every module the library writes.
++mod:syscaller;
++
++func:main = int32(cstring[]:_~argv) {
++    Result<int64>:r = sys(39i64);
++    if (r.is_error) { exit 70i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/harness/build.py b/harness/build.py
+new file mode 100644
+index 0000000..98a3382
+--- /dev/null
++++ b/harness/build.py
+@@ -0,0 +1,152 @@
++#!/usr/bin/env python3
++"""The build, one root at a time -- `meta/specs/BUILD.md` §2 and B-1 … B-4 (@@PD-169@@).
++
++ONE MODULE PER ROOT. `npkc` compiles a root and everything it imports into ONE module -- a
++function of an imported module is DEFINED in the root's emission -- so a program is one
++object linked with the runtime, `npkrt.o`, and nothing else: there is no library object to
++link, and every module under `src/` is compiled on its own only to be scanned (`run.py`'s
++build step 2). Every argv is built from the manifest's `[toolchain]` lists (B-1); nothing
++runs at its own defaults.
++
++THE TWO LEGS (B-3): -O0 is `npkc`, `llc` with `llc-flags`, `ld.lld` with `lld-flags`; the
++optimised leg re-runs the SAME emission through `opt` with `opt-flags` and `llc` with
++`llc-opt-flags`. Each object is scanned (B-2: every undefined symbol defined by the runtime,
++since `opt` may mint a libcall), and each module's `target triple` and `target datalayout`
++lines are held to the manifest's rows (B-1a).
++
++A MODULE COMPILED ALONE names `npk_failsafe` when it holds an `async` function, whose
++scope join traps through its program's `failsafe` at its deadline -- the root's `failsafe`,
++which every program defines and a library module cannot (measured at the pin, cycle 0.0.2's
++§1.6) -- so B-2's scan of a library module's object allows that one name beside the
++runtime's, and nothing else.
++
++`npkc`'S EXIT ALPHABET, which nothing documents (`PLAYBOOK.md` §6): 0 accepted; 1 REFUSED,
++with diagnostics; 2 could not proceed and judged nothing, with an empty stderr; 3 the
++compiler's own `failsafe` trap. Only 0 and 1 are verdicts; 2, 3 and anything else are a
++broken run, printed with the code itself.
++"""
++import os
++import re
++import subprocess
++
++from elf import Obj
++
++_DIAG = re.compile(r"^(NITPICK-[A-Z]+-[0-9]+) [^ ]+:([0-9]+):([0-9]+)", re.M)
++_UNDEF_VALUE = re.compile(r"use of undefined value '([^']+)'")
++_TARGET = re.compile(r'^target (triple|datalayout) = "([^"]*)"$', re.M)
++ROOT_FAILSAFE = "npk_failsafe"
++
++
++class Leg:
++    """One leg of one program: where it stopped, and the binary if it got there."""
++
++    def __init__(self, name):
++        self.name, self.stop, self.binary = name, None, None
++
++    def fail(self, why):
++        self.stop = why
++        return self
++
++
++class Ctx:
++    def __init__(self, man, npkc, npkrt, runtime_defined, work):
++        tc = man.tables["toolchain"]
++        self.npkc, self.npkrt, self.work = npkc, npkrt, work
++        self.triple, self.layout = tc["triple"], tc["datalayout"]
++        self.llc_flags, self.llc_opt_flags = tc["llc-flags"], tc["llc-opt-flags"]
++        self.opt_flags, self.lld_flags = tc["opt-flags"], tc["lld-flags"]
++        self.runtime_defined = set(runtime_defined)
++
++
++def _run(argv, cwd=None, timeout=600):
++    try:
++        r = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, timeout=timeout)
++        return r.returncode, r.stdout + r.stderr
++    except subprocess.TimeoutExpired:
++        return None, f"`{os.path.basename(argv[0])}` did not finish in {timeout} s"
++
++
++def npkc(ctx, src, out_ll):
++    """(exit, [(code, line, col)], text): `npkc` from the root's own directory, as by hand."""
++    rc, text = _run([ctx.npkc, os.path.basename(src), "-o", out_ll], cwd=os.path.dirname(src))
++    return rc, [(m.group(1), int(m.group(2)), int(m.group(3))) for m in _DIAG.finditer(text)], text
++
++
++def target_problems(ctx, ll_path, what):
++    with open(ll_path, encoding="utf-8", errors="replace") as fh:
++        got = dict(_TARGET.findall(fh.read(1 << 16)))
++    out = []
++    for key, want in (("triple", ctx.triple), ("datalayout", ctx.layout)):
++        if got.get(key) != want:
++            out.append(f"{what}: `target {key}` is {got.get(key)!r}; nitpick.toml pins {want!r}")
++    return out
++
++
++def undefined_problems(ctx, obj_path, what, library=False):
++    """B-2: every undefined symbol of the object is one the runtime defines -- and, for a module
++    compiled alone, the root's `failsafe` its program defines."""
++    allowed = ctx.runtime_defined | ({ROOT_FAILSAFE} if library else set())
++    extra = sorted(set(Obj(obj_path).undefined()) - allowed)
++    return [f"{what}: undefined {', '.join(extra)}, which the runtime does not define "
++            "(no C, ever -- B-2)"] if extra else []
++
++
++def _first(text, rc):
++    return text.strip().splitlines()[0][:200] if text.strip() else f"exit {rc}"
++
++
++def _leg(ctx, name, ll, stem, optimised):
++    leg = Leg(name)
++    obj, binary = f"{stem}{'.2' if optimised else ''}.o", f"{stem}{'.2' if optimised else ''}"
++    if optimised:
++        rc, text = _run(["opt", *ctx.opt_flags, ll, "-o", f"{stem}.2.ll"])
++        if rc != 0:
++            return leg.fail(f"opt refused: {_first(text, rc)}")
++        ll = f"{stem}.2.ll"
++        bad = target_problems(ctx, ll, "the optimised module")
++        if bad:
++            return leg.fail("; ".join(bad))
++    rc, text = _run(["llc", *(ctx.llc_opt_flags if optimised else ctx.llc_flags), ll, "-o", obj])
++    if rc != 0:
++        m = _UNDEF_VALUE.search(text)
++        return leg.fail(f"llc refused: {_first(text, rc)}" + (f" (it names '{m.group(1)}')" if m else ""))
++    bad = undefined_problems(ctx, obj, f"the {name} object")
++    if bad:
++        return leg.fail("; ".join(bad))
++    rc, text = _run(["ld.lld", *ctx.lld_flags, obj, ctx.npkrt, "-o", binary])
++    if rc != 0:
++        return leg.fail(f"ld.lld refused: {text.strip()[:200]}")
++    leg.binary = binary
++    return leg
++
++
++class Build:
++    def __init__(self):
++        self.npkc_exit, self.codes, self.text, self.ll, self.legs = None, [], "", None, []
++
++
++def program(ctx, src, stem):
++    """Compile, then both legs. `stem` is the scratch path every artefact is named from."""
++    b = Build()
++    os.makedirs(os.path.dirname(stem), exist_ok=True)
++    b.ll = f"{stem}.ll"
++    b.npkc_exit, b.codes, b.text = npkc(ctx, src, b.ll)
++    if b.npkc_exit != 0:
++        return b
++    bad = target_problems(ctx, b.ll, "the emission")
++    if bad:
++        b.legs = [Leg("-O0").fail("; ".join(bad))]
++        return b
++    b.legs = [_leg(ctx, "-O0", b.ll, stem, False), _leg(ctx, "-O2", b.ll, stem, True)]
++    return b
++
++
++def npkc_failure(rc, codes):
++    """The sentence for an `npkc` exit that is not 0."""
++    if rc == 1:
++        return "npkc REFUSED it: " + (" ".join(f"{c} {l}:{k}" for c, l, k in codes) or "no code read")
++    if rc == 2:
++        return "npkc exit 2 -- the driver could not proceed and judged nothing"
++    if rc == 3:
++        return "npkc exit 3 -- the compiler's own failsafe trapped"
++    return f"npkc exit {rc}"
+diff --git a/harness/elf.py b/harness/elf.py
+new file mode 100644
+index 0000000..fa9f090
+--- /dev/null
++++ b/harness/elf.py
+@@ -0,0 +1,72 @@
++#!/usr/bin/env python3
++"""An ELF64 relocatable object's symbol table, read with `struct`.
++
++The undefined-symbol scan is a BUILD STEP (`BUILD.md` B-2), and law here; resting law on a
++fourth tool outside the manifest's pin, parsed out of text nothing checks, is the weaker
++design, and the format is a few dozen lines of `struct`. It refuses anything that is not a
++little-endian ELF64 object for x86-64 rather than guessing, because a mis-parsed symbol
++table is a scan that reports clean. After `nitpick-regex`'s `harness/elf.py`.
++"""
++import struct
++
++SHT_SYMTAB = 2
++SHN_UNDEF = 0
++STB_LOCAL = 0
++STT_SECTION = 3
++STT_FILE = 4
++
++
++class ElfError(Exception):
++    pass
++
++
++class Obj:
++    def __init__(self, path):
++        self.path = path
++        with open(path, "rb") as fh:
++            self.b = fh.read()
++        b = self.b
++        if len(b) < 64 or b[:4] != b"\x7fELF":
++            raise ElfError(f"{path}: not an ELF file")
++        if b[4] != 2 or b[5] != 1:
++            raise ElfError(f"{path}: not little-endian ELF64")
++        e_type, e_machine = struct.unpack_from("<HH", b, 16)
++        if e_type != 1 or e_machine != 62:
++            raise ElfError(f"{path}: e_type={e_type}, e_machine={e_machine}; not an x86-64 "
++                           "relocatable object")
++        (shoff,) = struct.unpack_from("<Q", b, 40)
++        shentsize, shnum = struct.unpack_from("<HH", b, 58)
++        if shentsize != 64:
++            raise ElfError(f"{path}: e_shentsize={shentsize}, not 64")
++        self.sections = []
++        for i in range(shnum):
++            (_, typ, _, _, soff, size, link, _, _, entsize) = struct.unpack_from(
++                "<IIQQQQIIQQ", b, shoff + i * 64)
++            self.sections.append((typ, soff, size, link, entsize))
++        self.syms = []
++        for typ, soff, size, link, entsize in self.sections:
++            if typ != SHT_SYMTAB:
++                continue
++            if entsize != 24:
++                raise ElfError(f"{path}: a symbol table entry of {entsize} bytes, not 24")
++            for k in range(size // 24):
++                nm, info, _, shndx, _, _ = struct.unpack_from("<IBBHQQ", b, soff + k * 24)
++                self.syms.append((self._str(link, nm) if nm else "", info >> 4, info & 0xF, shndx))
++
++    def _str(self, idx, off):
++        base = self.sections[idx][1] + off
++        return self.b[base:self.b.index(b"\0", base)].decode("utf-8", "replace")
++
++    def undefined(self):
++        """What `llvm-nm --undefined-only` prints: named, SHN_UNDEF, not local."""
++        return sorted({n for n, bind, _, shndx in self.syms
++                       if n and shndx == SHN_UNDEF and bind != STB_LOCAL})
++
++    def defined(self):
++        return sorted({n for n, _, typ, shndx in self.syms
++                       if n and shndx != SHN_UNDEF and typ not in (STT_FILE, STT_SECTION)})
++
++    def exported(self):
++        """Every global symbol the object defines: all another object's reference can resolve to."""
++        return sorted({n for n, bind, typ, shndx in self.syms
++                       if n and shndx != SHN_UNDEF and bind != STB_LOCAL and typ not in (STT_FILE, STT_SECTION)})
+diff --git a/harness/expect.py b/harness/expect.py
+new file mode 100644
+index 0000000..099b049
+--- /dev/null
++++ b/harness/expect.py
+@@ -0,0 +1,117 @@
++#!/usr/bin/env python3
++"""A test's expectations, read from the test file -- `meta/specs/BUILD.md` B-6 and B-6a.
++
++THE COMPILER'S GRAMMAR, as `npkg/expect.npk` reads it at the pin `c9baa9e`: a line whose
++stripped form starts with `//` is a comment; its body, stripped, is a MARKER when it starts
++with a marker's name -- `// see expect-exit: 94` is prose -- and the marker's value is the
++WHOLE rest of the line, so `// expect-exit: 94 -- the OutOfBounds arm` cannot be read, and a
++test whose expectations cannot be read is a FAILING test, never a silently defaulted one.
++`expect-exit:` -- the last one wins, 0 when absent; `stress:` -- 1 when absent;
++`expect-error-at: L[:C]` moves the LAST `expect-error:`. (After `nitpick-parse`'s
++`harness/expect.py`, which holds the same grammar to the same reader.)
++
++THE MARKERS THE COMPILER'S READER HAS AND THIS RUNNER DOES NOT JUDGE YET -- `expect-note:`,
++`expect-note-at:`, `argv:`, `npkc-flags:`, `expect-no-parse-error`, `explore:`, `explore-seed:`
++and `expect-obligation:` -- each make a file UNREADABLE, by name: a marker a runner ignores is
++an expectation nobody checks. So does `expect-signal:`, which this library's first plan meant
++to add and @@PD-159@@ retired: nothing in the suite is expected to die by a signal, and a file that
++says otherwise is refused rather than read as an exit.
++
++THE RUNNER'S OWN MARKER (B-6a, @@PD-171@@), which `npkg` does not have: `mem-cap-mib: N` -- run
++the program under an N MiB address-space cap, after the floor program under the same cap
++(`stages.py`), because what a managed body leaks is invisible to `exit 0`: D-151 sees `wild`
++allocations alone (cycle 0.0.0's §1.3).
++"""
++import re
++
++MARKERS_JUDGED = ("expect-error-at:", "expect-error:", "expect-exit:", "stress:", "mem-cap-mib:")
++MARKERS_REFUSED = ("expect-note-at:", "expect-note:", "argv:", "npkc-flags:", "expect-no-parse-error",
++                   "explore-seed:", "explore:", "expect-obligation:", "expect-signal:")
++_CODE = re.compile(r"^NITPICK-[A-Z]+-[0-9]{3}$")
++_AT = re.compile(r"^([0-9]+)(?::([0-9]+))?$")
++_INT = re.compile(r"^-?[0-9]+$")
++
++
++class Expect:
++    def __init__(self, path):
++        self.path = path
++        self.exit = 0
++        self.given = set()        # the judged markers the file carries
++        self.errors = []          # [[code, line or None, col or None]]
++        self.stress = 1
++        self.mem_cap_mib = None
++        self.problems = []        # each makes the file UNREADABLE
++
++    @property
++    def readable(self):
++        return not self.problems
++
++
++def _bad(e, n, why):
++    e.problems.append(f"{e.path}:{n}: {why}")
++    return e
++
++
++def read_text(text, path):
++    e = Expect(path)
++    for n, raw in enumerate(text.split("\n"), 1):
++        line = raw.strip()
++        if not line.startswith("//"):
++            continue
++        body = line[2:].strip()
++        name = next((m for m in MARKERS_JUDGED + MARKERS_REFUSED if body.startswith(m)), None)
++        if name is None:
++            continue
++        value = body[len(name):].strip()
++        if name in MARKERS_REFUSED:
++            if name == "expect-signal:":
++                _bad(e, n, "`expect-signal:` was retired by @@PD-159@@ -- nothing in this suite is "
++                           "expected to die by a signal, and this runner reads no such marker")
++            else:
++                _bad(e, n, f"`{name}` is a marker this runner does not judge at cycle 0.0.2, "
++                           "so the expectation would go unchecked")
++            continue
++        e.given.add(name)
++        if name == "expect-exit:":
++            if not _INT.match(value):
++                _bad(e, n, f"`expect-exit: {value}` is not an integer (the value is the "
++                           "whole rest of the line)")
++                continue
++            v = int(value)
++            # An exit status is one byte: 321 is reported as 65. A negative value is
++            # `npkg`'s "killed by that signal"; Linux has none below -64.
++            if v > 255 or v < -64:
++                _bad(e, n, f"`expect-exit: {v}` can never be observed: an exit status is "
++                           "one byte, and a signal is -1 ... -64")
++                continue
++            e.exit = v
++        elif name == "expect-error:":
++            if not _CODE.match(value):
++                _bad(e, n, f"`expect-error: {value}` is not a diagnostic code")
++                continue
++            e.errors.append([value, None, None])
++        elif name == "expect-error-at:":
++            m = _AT.match(value)
++            if not m or not e.errors:
++                _bad(e, n, f"`expect-error-at: {value}` -- not `L[:C]`, or no "
++                           "`expect-error:` before it")
++                continue
++            e.errors[-1][1] = int(m.group(1))
++            e.errors[-1][2] = int(m.group(2)) if m.group(2) else None
++        elif name == "stress:":
++            if not _INT.match(value) or int(value) < 1:
++                _bad(e, n, f"`stress: {value}` is not a positive integer")
++                continue
++            e.stress = int(value)
++        elif name == "mem-cap-mib:":
++            if not _INT.match(value) or int(value) < 1:
++                _bad(e, n, f"`mem-cap-mib: {value}` is not a positive integer")
++                continue
++            e.mem_cap_mib = int(value)
++    return e
++
++
++def read(path):
++    with open(path, "rb") as fh:
++        text = fh.read().decode("utf-8", errors="replace")
++    return read_text(text, path)
+diff --git a/harness/irscan.py b/harness/irscan.py
+new file mode 100644
+index 0000000..58b2799
+--- /dev/null
++++ b/harness/irscan.py
+@@ -0,0 +1,110 @@
++#!/usr/bin/env python3
++"""The emitted IR's CALL EDGES to the runtime -- `BUILD.md` B-2a (@@PD-170@@): the instrument that
++holds the library to the runtime facets its rules give it, and to none they deny.
++
++WHY CALL EDGES. An undefined-symbol scan reports THAT an object needs a runtime symbol and
++never WHERE it is called from; and at an earlier compiler every syscall went through one
++symbol the empty program already carried, so a program that made one had the same symbol set
++as one that did not (`PLAYBOOK.md`: "the undefined-symbol scan ... CANNOT SEE A SYSCALL").
++After `nitpick-parse`'s `harness/irscan.py`, whose measured lessons (the intrinsics, the glue's
++numbering, a deny list rather than a permit list, the runtime classed whole) this keeps.
++
++WHAT IT SCANS. Every `(enclosing function, callee)` edge in a module's -O0 IR whose callee is
++DECLARED and not DEFINED in the module, `llvm.*` excluded (an intrinsic is an instruction,
++never a symbol), the trailing `.<digits>` of compiler-generated glue normalised away (the
++counter moves with program content). An edge the floor program does not have, to a DENIED
++symbol, is a finding that names the calling function, the facet and the rule. `run.py` reads
++every module under `src/` this way, each compiled as a root on its own; it does not read the
++probes and the tests, which reach the kernel, the floor's `write` and the rest on purpose
++(`tests/probe/README.md`).
++
++THE DENY LIST IS GENERATED FROM ONE TABLE: `runtime_symbols.tsv` beside this file classes every
++global symbol the pinned runtime object defines -- all a module's call can resolve to, since a
++call to a local one does not link -- in exactly one class: `deny: <facet> (<rule>)`, by the
++rule of this library's specifications that forbids it; `library: <facet> (<rule>)`, a facet a
++rule gives the library -- the kernel through `sys` (K-1), the reactor (C-1, C-4), a
++descriptor's drop (SK-011), tasks and their scope's join (C-6, C-8, C-9) and the clock under a
++deadline; or `floor: <family>`, the language's own machinery any program reaches. `run.py`
++holds the table to the runtime object on every run: a global symbol no row names, or a row the
++runtime does not define, stops it, so a re-pin that adds or renames a runtime function is
++classed before a run can be green again.
++
++WHAT IT CANNOT SEE: a facet whose construct lowers to no runtime call of that facet -- a lock made
++and never held calls only the floor's managed allocator and trap route (cycle 0.0.2's §1.6) -- which syscall a
++`sys` call makes (K-1's numbers are `check_constants_named`'s, cycle 0.0.3), what an allowed
++function does inside the runtime, and a generic function no module root instantiates, which is
++not emitted at all. A call-edge scan says nothing of those; review and the tree checks do.
++"""
++import os
++import re
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++TABLE = os.path.join(HERE, "runtime_symbols.tsv")
++
++
++def _load():
++    classes = {}
++    with open(TABLE, encoding="utf-8") as fh:
++        for n, line in enumerate(fh, 1):
++            if not line.strip() or line.startswith("#"):
++                continue
++            cols = line.rstrip("\n").split("\t")
++            if len(cols) != 3 or not re.match(r"^(deny|library|floor): \S", cols[1]):
++                raise ValueError(f"harness/runtime_symbols.tsv:{n}: not `symbol<TAB>deny|library|floor: "
++                                 f"<facet><TAB>why`: {line.strip()!r}")
++            if cols[0] in classes:
++                raise ValueError(f"harness/runtime_symbols.tsv:{n}: `{cols[0]}` is classed twice")
++            classes[cols[0]] = (cols[1], cols[2])
++    return classes
++
++
++CLASSES = _load()
++DENIED = frozenset(n for n, (c, _) in CLASSES.items() if c.startswith("deny: "))
++CLASSED = frozenset(CLASSES)
++
++_SYM = r'@(?:"([^"]*)"|([\w.$\-]+))'
++_DEFINE = re.compile(r'^\s*define\b.*?' + _SYM + r'\s*\(')
++_DECLARE = re.compile(r'^\s*declare\b.*?' + _SYM + r'\s*\(')
++_CALL = re.compile(r'\b(?:call|invoke)\b.*?' + _SYM + r'\s*\(')
++_GENERATED = re.compile(r'\.\d+$')
++
++
++def _name(m):
++    return m.group(1) if m.group(1) is not None else m.group(2)
++
++
++def edges(ir_text):
++    """{(normalised function, callee)} for every call to a symbol the module declares and does not define."""
++    lines = ir_text.split("\n")
++    defined, declared = set(), set()
++    for line in lines:
++        m = _DEFINE.match(line)
++        if m:
++            defined.add(_name(m))
++            continue
++        m = _DECLARE.match(line)
++        if m:
++            declared.add(_name(m))
++    outside = {s for s in declared - defined if not s.startswith("llvm.")}
++    out, cur = set(), None
++    for line in lines:
++        m = _DEFINE.match(line)
++        if m:
++            cur = _name(m)
++            continue
++        if line.startswith("}"):
++            cur = None
++            continue
++        if cur is None:
++            continue
++        m = _CALL.search(line)
++        if m and _name(m) in outside:
++            out.add((_GENERATED.sub(".N", cur), _name(m)))
++    return out
++
++
++def findings(ir_text, baseline, name):
++    """One line per denied edge the floor program does not have, naming the function, the facet and the rule."""
++    return [f"{name}: `{fn}` calls `{callee}`, and the floor program does not -- {CLASSES[callee][0][6:]}: "
++            f"{CLASSES[callee][1]}; a legitimate call is a decision, not an edit here"
++            for fn, callee in sorted(edges(ir_text) - baseline) if callee in DENIED]
+diff --git a/harness/manifest.py b/harness/manifest.py
+new file mode 100644
+index 0000000..20902a4
+--- /dev/null
++++ b/harness/manifest.py
+@@ -0,0 +1,158 @@
++#!/usr/bin/env python3
++"""`nitpick.toml`, read the way `npkg` reads it -- `meta/specs/BUILD.md` B-1.
++
++WHY A READER AND NOT `tomllib`. Python's `tomllib` accepts what `npkg`'s reader refuses, so a
++manifest that worked here could be refused by the tool this harness retires into (SK-004).
++The subset is the compiler's -- tables, `[[test]]` headers, strings, integers, booleans and
++single-line arrays -- and a key the schema lacks is refused by name: a key nothing reads is
++the next stale document (the compiler's D-204). After `nitpick-parse`'s `harness/manifest.py`.
++
++THE SCHEMA IS THE COMPILER'S AT THE PIN: `npkg/manifest.npk`'s `schema_allows` at `c9baa9e`,
++table for table and key for key, `[dependencies]` taking any key. Cycle 0.0.2's facts script
++re-derives it from that function and compares (`0.0.2.md` §1.2).
++
++THE STAGES are the compiler's vocabulary (`BUILD_REFERENCE.md` §7.1 at the pin) and this
++library's two (`loopback`, `network`; `BUILD.md` §3). The compiler's rule is this runner's:
++an entry it cannot honour is REFUSED BY NAME before anything runs, never skipped (`run.py`).
++"""
++import re
++
++
++class ManifestError(Exception):
++    pass
++
++
++SCHEMA = {
++    "project":      {"name", "version", "description", "authors", "target"},
++    "build":        {"entry", "output", "opt-level"},
++    "toolchain":    {"llvm", "triple", "datalayout",
++                     "llc-flags", "llc-opt-flags", "opt-flags", "lld-flags"},
++    "limits":       {"nofile"},
++    "test":         {"name", "stage", "kind", "path", "paths", "recursive"},
++    "verify":       {"z3", "z3-version", "z3-sha256", "z3-options"},
++    "verify.nikos": {"domain"},
++}
++ANY_KEY = {"dependencies"}
++KNOWN_STAGES = {"accept", "check", "compile", "cost", "explore", "fixture", "parse", "program",
++                "resolve", "runtime", "verify", "loopback", "network"}
++KNOWN_KINDS = {"positive", "negative", "diagnostic"}
++
++_TABLE = re.compile(r'^\[([A-Za-z0-9_.-]+)\]$')
++_ARRAY_TABLE = re.compile(r'^\[\[([A-Za-z0-9_.-]+)\]\]$')
++_KEYVAL = re.compile(r'^([A-Za-z0-9_-]+)\s*=\s*(.*)$')
++
++
++def _strip_comment(line):
++    """A `#` outside a string starts a comment."""
++    out, in_str = [], False
++    for ch in line:
++        if ch == '"':
++            in_str = not in_str
++        if ch == "#" and not in_str:
++            break
++        out.append(ch)
++    return "".join(out).strip()
++
++
++def _split_top(inner):
++    parts, cur, in_str = [], [], False
++    for ch in inner:
++        if ch == '"':
++            in_str = not in_str
++        if ch == "," and not in_str:
++            parts.append("".join(cur))
++            cur = []
++            continue
++        cur.append(ch)
++    if "".join(cur).strip():
++        parts.append("".join(cur))
++    return [p for p in parts if p.strip()]
++
++
++def _value(raw, where):
++    raw = raw.strip()
++    if raw.startswith("["):
++        if not raw.endswith("]"):
++            raise ManifestError(f"{where}: a multi-line array -- the reader takes single-line "
++                                "arrays only, as npkg's does")
++        inner = raw[1:-1].strip()
++        return [_value(p, where) for p in _split_top(inner)] if inner else []
++    if len(raw) >= 2 and raw.startswith('"') and raw.endswith('"'):
++        return raw[1:-1]
++    if raw in ("true", "false"):
++        return raw == "true"
++    try:
++        return int(raw)
++    except ValueError:
++        raise ManifestError(f"{where}: {raw!r} is not a string, integer, boolean or "
++                            "single-line array")
++
++
++class Manifest:
++    def __init__(self, tables, tests, path):
++        self.tables, self.tests, self.path = tables, tests, path
++
++    def need(self, table, key):
++        if key not in self.tables.get(table, {}):
++            raise ManifestError(f"{self.path}: [{table}] has no `{key}`")
++        return self.tables[table][key]
++
++
++def read(path):
++    tables, tests, section, target = {}, [], None, None
++    with open(path, encoding="utf-8") as fh:
++        lines = fh.read().split("\n")
++    for n, line in enumerate(lines, 1):
++        text = _strip_comment(line)
++        if not text:
++            continue
++        where = f"{path}:{n}"
++        m = _ARRAY_TABLE.match(text)
++        if m:
++            section = m.group(1)
++            if section != "test":
++                raise ManifestError(f"{where}: [[{section}]] -- the only array table the "
++                                    "schema has is [[test]]")
++            target = {}
++            tests.append(target)
++            continue
++        m = _TABLE.match(text)
++        if m:
++            section = m.group(1)
++            if section == "test" or (section not in SCHEMA and section not in ANY_KEY):
++                raise ManifestError(f"{where}: [{section}] is not a table the schema has")
++            target = tables.setdefault(section, {})
++            continue
++        m = _KEYVAL.match(text)
++        if not m:
++            raise ManifestError(f"{where}: {text!r} is neither a table header nor `key = value`")
++        if target is None:
++            raise ManifestError(f"{where}: `{m.group(1)}` before any table header")
++        key = m.group(1)
++        if section not in ANY_KEY and key not in SCHEMA[section]:
++            raise ManifestError(f"{where}: [{section}] has no key `{key}` in the schema "
++                                f"(it has: {', '.join(sorted(SCHEMA[section]))})")
++        if key in target:
++            raise ManifestError(f"{where}: `{key}` given twice in [{section}]")
++        target[key] = _value(m.group(2), where)
++    seen = set()
++    for i, t in enumerate(tests, 1):
++        where = f"{path}: [[test]] #{i}"
++        for k in ("name", "stage"):
++            if k not in t:
++                raise ManifestError(f"{where}: no `{k}`")
++        if t["name"] in seen:
++            raise ManifestError(f"{where}: `{t['name']}` is declared twice")
++        seen.add(t["name"])
++        if t["stage"] not in KNOWN_STAGES:
++            raise ManifestError(f"{where} ({t['name']}): stage `{t['stage']}` is not a stage")
++        if "kind" in t and t["kind"] not in KNOWN_KINDS:
++            raise ManifestError(f"{where} ({t['name']}): kind `{t['kind']}` is not a kind")
++        if ("path" in t) == ("paths" in t):
++            raise ManifestError(f"{where} ({t['name']}): exactly one of `path` and `paths`")
++    return Manifest(tables, tests, path)
++
++
++def paths_of(t):
++    """`path` names a directory; `paths` a list of them."""
++    return list(t["paths"]) if "paths" in t else [t["path"]]
+diff --git a/harness/run.py b/harness/run.py
+index 2472482..4483891 100644
+--- a/harness/run.py
++++ b/harness/run.py
+@@ -1,11 +1,233 @@
+ #!/usr/bin/env python3
+-"""nsockets' harness -- A STUB, until cycle 0.0.2 writes the runner (meta/roadmap/0.0/0.0.2.md).
++"""nsockets' build and test runner, until `npkg` can build a library (SK-004).
+ 
+-CI runs it from cycle 0.0.1 on, so that the workflow's step for it exists before the
+-thing it runs does; and it says what it is, so a green run is not read as a judged
+-one. It builds nothing, judges nothing, and exits 0.
++    NPKC=<pinned npkc> NPKRT=<pinned npkrt.o> python3 -B harness/run.py [--verdicts PATH]
++
++WHAT A RUN DOES, IN ORDER, and every step can fail it:
++
++1. reads `nitpick.toml` (`manifest.py`) and REFUSES BY NAME, before anything runs, an entry
++   this runner cannot honour -- at cycle 0.0.2 it judges `program`, `compile`/`positive` and
++   `compile`/`negative` entries, and `[build] opt-level = 0` -- exit 2, never a skip (the
++   compiler's `BUILD_REFERENCE.md` §7.1 rule; @@PD-171@@);
++2. holds the toolchain to the manifest (`toolchain.py`): the interpreter, `llc`, `opt` and
++   `ld.lld` at its LLVM exactly, its datalayout the one the pinned `opt` derives from its
++   triple, `$NPKC` and `$NPKRT` set -- and holds `runtime_symbols.tsv` to `$NPKRT`: every row a
++   symbol it defines, and every global symbol it defines a row -- exit 2 otherwise;
++3. three BUILD STEPS (`meta/specs/BUILD.md` B-2, B-2a, B-4; @@PD-169@@, @@PD-170@@): the scans' own
++   controls -- the floor program, the syscaller and the floor-writer from `harness/baseline/`,
++   whose objects must differ from the floor's by `npk_sys6` and by `npk_write` alone, and
++   whose call edges the scan must leave unflagged in the syscaller -- the kernel through
++   `sys` is the library's (K-1) -- and flag in the floor-writer's `main` -- the floor's
++   `write` is not (S-2) -- so a scan gone blind, or one that denies everything, reddens the
++   run; the library -- every module under `src/`, each compiled as a root on its own and
++   scanned both ways, the entry's artefacts left at `[build] output`; and REPRO --
++   `[build] entry` and every conformance root built from two copies of the tree, each
++   carrying its manifest, their IR compared byte for byte;
++4. the suites, in manifest order (`stages.py`).
++
++It prints one line per step and unit, and LAST, the summary -- `harness: GREEN -- …` when
++nothing failed, `harness: RED -- …` otherwise -- and exits 0 on GREEN, 1 on RED and 2 when it
++could not proceed. Its scratch is `build/harness/`, cleared at the start of each run and left
++at its end; `[build] entry`'s artefacts are `[build] output` with `.ll` and `.o`.
+ """
++import os
++import shutil
+ import sys
+ 
+-print("harness: cycle 0.0.1's stub -- nothing is built or judged until cycle 0.0.2")
+-sys.exit(0)
++HERE = os.path.dirname(os.path.abspath(__file__))
++sys.path.insert(0, HERE)
++
++import build      # noqa: E402
++import manifest   # noqa: E402
++import stages     # noqa: E402
++import toolchain  # noqa: E402
++from elf import Obj  # noqa: E402
++
++ROOT = os.path.dirname(HERE)
++JUDGED = {("program", None), ("compile", "positive"), ("compile", "negative")}
++
++
++def out(line):
++    """Every line the runner prints: no path above the repository reaches a log or a record."""
++    print(line.replace(ROOT + os.sep, ""), flush=True)
++
++
++def stop(why):
++    out(f"harness: CANNOT PROCEED -- {why}")
++    sys.exit(2)
++
++
++def honour(man):
++    for t in man.tests:
++        if (t["stage"], t.get("kind")) not in JUDGED:
++            stop(f"[[test]] `{t['name']}` is stage `{t['stage']}`"
++                 f"{', kind `' + t['kind'] + '`' if 'kind' in t else ''}, which this runner does "
++                 "not judge at cycle 0.0.2 -- refused by name, never skipped")
++    if man.need("build", "opt-level") != 0:
++        stop("[build] opt-level is not 0 -- raising it is its own decision, and this runner "
++             "honours 0 only")
++
++
++def baseline(ctx, irscan, failures):
++    """The scans' controls: the floor program, the syscaller and the floor-writer, each built and
++    run, and what each scan sees of them against the floor."""
++    got = {}
++    for name in ("floor", "syscaller", "floorwriter"):
++        b = build.program(ctx, os.path.join(ROOT, "harness", "baseline", f"{name}.npk"),
++                          os.path.join(ctx.work, "baseline", name))
++        if b.npkc_exit != 0 or any(leg.stop for leg in b.legs):
++            failures.append(f"baseline {name}: " + (build.npkc_failure(b.npkc_exit, b.codes) if b.npkc_exit
++                            else "; ".join(f"{leg.name} {leg.stop}" for leg in b.legs if leg.stop)))
++            return None, None
++        if stages.run_binary(b.legs[0].binary) != 0:
++            failures.append(f"baseline {name}: does not exit 0")
++            return None, None
++        with open(b.ll, encoding="utf-8", errors="replace") as fh:
++            got[name] = (set(Obj(b.legs[0].binary + ".o").undefined()), fh.read(), b.legs[0].binary)
++    floor_undef, floor_ir, floor_bin = got["floor"]
++    floor_edges = irscan.edges(floor_ir)
++    sys_diff = sorted(got["syscaller"][0] ^ floor_undef)
++    sys_flagged = irscan.findings(got["syscaller"][1], floor_edges, "syscaller")
++    wr_diff = sorted(got["floorwriter"][0] ^ floor_undef)
++    wr_flagged = irscan.findings(got["floorwriter"][1], floor_edges, "floorwriter")
++    ok = (sys_diff == ["npk_sys6"] and not sys_flagged and wr_diff == ["npk_write"] and len(wr_flagged) == 1
++          and "`main` calls `npk_write`" in wr_flagged[0] and not irscan.findings(floor_ir, floor_edges, "floor"))
++    out(f"{'ok  ' if ok else 'FAIL'}  build step 1, the scans' controls: the floor program has "
++        f"{len(floor_undef)} undefined symbols and {len(floor_edges)} call edges to the runtime; the "
++        f"syscaller differs by {' '.join(sys_diff) or 'nothing'}, and the call-edge scan flags "
++        f"{len(sys_flagged)} edge(s) in it; the floor-writer differs by {' '.join(wr_diff) or 'nothing'}, "
++        f"and the scan flags {len(wr_flagged)} edge(s) in it")
++    if not ok:
++        failures.append("build step 1: the scans did not see the controls exactly -- a blind scan passes "
++                        "everything, and one that denies the library's own facets fails everything")
++    return floor_edges, floor_bin
++
++
++def library(ctx, man, irscan, floor_edges, failures):
++    """B-2 and B-2a over the library: EVERY module under `src/`, each compiled as a root on its
++    own -- `[build] entry` reaches only what it imports, and a module it does not import yet is
++    library code all the same -- and the entry's artefacts left at `[build] output`."""
++    entry, output = man.need("build", "entry"), man.need("build", "output")
++    os.makedirs(os.path.dirname(os.path.join(ROOT, output)), exist_ok=True)
++    mods = sorted(os.path.relpath(os.path.join(d, f), ROOT)
++                  for d, _, fs in os.walk(os.path.join(ROOT, "src")) for f in fs if f.endswith(".npk"))
++    if entry not in mods:
++        failures.append(f"build step 2: [build] entry {entry} is not a module under src/")
++    bad = []
++    for rel in mods:
++        stem = os.path.join(ROOT, output) if rel == entry else os.path.join(ctx.work, "src", rel[:-4])
++        os.makedirs(os.path.dirname(stem), exist_ok=True)
++        ll, obj = stem + ".ll", stem + ".o"
++        rc, codes, text = build.npkc(ctx, os.path.join(ROOT, rel), ll)
++        if rc != 0 or text.strip():
++            bad.append(f"{rel}: npkc exit {rc}" + (": " + " ".join(c for c, _, _ in codes) if codes else ""))
++            continue
++        bad += build.target_problems(ctx, ll, rel)
++        r = build._run(["llc", *ctx.llc_flags, ll, "-o", obj])
++        if r[0] != 0:
++            bad.append(f"{rel}: llc refused it")
++            continue
++        bad += build.undefined_problems(ctx, obj, rel, library=True)
++        with open(ll, encoding="utf-8", errors="replace") as fh:
++            bad += irscan.findings(fh.read(), floor_edges, rel)
++    out(f"{'ok  ' if not bad else 'FAIL'}  build step 2, the library: {len(mods)} module(s) under src/, "
++        f"each compiled as a root and scanned{', no finding' if not bad else ': ' + '; '.join(bad)}")
++    failures += [f"build step 2: {b}" for b in bad]
++
++
++def repro(ctx, man, failures):
++    """B-4: the same tree from two directories, each copy with its manifest (D-236)."""
++    entry = man.need("build", "entry")
++    base = os.path.join(ctx.work, "repro")
++    roots = [entry] + sorted(os.path.join("tests", "conformance", f)
++                             for f in os.listdir(os.path.join(ROOT, "tests", "conformance"))
++                             if f.endswith(".npk"))
++    copies = [os.path.join(base, "a"), os.path.join(base, "bb", "deeper")]
++    for c in copies:
++        os.makedirs(c)
++        shutil.copy2(os.path.join(ROOT, "nitpick.toml"), c)
++        shutil.copytree(os.path.join(ROOT, "src"), os.path.join(c, "src"))
++        shutil.copytree(os.path.join(ROOT, "tests", "conformance"),
++                        os.path.join(c, "tests", "conformance"))
++    differ = []
++    for r in roots:
++        texts = []
++        for k, c in enumerate(copies):
++            ll = os.path.join(base, f"{k}.{r.replace(os.sep, '_')}.ll")
++            rc, _, _ = build.npkc(ctx, os.path.join(c, r), ll)
++            texts.append(open(ll, "rb").read() if rc == 0 else None)
++        if texts[0] is None or texts[0] != texts[1]:
++            differ.append(r)
++    out(f"{'ok  ' if not differ else 'FAIL'}  build step 3, repro: {len(roots)} root(s) from two "
++        f"directories, {'byte-identical IR' if not differ else 'DIFFERENT IR: ' + ' '.join(differ)}")
++    failures += [f"build step 3: {r} emits different IR from two directories (B-4)" for r in differ]
++
++
++def main(argv):
++    verdicts_path = None
++    if argv[1:2] == ["--verdicts"] and len(argv) == 3:
++        verdicts_path = argv[2]
++    elif len(argv) != 1:
++        stop("usage: run.py [--verdicts PATH]")
++    try:
++        man = manifest.read(os.path.join(ROOT, "nitpick.toml"))
++    except manifest.ManifestError as e:
++        stop(str(e))
++    honour(man)
++    try:
++        toolchain.python(out)
++        toolchain.check(man.need("toolchain", "llvm"), out)
++        toolchain.check_target(man.need("toolchain", "triple"),
++                               man.need("toolchain", "datalayout"), out)
++        npkc, npkrt = toolchain.compiler(out)
++    except (toolchain.ToolchainError, manifest.ManifestError) as e:
++        stop(str(e))
++    try:
++        import irscan
++    except ValueError as e:
++        stop(str(e))
++    rt = Obj(npkrt)
++    runtime_defined = rt.defined()
++    missing = sorted(irscan.CLASSED - set(rt.defined()))
++    if missing:
++        stop(f"harness/runtime_symbols.tsv classes {', '.join(missing)}, which the runtime does not define -- "
++             "the table is stale for this compiler")
++    unclassed = sorted(set(rt.exported()) - irscan.CLASSED)
++    if unclassed:
++        stop(f"the runtime defines {', '.join(unclassed)}, which harness/runtime_symbols.tsv classes nowhere -- "
++             "class each by this library's rules before the call-edge scan stands behind it (B-2a)")
++    work = os.path.join(ROOT, "build", "harness")
++    shutil.rmtree(work, ignore_errors=True)
++    os.makedirs(work)
++    ctx = build.Ctx(man, npkc, npkrt, runtime_defined, work)
++    failures = []
++    floor_edges, floor_bin = baseline(ctx, irscan, failures)
++    if floor_edges is None:
++        out("harness: RED -- " + "; ".join(failures))
++        return 1
++    library(ctx, man, irscan, floor_edges, failures)
++    repro(ctx, man, failures)
++    st = stages.Stage(ROOT, ctx, floor_bin)
++    for t in man.tests:
++        try:
++            st.suite(t)
++        except FileNotFoundError as e:
++            stop(str(e))
++    n = {v: sum(1 for x in st.verdicts if x[0] == v) for v in ("PASS", "FAIL")}
++    failures += [f"{s}/{os.path.basename(r)}" for v, s, r, _ in st.verdicts if v == "FAIL"]
++    if verdicts_path:
++        with open(verdicts_path, "w", encoding="utf-8") as fh:
++            for v, s, r, d in st.verdicts:
++                fh.write(f"{v}\t{s}\t{r}\t{d}\n")
++    tail = f"{n['PASS']} of {n['PASS'] + n['FAIL']} units passed"
++    if failures:
++        for f in failures:
++            out(f"  failed: {f}")
++        out(f"harness: RED -- {len(failures)} failure(s); {tail}")
++        return 1
++    out(f"harness: GREEN -- 3 build steps; {tail}")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main(sys.argv))
+diff --git a/harness/runtime_symbols.tsv b/harness/runtime_symbols.tsv
+new file mode 100644
+index 0000000..fed93de
+--- /dev/null
++++ b/harness/runtime_symbols.tsv
+@@ -0,0 +1,125 @@
++# The pinned runtime object's global functions, the only runtime symbols a module's call can reach (a call to a
++# local one does not link), each classed against this library's rules: DENIED by the rule of SAFETY.md, SOCKET_MODEL.md
++# or CONCURRENCY_MODEL.md that forbids it; the LIBRARY's own facets, by the rule that gives each to it; or the FLOOR,
++# the language's own machinery every program may reach. TAB-separated: symbol, class, why -- the runtime's or the
++# emitter's own words, shortened. `irscan.py` reads this file at every run and denies exactly the `deny:` rows, and
++# `run.py` stops on a global symbol of the runtime that no row names, or a row the runtime does not define (B-2a).
++npk_ch_close	deny: a channel (C-5, C-7)	a channel opened, sent on, received from, closed and reclaimed: a socket cannot ride one, and no specification gives the library another
++npk_ch_closed	deny: a channel (C-5, C-7)	a channel opened, sent on, received from, closed and reclaimed: a socket cannot ride one, and no specification gives the library another
++npk_ch_open	deny: a channel (C-5, C-7)	a channel opened, sent on, received from, closed and reclaimed: a socket cannot ride one, and no specification gives the library another
++npk_ch_reclaim	deny: a channel (C-5, C-7)	a channel opened, sent on, received from, closed and reclaimed: a socket cannot ride one, and no specification gives the library another
++npk_ch_recv_wait	deny: a channel (C-5, C-7)	a channel opened, sent on, received from, closed and reclaimed: a socket cannot ride one, and no specification gives the library another
++npk_ch_send_wait	deny: a channel (C-5, C-7)	a channel opened, sent on, received from, closed and reclaimed: a socket cannot ride one, and no specification gives the library another
++npk_ch_try_recv	deny: a channel (C-5, C-7)	a channel opened, sent on, received from, closed and reclaimed: a socket cannot ride one, and no specification gives the library another
++npk_ch_try_send	deny: a channel (C-5, C-7)	a channel opened, sent on, received from, closed and reclaimed: a socket cannot ride one, and no specification gives the library another
++npk_close	deny: a file, or a descriptor outside K-1 (K-1, SK-011)	the floor's other descriptor and file builtins -- a close, a read, an open, whole files, standard input, a path probed: syscalls K-1's table does not hold; the library closes by a descriptor's drop and receives by `recvfrom` and `recvmsg`
++npk_open	deny: a file, or a descriptor outside K-1 (K-1, SK-011)	the floor's other descriptor and file builtins -- a close, a read, an open, whole files, standard input, a path probed: syscalls K-1's table does not hold; the library closes by a descriptor's drop and receives by `recvfrom` and `recvmsg`
++npk_path_exists	deny: a file, or a descriptor outside K-1 (K-1, SK-011)	the floor's other descriptor and file builtins -- a close, a read, an open, whole files, standard input, a path probed: syscalls K-1's table does not hold; the library closes by a descriptor's drop and receives by `recvfrom` and `recvmsg`
++npk_read	deny: a file, or a descriptor outside K-1 (K-1, SK-011)	the floor's other descriptor and file builtins -- a close, a read, an open, whole files, standard input, a path probed: syscalls K-1's table does not hold; the library closes by a descriptor's drop and receives by `recvfrom` and `recvmsg`
++npk_read_file	deny: a file, or a descriptor outside K-1 (K-1, SK-011)	the floor's other descriptor and file builtins -- a close, a read, an open, whole files, standard input, a path probed: syscalls K-1's table does not hold; the library closes by a descriptor's drop and receives by `recvfrom` and `recvmsg`
++npk_read_stdin	deny: a file, or a descriptor outside K-1 (K-1, SK-011)	the floor's other descriptor and file builtins -- a close, a read, an open, whole files, standard input, a path probed: syscalls K-1's table does not hold; the library closes by a descriptor's drop and receives by `recvfrom` and `recvmsg`
++npk_write_file	deny: a file, or a descriptor outside K-1 (K-1, SK-011)	the floor's other descriptor and file builtins -- a close, a read, an open, whole files, standard input, a path probed: syscalls K-1's table does not hold; the library closes by a descriptor's drop and receives by `recvfrom` and `recvmsg`
++npk_barrier_arrive	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_barrier_cancel	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_barrier_poll	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_cv_begin	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_cv_broadcast	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_cv_done	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_cv_signal	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_guard_release	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_mutex_acquire_wait	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_rw_read_wait	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_rw_release_read	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_rw_write_wait	deny: a lock (no specification gives one; C-15)	the mutex, rwlock, condvar and barrier waits and a guard's release: shared state between tasks, where one task owns a stream
++npk_clone_exec	deny: a process (K-1)	a supervised child process spawned, and the driver registry that tracks and kills them: clone, execve and kill, which K-1's table does not hold
++npk_driver_kill_all	deny: a process (K-1)	a supervised child process spawned, and the driver registry that tracks and kills them: clone, execve and kill, which K-1's table does not hold
++npk_driver_live_count	deny: a process (K-1)	a supervised child process spawned, and the driver registry that tracks and kills them: clone, execve and kill, which K-1's table does not hold
++npk_driver_retire	deny: a process (K-1)	a supervised child process spawned, and the driver registry that tracks and kills them: clone, execve and kill, which K-1's table does not hold
++npk_sigreturn	deny: a signal handler (S-3)	the signal restorer, x86_64's rt_sigreturn trampoline: what a handler's installation names
++npk_clone_raw	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_park_sleep	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_sarena_bump	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_sarena_destroy	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_sarena_make	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_sarena_slot	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_thread_entry	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_thread_exit	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_thread_start	deny: a thread (C-14, C-1)	a thread started, entered and ended, the raw clone under the thread trampoline, the futex sleep that parks a thread to a timepoint, and the shared arena a second thread reaches
++npk_wildx_alloc	deny: machine code (K-1)	`wildx`, memory the program writes machine code into and calls: mmap and mprotect, which K-1's table does not hold
++npk_wildx_call	deny: machine code (K-1)	`wildx`, memory the program writes machine code into and calls: mmap and mprotect, which K-1's table does not hold
++npk_wildx_free	deny: machine code (K-1)	`wildx`, memory the program writes machine code into and calls: mmap and mprotect, which K-1's table does not hold
++npk_wildx_seal	deny: machine code (K-1)	`wildx`, memory the program writes machine code into and calls: mmap and mprotect, which K-1's table does not hold
++npk_environ	deny: the environment (no specification gives it; K-1)	the process environment, and how many hardware threads the program may use (sched_getaffinity, which K-1's table does not hold)
++npk_hardware_concurrency	deny: the environment (no specification gives it; K-1)	the process environment, and how many hardware threads the program may use (sched_getaffinity, which K-1's table does not hold)
++npk_write	deny: the floor's write (S-2)	the floor's `write` builtin: `write(2)` on a descriptor, with no flags word to carry `MSG_NOSIGNAL`
++npk_ofd_close	library: a descriptor's drop (SK-011)	an `OwnedFd`'s close at its drop, the whole of a socket's lifetime story; the floor program's object already names it
++npk_exec	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_frame_alloc	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_frame_drain	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_frame_exec_destroy	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_frame_exec_new	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_frame_free	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_frozen_get	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_join_deadline	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_park_take	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_park_until	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_rq_pop	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_rq_push	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_run_until	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_sl_earliest	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_sl_push	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_sl_wake_due	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_step	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_task_done	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_thread_join	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_windup_all	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_windup_grace	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_windup_note	library: tasks (C-1, C-6, C-8, C-9)	the executor, its ready queue and sleepers, task frames and their freeze flag, a task parked to a deadline, and a scope's join with its deadline and wind-up -- every `async` function's emission calls the join's, `npk_thread_join` among them
++npk_mono_now	library: the clock (SAFETY.md §1, C-9)	CLOCK_MONOTONIC, under every deadline a blocking operation carries
++npk_sys6	library: the kernel through sys (K-1, K-4)	the `sys` builtin's one entry: every syscall K-1's table holds
++npk_io_register	library: the reactor (C-1, C-4)	the reactor's registration and its removal, which `io_ready`, `io_watch` and `suspend_io` make: the epoll wait a task suspends on
++npk_io_unwatch	library: the reactor (C-1, C-4)	the reactor's registration and its removal, which `io_ready`, `io_watch` and `suspend_io` make: the epoll wait a task suspends on
++__divti3	floor: LLVM's libcalls	what LLVM lowers a 128-bit division or a float remainder to; no module's IR calls one
++__modti3	floor: LLVM's libcalls	what LLVM lowers a 128-bit division or a float remainder to; no module's IR calls one
++__udivti3	floor: LLVM's libcalls	what LLVM lowers a 128-bit division or a float remainder to; no module's IR calls one
++__umodti3	floor: LLVM's libcalls	what LLVM lowers a 128-bit division or a float remainder to; no module's IR calls one
++fmod	floor: LLVM's libcalls	what LLVM lowers a 128-bit division or a float remainder to; no module's IR calls one
++fmodf	floor: LLVM's libcalls	what LLVM lowers a 128-bit division or a float remainder to; no module's IR calls one
++npk_int_to_string	floor: strings	the string builtins
++npk_string_concat	floor: strings	the string builtins
++npk_string_equals	floor: strings	the string builtins
++npk_string_from_bytes	floor: strings	the string builtins
++npk_string_slice	floor: strings	the string builtins
++npk_to_cstring	floor: strings	the string builtins
++npk_arena_alloc	floor: the arena	`arena<T>` (D-152)
++npk_arena_at	floor: the arena	`arena<T>` (D-152)
++npk_arena_destroy	floor: the arena	`arena<T>` (D-152)
++npk_arena_free	floor: the arena	`arena<T>` (D-152)
++npk_arena_make	floor: the arena	`arena<T>` (D-152)
++npk_arena_reset	floor: the arena	`arena<T>` (D-152)
++_start	floor: the entry	the process entry and the main thread's stack switch, which nothing calls
++npk_switch_stack	floor: the entry	the process entry and the main thread's stack switch, which nothing calls
++memcpy	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++memmove	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++memset	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_aalloc	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_alloc	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_alloc_managed	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_buffer_new	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_calloc	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_dalloc	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_ralloc	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_wild_live_count	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++npk_wild_release_all	floor: the heap	the wild, managed and internal allocators, a buffer's cell, the wild-live registry, and the copies LLVM and `mcpy` call
++__morestack	floor: the stack guard	the split-stack prologue's entries and their landings (D-305)
++__morestack_non_split	floor: the stack guard	the split-stack prologue's entries and their landings (D-305)
++npk_stack_exhausted	floor: the stack guard	the split-stack prologue's entries and their landings (D-305)
++npk_stack_foreign	floor: the stack guard	the split-stack prologue's entries and their landings (D-305)
++npk_chain_depth	floor: the trap route	a guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`
++npk_chain_push	floor: the trap route	a guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`
++npk_chain_reset	floor: the trap route	a guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`
++npk_chain_site	floor: the trap route	a guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`
++npk_exit	floor: the trap route	a guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`
++npk_fs_switch_call	floor: the trap route	a guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`
++npk_raise	floor: the trap route	a guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`
++npk_trap	floor: the trap route	a guard's trap, a program's raise, the origin chain, `failsafe` on its own stack, and the language's `exit`
+diff --git a/harness/stages.py b/harness/stages.py
+new file mode 100644
+index 0000000..1be50ab
+--- /dev/null
++++ b/harness/stages.py
+@@ -0,0 +1,149 @@
++#!/usr/bin/env python3
++"""The stages this runner judges at cycle 0.0.2 -- `program`, `compile`/`positive` and
++`compile`/`negative` (`meta/specs/BUILD.md` §3, B-3, B-6 … B-8; @@PD-171@@).
++
++A UNIT is every `.npk` file directly in an entry's `path` (or each of its `paths`; below them
++too with `recursive = true`), in name order. Nothing is skipped: a suite's directory holds its
++units only, and a file with no `main` fails at the link, by name.
++
++`program` AND `compile`/`positive`: every unit is a program, built by `build.py` at both legs and
++RUN `stress` times on each, and it PASSES when every run exits with its `expect-exit:`.
++`compile`/`positive` -- "compiles, links, runs, and exits with the expected code" -- is judged the
++same way, the optimised leg included, because B-3 runs that leg on every program.
++
++`compile`/`negative`, THE EXACT-CODE RULE (B-7, B-8): `npkc` must exit 1 -- exactly 1, since 2
++judged nothing and 0 accepted it -- and its diagnostics must EQUAL the unit's `expect-error:`
++markers: every reported code matched by one marker, at its `expect-error-at:` place where the
++unit gives one, and every marker by one reported code. A negative unit with no `expect-error:`
++fails, and so does one carrying a marker only a program can mean.
++
++A CAPPED UNIT (`mem-cap-mib: N`) runs under an N MiB address-space cap, and the floor program
++runs under the identical cap first and must exit 0: a cap so low that a program allocating
++nothing fails it measures the loader, not the unit (`PLAYBOOK.md` §9).
++"""
++import os
++import resource
++import subprocess
++
++import build
++import expect
++
++RUN_TIMEOUT = 600
++PROGRAM_ONLY = ("expect-exit:", "stress:", "mem-cap-mib:")
++
++
++def _units(root, entry):
++    out = []
++    for rel in (entry["paths"] if "paths" in entry else [entry["path"]]):
++        top = os.path.join(root, rel)
++        if not os.path.isdir(top):
++            raise FileNotFoundError(f"[[test]] {entry['name']}: `{rel}` is not a directory")
++        if entry.get("recursive"):
++            for d, _, fs in sorted(os.walk(top)):
++                out += [os.path.join(d, f) for f in sorted(fs) if f.endswith(".npk")]
++        else:
++            out += [os.path.join(top, f) for f in sorted(os.listdir(top))
++                    if f.endswith(".npk") and os.path.isfile(os.path.join(top, f))]
++    return out
++
++
++def _cap(mib):
++    def limit():
++        resource.setrlimit(resource.RLIMIT_AS, (mib << 20, mib << 20))
++    return limit
++
++
++def run_binary(path, mib=None):
++    try:
++        r = subprocess.run([path], capture_output=True, timeout=RUN_TIMEOUT,
++                           preexec_fn=_cap(mib) if mib else None)
++        return r.returncode
++    except subprocess.TimeoutExpired:
++        return None
++
++
++class Stage:
++    def __init__(self, root, ctx, floor_binary):
++        self.root, self.ctx, self.floor = root, ctx, floor_binary
++        self.floor_under = {}
++        self.verdicts = []          # (PASS|FAIL, suite, relpath, detail)
++
++    def _say(self, verdict, suite, rel, detail):
++        detail = detail.replace(self.root + os.sep, "")
++        self.verdicts.append((verdict, suite, rel, detail))
++        print(f"{verdict} {suite}/{os.path.basename(rel)}: {detail}", flush=True)
++
++    def suite(self, entry):
++        negative = entry["stage"] == "compile" and entry.get("kind") == "negative"
++        for src in _units(self.root, entry):
++            rel = os.path.relpath(src, self.root)
++            (self._negative if negative else self._program)(entry["name"], src, rel)
++
++    def _program(self, suite, src, rel):
++        e = expect.read(src)
++        if not e.readable:
++            return self._say("FAIL", suite, rel, "UNREADABLE -- " + "; ".join(e.problems))
++        if e.errors:
++            return self._say("FAIL", suite, rel, "carries `expect-error:`, which a program "
++                                                 "stage cannot judge")
++        stem = os.path.join(self.ctx.work, suite, os.path.splitext(os.path.basename(src))[0])
++        b = build.program(self.ctx, src, stem)
++        if b.npkc_exit != 0:
++            return self._say("FAIL", suite, rel, build.npkc_failure(b.npkc_exit, b.codes))
++        stopped = [leg for leg in b.legs if leg.stop]
++        if stopped:
++            return self._say("FAIL", suite, rel, "; ".join(f"{leg.name} {leg.stop}" for leg in stopped))
++        pre = ""
++        if e.mem_cap_mib:
++            if not self._floor_ok(e.mem_cap_mib):
++                return self._say("FAIL", suite, rel, f"under {e.mem_cap_mib} MiB the floor program exits "
++                                                     f"{self.floor_under[e.mem_cap_mib]}: the cap measures the loader")
++            pre = f"under {e.mem_cap_mib} MiB, after the floor program under it; "
++        exits = {leg.name: [run_binary(leg.binary, e.mem_cap_mib) for _ in range(e.stress)] for leg in b.legs}
++        shown = ", ".join(f"{k} {self._show(v)}" for k, v in exits.items())
++        if all(x == e.exit for v in exits.values() for x in v):
++            return self._say("PASS", suite, rel, pre + shown)
++        return self._say("FAIL", suite, rel, f"expected exit {e.exit}; {pre}{shown}")
++
++    def _negative(self, suite, src, rel):
++        e = expect.read(src)
++        if not e.readable:
++            return self._say("FAIL", suite, rel, "UNREADABLE -- " + "; ".join(e.problems))
++        meant = [m for m in PROGRAM_ONLY if m in e.given]
++        if meant:
++            return self._say("FAIL", suite, rel, f"carries `{meant[0]}`, which only a program can mean")
++        if not e.errors:
++            return self._say("FAIL", suite, rel, "a negative unit with no `expect-error:` is a failing "
++                                                 "test (B-8)")
++        out_ll = os.path.join(self.ctx.work, suite, os.path.splitext(os.path.basename(src))[0] + ".ll")
++        os.makedirs(os.path.dirname(out_ll), exist_ok=True)
++        rc, codes, _ = build.npkc(self.ctx, src, out_ll)
++        got = " ".join(f"{c} {l}:{k}" for c, l, k in codes)
++        if rc != 1:
++            why = "accepted it" if rc == 0 else build.npkc_failure(rc, codes)
++            return self._say("FAIL", suite, rel, f"npkc exit {rc} -- {why}; a refusal is exit 1")
++        left = list(codes)
++        missing = []
++        for code, line, col in e.errors:
++            hit = next((d for d in left if d[0] == code and (line is None or d[1] == line)
++                        and (col is None or d[2] == col)), None)
++            if hit is None:
++                missing.append(code + (f" at {line}" if line is not None else "")
++                               + (f":{col}" if col is not None else ""))
++            else:
++                left.remove(hit)
++        if missing or left:
++            parts = ([f"missing {', '.join(missing)}"] if missing else []) + \
++                    ([f"unexpected {', '.join(f'{c} {l}:{k}' for c, l, k in left)}"] if left else [])
++            return self._say("FAIL", suite, rel, f"npkc 1 -- {got}; " + "; ".join(parts) + " (B-8)")
++        return self._say("PASS", suite, rel, f"npkc 1 -- {got}")
++
++    def _floor_ok(self, mib):
++        if mib not in self.floor_under:
++            self.floor_under[mib] = run_binary(self.floor, mib)
++        return self.floor_under[mib] == 0
++
++    @staticmethod
++    def _show(v):
++        v = ["hang" if x is None else str(x) for x in v]
++        return v[0] if len(v) == 1 else (f"{v[0]} x{len(v)}" if len(set(v)) == 1 else "/".join(v))
+diff --git a/harness/toolchain.py b/harness/toolchain.py
+new file mode 100644
+index 0000000..7ec6499
+--- /dev/null
++++ b/harness/toolchain.py
+@@ -0,0 +1,90 @@
++#!/usr/bin/env python3
++"""The toolchain is a build input (the compiler's D-204), so it is ASSERTED, not reported.
++
++The manifest pins a patch release, so every check is exact: a patch release may change
++instruction selection (@@PD-166@@). It asks the three tools that run -- `llc`, `opt` and
++`ld.lld` -- and not `llvm-config`, a `-dev` package the build does not need. It holds the
++manifest's `datalayout` to what the pinned `opt` derives from its `triple`, since `opt` keeps a
++wrong layout as written and `llc` accepts one in silence (`BUILD.md` B-1a, @@PD-169@@). And it
++holds the interpreter to the Python the harness is measured on (`meta/research/CURRENCY.md`'s
++row). After `nitpick-parse`'s `harness/toolchain.py`.
++"""
++import os
++import re
++import subprocess
++import sys
++
++
++class ToolchainError(Exception):
++    pass
++
++
++PYTHON = (3, 12)
++_VERSION = re.compile(r"\b(\d+\.\d+\.\d+)\b")
++_LAYOUT = re.compile(r'^target datalayout = "([^"]*)"$', re.M)
++
++
++def python(out):
++    have = sys.version_info
++    if (have.major, have.minor) < PYTHON:
++        raise ToolchainError(f"this is Python {have.major}.{have.minor}.{have.micro}; the harness is run on "
++                             f"{PYTHON[0]}.{PYTHON[1]} or later, the version it is measured on "
++                             "(meta/research/CURRENCY.md), so an older one is refused by name")
++    out(f"ok    python {have.major}.{have.minor}.{have.micro}")
++
++
++def _ask(tool):
++    try:
++        r = subprocess.run([tool, "--version"], capture_output=True, text=True, timeout=30)
++    except FileNotFoundError:
++        raise ToolchainError(f"`{tool}` is not on PATH -- it is one of the three binaries "
++                             "nitpick.toml [toolchain] pins, and a check skipped because "
++                             "its tool is missing is how a defect ships")
++    except subprocess.TimeoutExpired:
++        raise ToolchainError(f"`{tool} --version` did not answer in 30 s")
++    m = _VERSION.search(r.stdout + r.stderr)
++    if not m:
++        raise ToolchainError(f"`{tool} --version` printed no version: "
++                             f"{(r.stdout + r.stderr).strip()[:120]!r}")
++    return m.group(1)
++
++
++def check(llvm, out):
++    for tool in ("llc", "opt", "ld.lld"):
++        got = _ask(tool)
++        if got != llvm:
++            raise ToolchainError(f"`{tool}` is {got} and nitpick.toml [toolchain] llvm pins "
++                                 f"{llvm} exactly -- a refusal, not a warning (D-204)")
++        out(f"ok    {tool} {got}")
++
++
++def check_target(triple, datalayout, out):
++    try:
++        r = subprocess.run(["opt", "-S", "-"], input=f'target triple = "{triple}"\n',
++                           capture_output=True, text=True, timeout=30)
++    except (OSError, subprocess.SubprocessError) as e:
++        raise ToolchainError(f"`opt -S` over the triple probe failed: {e}")
++    m = _LAYOUT.search(r.stdout)
++    if r.returncode != 0 or not m:
++        raise ToolchainError("`opt -S` over a module stating only the pinned triple wrote no "
++                             f"`target datalayout`: {(r.stderr or r.stdout).strip()[:160]!r}")
++    if m.group(1) != datalayout:
++        raise ToolchainError(f"nitpick.toml pins the layout {datalayout!r}, and the pinned "
++                             f"`opt` derives {m.group(1)!r} from the triple {triple!r}")
++    out(f"ok    target {triple}, its layout the one the pinned opt derives")
++
++
++def compiler(out):
++    """`$NPKC` and `$NPKRT`: the pinned pair the board names (W-18)."""
++    got = []
++    for var, what in (("NPKC", "the pinned npkc binary"),
++                      ("NPKRT", "the pinned npkrt.o runtime object")):
++        p = os.environ.get(var, "")
++        if not p:
++            raise ToolchainError(f"${var} is not set; it must name {what} -- from the dispatch, "
++                                 "or by hand from `../.internal/toolchain/<commit>/`")
++        if not os.path.isfile(p):
++            raise ToolchainError(f"${var} names no file")
++        got.append(os.path.abspath(p))
++        out(f"ok    ${var} is a file")
++    return got[0], got[1]
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index 151ee71..9c18f5b 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -807,3 +807,110 @@ research skill read one.
+ *Reversal:* to let cycle 0.0's probes run before the research, move the gate to cycle 0.1: cycle 0.0.0's gate item 7
+ and block 0a's research lines go, the three rows wait for their digests, and `0.1/0.1.0.md`'s gate names them; to
+ count the library routine, strike `CURRENCY.md`'s research section and its three rows, and the gate with them.
++
++### @@PD-169@@ — the build is one module per root, held to the target rows, scanned on both legs, and reproducible from two directories
++**2026-10-21, cycle 0.0.2 step 1.** Measured at compiler `c9baa9e`, and each a rule of `specs/BUILD.md`:
++
++- **One module per root** (§2's drawing). `npkc` emits a root and every module it imports as one module — a
++  function of an imported module is DEFINED in the root's emission — so a program links as its one object and
++  `npkrt.o`, and every module under `src/` is compiled on its own, as a root, to be scanned. The drawing's library
++  object, `build/nsockets.o`, between the library and every program, described nothing the compiler emits.
++- **The target rows are held** (B-1a): every emitted and optimised module states the manifest's `triple` and
++  `datalayout`, and the layout row is the one the pinned `opt` derives from the triple.
++- **The undefined-symbol scan, both legs** (B-2): every object's undefined symbols are the runtime object's own
++  defines — the runtime the link uses, not `runtime/npkrt.ll`'s text — on both legs of every program, and on every
++  module under `src/`, whose object may also name `npk_failsafe`: a module compiled alone that holds an `async`
++  function names its program's `failsafe`, which the function's scope join traps through at its deadline, which every
++  program root defines and no library module can — and one of a `never fails` function, or of a function whose
++  addition can trap, does not.
++- **Reproducible** (B-4): `[build] entry` and every conformance root, built from two copies each carrying its
++  manifest, emit byte-identical modules; without the manifest the consumer's two modules differ, which is the
++  check's own failure, measured.
++
++*Alternatives declined:* **a library object linked into every program** — nothing emits one; **`llvm-nm` for the
++symbol table** — a fourth tool outside the pin, read as text (the first writing's reason stands); **the allowlist
++from `runtime/npkrt.ll`'s `define`s**, B-2's first wording — the link resolves against the object, so the object's
++own symbols are what it can resolve; **only `[build] entry` scanned** — it reaches only what it imports, so a module not yet imported would pass
++whatever it called; **objects compared for repro** — B-4's claim is the IR, and with each copy's manifest the IR is
++identical.
++
++*Reversal:* when the compiler's command line emits a module per object as its `BUILD_REFERENCE.md` §4.1 describes,
++the drawing and a library object come back by a decision; and when a library module names an undefined symbol
++other than the runtime's and `npk_failsafe`, B-2 names it, and a new allowance is a decision, never an edit.
++
++### @@PD-170@@ — the call-edge scan holds the library to the runtime facets its rules give it, from a table of the whole runtime
++**2026-10-21, cycle 0.0.2 step 1.** `specs/BUILD.md` B-2a.
++
++*What was read and measured* — the workbench's `PLAYBOOK.md` §6: an undefined-symbol scan cannot see a syscall,
++and a call-edge scan of the IR can; `nitpick-parse`'s plan for the same scan, whose first deny list read only part of
++its rule and whose fix classed every runtime symbol against it; and this library's rules, which, unlike parse's,
++give the library the kernel. At the pin the runtime object defines 259 symbols, 119 of them global — all a module's
++call can resolve to, since a call to a local one does not link — and `harness/runtime_symbols.tsv` classes each
++in exactly one class, by the rule that decides it:
++
++- **denied, 48** — the floor's `write` (`SAFETY.md` S-2); a file, or a descriptor outside `SOCKET_MODEL.md` K-1's
++  table — the floor's close, read, open, whole files, standard input and a path probed (K-1; `SK-011`: the drop is the
++  close); a process (K-1); a signal handler (S-3); a thread — its start, entry and exit, the raw clone, the futex
++  sleep that parks a thread, the shared arena a second thread reaches (`CONCURRENCY_MODEL.md` C-14, C-1); a lock
++  (no specification gives the library one, and C-15 has one task own a stream); a channel (C-5, C-7); machine code
++  (K-1); the environment (no specification gives it; K-1);
++- **the library's own, 27** — the kernel through `sys` (K-1, K-4); the reactor's registration and removal (C-1, C-4);
++  an `OwnedFd`'s close at its drop (`SK-011`); tasks — the executor, its queues and sleepers, task frames, a task
++  parked to a deadline, and a scope's join with its deadline and wind-up (C-1, C-6, C-8, C-9); and the clock under
++  every deadline (`SAFETY.md` §1);
++- **the floor, 44** — the heap, the arena, strings, the trap route, the stack guard, LLVM's libcalls and the entry.
++
++Measured with it: an `async` function's emission calls a scope join's symbols — `npk_thread_join` among them — even
++when no thread exists, so the join is classed the library's, and a thread's start the denied; and a module holding a
++wait through `io_ready`, a spawn that moves an `OwnedFd` in, a held `OwnedFd` and a `sys` call, compiled alone, has
++61 call edges the floor program does not, to 20 runtime symbols — 13 of them the library's, 7 the floor's — and to
++`npk_failsafe`, its program's, and the scan flags none.
++
++*So:* `harness/irscan.py` generates its deny list from the table at every run, and the runner stops on a global
++symbol of the runtime that no row names, or a row the runtime does not define. Every module under `src/` is read
++this way, compiled as a root on its own; the probes and the tests are not, since they reach the kernel, the floor's
++`write` and the rest on purpose (`tests/probe/README.md`). The scan's controls run on every full run: the floor
++program, a syscaller whose edge to `npk_sys6` the scan must leave unflagged, and a floor-writer whose `main` it
++must flag. What a call-edge scan cannot see — a facet whose construct lowers to no runtime call, which syscall a
++`sys` call makes, a generic function no module root instantiates — B-2a states, and review and the tree checks of
++cycle 0.0.3 hold.
++
++*Alternatives declined:* **`nitpick-parse`'s classes** — they deny the kernel, which is this library's whole work;
++**a permit list of edges** — `nitpick-regex`'s RX-120 wrote one first and it failed every probe, and the floor
++program's own four edges already reach a free, a descriptor's close and the trap route; **every program scanned** — the probes reach what the
++library may not, by design; **`npk_sys6` confined to `src/sys/`** — no rule confines the calls: K-1 holds the
++syscall numbers, which `check_constants_named` keeps in `src/sys/`; **the facets no rule names left allowed** — the
++library's surface is what its rules give it, and a call outside them is a decision before it is an edge.
++
++*Reversal:* a call the library needs from a denied facet takes a decision that names the rule it changes, and the
++symbol's row moves with it; a re-pin that adds, renames or removes a runtime function stops the run naming it, and
++the table moves with the adoption, each new function classed by these rules.
++
++### @@PD-171@@ — the runner judges `program`, `compile`/`positive` and `compile`/`negative`, and reads one marker of its own
++**2026-10-21, cycle 0.0.2 step 1.** `specs/BUILD.md` B-6a.
++
++*What was read* — the manifest's three entries (`@@PD-166@@`): `conformance`, `compile`/`positive`; `probe`, `program`;
++and `probe-refused`, `compile`/`negative`. The compiler's rule, which this runner keeps: an entry a runner cannot
++honour is refused by name before anything runs, never skipped (`BUILD_REFERENCE.md` §7.1). Cycle 0.0.1's plan left
++the refusal entry's stage to 0.0.3, while this subcycle's CI asserts the runner's unqualified green summary — which
++a run that refuses an entry never prints. And the compiler's marker reader at the pin, `npkg/expect.npk`: twelve
++markers, of which this runner judges four.
++
++*So:* at cycle 0.0.2 the runner judges three stages: `program` and `compile`/`positive` by their exits at both legs,
++`stress` times on each; and `compile`/`negative` by the exact-code rule (B-7, B-8) — `npkc` exit 1 exactly, and its
++diagnostics equal to the unit's `expect-error:` markers, at each one's `expect-error-at:` place where given. It reads
++`expect-exit:`, `expect-error:`, `expect-error-at:` and `stress:`, and its own `mem-cap-mib:` — the cap, after the
++floor program under it, the control `PLAYBOOK.md` §9 asks for; every other marker of the compiler's grammar, and
++`expect-signal:`, which `@@PD-159@@` retired, makes its file fail by name. It runs on Python 3.12 or later, the version
++it is measured on, and refuses an older one by name. Cycle 0.0.3 keeps the `parse` sweep, the `check` stage over
++`tests/rejection/`, the `loopback` and `network` stages, the self-check and the tree checks.
++
++*Alternatives declined:* **the refusal stage left to 0.0.3** — the manifest declares the entry, and a runner that
++refuses it cannot be green, so CI could assert nothing until 0.0.3; **the entry taken out until 0.0.3** — it is
++cycle 0.0.1's fix for refusals that need their own entry, and a suite removed to make a run green is the failure
++the manifest's table exists to prevent; **a pending marker for a unit red on a compiler defect**, as
++`nitpick-parse`'s — no unit here is red at the pin, and a marker with no consumer is the reason `expect-signal:` was
++retired; **unknown markers ignored** — an expectation nobody checks.
++
++*Reversal:* none for the rule; each marker the runner does not read yet joins the judged ones with the stage that
++needs it, and a pending marker comes by a decision the day a unit is correct and red on a pinned defect.
+diff --git a/meta/specs/BUILD.md b/meta/specs/BUILD.md
+index 0667737..00d602c 100644
+--- a/meta/specs/BUILD.md
++++ b/meta/specs/BUILD.md
+@@ -42,19 +42,34 @@ retired. Writing the harness in Python is not a dependency violation:
+ ## 2. The build, step by step
+ 
+ ```
+-src/lib.npk  (and every module it reaches by `use`)
+-   → npkc              →  build/nsockets.ll      the emitted LLVM IR text
+-   → opt -O2           →  build/nsockets.opt.ll  only on the check leg
+-   → llc               →  build/nsockets.o       at the manifest's flags
+-   → undefined-symbol scan against the runtime allowlist
+-   → ld.lld -static    →  build/<program>        one program object + npkrt.o
++a root — a program, or one module under src/ compiled alone — and every module it imports
++   → npkc              →  <root>.ll              ONE module: the root and all it imports
++   → target rows       →  held to the manifest   (B-1a)
++   → llc               →  <root>.o               at the manifest's llc-flags
++   → undefined-symbol scan, and for a module under src/ the call-edge scan  (B-2, B-2a)
++   → ld.lld -static    →  <program>              the program's one object + npkrt.o
++and the check leg, every program: the same <root>.ll → opt → llc -O2 → the scan → ld.lld (B-3)
+ ```
+ 
++*(Corrected 2026-10-21, cycle 0.0.2 — @@PD-169@@: the drawing compiled `src/lib.npk` into
++`build/nsockets.ll` and `build/nsockets.o` and then linked "one program object + npkrt.o", as
++if a library object sat between them. Measured at compiler `c9baa9e`, `npkc` emits a root and
++everything it imports as one module — an imported module's function is DEFINED in the root's
++emission — so a program links as its one object and the runtime, and each module under `src/`
++is compiled on its own only to be scanned and compared.)*
++
+ **Rule B-1.** Every tool invocation is built from `nitpick.toml`'s
+ `[toolchain]` lists. No tool ever runs at its own defaults — `llc` defaults to
+ `-O2` and would optimise a build the manifest declined, which cost the compiler
+ project a measured 25× on one module.
+ 
++**Rule B-1a (@@PD-169@@) — the target rows are held.** Every module the build
++emits or optimises states the manifest's `target triple` and `target datalayout`,
++and the runner refuses a module that states others; and before anything runs it
++holds the `datalayout` row to what the pinned `opt` derives from the `triple`
++row, because `opt` keeps a wrong layout as written and `llc` accepts one in
++silence (the compiler's D-322 (5)).
++
+ **Rule B-2.** The undefined-symbol scan is a **build step, not a test**. Every
+ object is scanned and the build fails on any undefined symbol outside the
+ runtime allowlist derived from `runtime/npkrt.ll`'s own `define`s plus `main`.
+@@ -62,6 +77,41 @@ For this library it earns its keep twice over: a socket library is exactly
+ where somebody would reach for `htons` or `inet_pton` out of habit, and the
+ scan is what makes "no libc, ever" a structural property rather than a
+ convention.
++*(Re-read 2026-10-21, cycle 0.0.2 — @@PD-169@@: the allowlist is the pinned
++`npkrt.o`'s own defined symbols, the runtime the link uses, and the scan runs on
++both legs' objects of every program and on the object of every module under
++`src/`. Measured at the pin: the floor program's object has five undefined
++symbols, all the runtime's, and the runtime defines `memcpy`, `memmove` and
++`memset`, so a libcall `opt` mints links; and a module compiled alone that holds
++an `async` function names `npk_failsafe`, the root's `failsafe`, which its scope
++join traps through at its deadline and every program defines — so a module's
++object may name that one symbol beside the runtime's. What stands behind the
++library's runtime facets is B-2a.)*
++
++**Rule B-2a (@@PD-170@@) — the call-edge scan, and its controls.** Every module
++under `src/`, compiled as a root on its own — `src/lib.npk` reaches only what it
++imports — is read in its -O0 IR for its calls to the runtime, edge by edge: the
++calling function and the callee. An edge the floor program does not have, to a
++symbol `harness/runtime_symbols.tsv` denies, fails the build, naming the function,
++the facet and the rule. The table classes every global symbol of the pinned
++runtime — all a call can resolve to — in exactly one class: **denied**, by the
++rule that forbids it (the floor's `write`, S-2; a file or a descriptor outside
++`SOCKET_MODEL.md` K-1's table; a process; a signal handler, S-3; a thread,
++`CONCURRENCY_MODEL.md` C-14; a lock; a channel; machine code; the environment);
++**the library's own**, by the rule that gives it (the kernel through `sys`, K-1;
++the reactor, C-1 and C-4; a descriptor's drop, `SK-011`; tasks and their scope's
++join, C-6, C-8 and C-9; the clock under a deadline); or **the floor**, the
++language's own machinery. The run stops on a global symbol of the runtime that no
++row names, or a row the runtime does not define. The probes and the tests are not
++read this way: they reach the kernel, the floor's `write` and the rest on purpose.
++It cannot see a facet whose construct lowers to no runtime call, which syscall a
++`sys` call makes (K-1's numbers are `check_constants_named`'s), or a generic
++function no module root instantiates. **The instruments are measured on every
++full run:** the floor program, a syscaller and a floor-writer, whose objects must
++differ from the floor's by `npk_sys6` and by `npk_write` alone, and whose edges
++the scan must leave unflagged in the syscaller and flag in the floor-writer's
++`main` — so a scan gone blind, or one that denies the library's own facets,
++reddens the run rather than passing, or failing, everything.
+ 
+ **Rule B-3.** The optimised leg runs on every program, every time: the same
+ program re-emitted through `opt -O2` + `llc -O2` must produce the **same exit
+@@ -73,6 +123,12 @@ its first run there found a real defect that had passed for six cycles.
+ working directories produce byte-identical IR. `nsockets` inherits this from
+ the compiler (D-078, D-204, D-236) and the harness has a `repro` stage that
+ measures it.
++*(Re-read 2026-10-21, cycle 0.0.2 — @@PD-169@@: each copy carries its manifest. The
++compiler records source paths relative to the manifest root (D-236), so a copy
++made without one — inside this repository, under its manifest — renders its paths
++by where it sits: measured at the pin, the conformance consumer copied twice
++without the manifest emits two different modules, and with it, one. The harness's
++`repro` step builds `[build] entry` and every conformance root from two copies.)*
+ 
+ ---
+ 
+@@ -100,7 +156,7 @@ genuinely needs the internet, and keeping the two separate is what stops a CI
+ failure that means nothing.
+ 
+ **Rule B-6 — expectations live in the test file.** The marker grammar is the
+-compiler's, marker for marker:
++compiler's, marker for marker, and B-6a names the one marker the runner adds:
+ 
+ ```
+ // expect-exit: 7            the exit a run must produce (0 when absent)
+@@ -110,6 +166,22 @@ compiler's, marker for marker:
+ // argv: …
+ ```
+ 
++**Rule B-6a (@@PD-171@@) — the runner's own marker, and the ones it does not
++judge.** One marker the compiler's reader does not have:
++
++```
++// mem-cap-mib: 64           run under a 64 MiB address-space cap, after the floor
++                             program under the same cap, which must exit 0
++```
++
++A marker's value is the whole rest of its line, so one followed by prose cannot be
++read, and a file whose markers cannot be read fails. A marker of the compiler's
++grammar that this runner does not judge yet — `expect-note:`, `expect-note-at:`,
++`argv:`, `npkc-flags:`, `expect-no-parse-error`, `explore:`, `explore-seed:` and
++`expect-obligation:`, the eight of `npkg/expect.npk`'s twelve it does not read —
++and `expect-signal:`, which `@@PD-159@@` retired, make their file fail by name: an
++expectation nobody checks is the failure this rule exists to stop.
++
+ **Rule B-7 — assert on codes and exit codes, never on message text.**
+ 
+ **Rule B-8 — unexpected diagnostics fail a test as surely as missing ones**
+diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
+index 4e8f025..fe64540 100644
+--- a/meta/specs/TESTING.md
++++ b/meta/specs/TESTING.md
+@@ -95,7 +95,9 @@ is death by signal, and the marker is `// expect-signal: 13` — one addition to
+ the compiler's marker grammar, and the only one this library makes.~~ —
+ **retired by @@PD-159@@** (2026-10-18): nothing in the suite is expected to die
+ by a signal at the pin, so the marker would have no consumer, and this library
+-adds none to the compiler's marker grammar.
++adds none to the compiler's marker grammar. *(2026-10-21, cycle 0.0.2, @@PD-171@@:
++the runner adds one marker of its own since, `// mem-cap-mib: N` — `BUILD.md`
++B-6a — and fails a file carrying `// expect-signal:` by name.)*
+ 
+ ---
+ 
