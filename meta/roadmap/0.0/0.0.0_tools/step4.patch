@@ -15,7 +15,7 @@ index e751c88..a00b314 100644
     verbatim and cost nothing — that is the mechanism that keeps the budget
     small, and it is why `ECONNREFUSED` is not an identity.
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index 9b7c023..86ab08e 100644
+index 77f4198..f6f9b39 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
 @@ -179,6 +179,8 @@ call site in `src/`, with a whitelist of zero (`TESTING.md` V-11), because a
@@ -39,7 +39,7 @@ index 9b7c023..86ab08e 100644
  ### SK-032 — `SO_REUSEADDR` on by default for listeners; `SO_REUSEPORT` never
  **2026-09-03.** Without `SO_REUSEADDR`, a server restarted within the
  `TIME_WAIT` window fails `EADDRINUSE` — the most common surprise in socket
-@@ -606,3 +613,57 @@ edge** — a copy per call to undo a type the compiler hands out.
+@@ -609,3 +616,57 @@ edge** — a copy per call to undo a type the compiler hands out.
  *Reversal:* if a later compiler lets `string_bytes` fill a plain slot, nothing need move: a `fixed` parameter takes a
  plain view too (probe 14). If it removes the read-only view, the parameters return to `uint8[]` by a later decision,
  probe 14 reddening first.
@@ -217,6 +217,23 @@ index faaff7b..b7f87c3 100644
  - [ ] `NSOCK_EMFILE_BACKOFF` (50 ms, a named constant) before a retry
  - [ ] **a test that actually exhausts the descriptor table** — `setrlimit`
        through `sys`, then accept — and asserts the server stays alive, does not
+diff --git a/meta/roadmap/1.0/README.md b/meta/roadmap/1.0/README.md
+index 28e468c..068f123 100644
+--- a/meta/roadmap/1.0/README.md
++++ b/meta/roadmap/1.0/README.md
+@@ -38,8 +38,10 @@ is settled here if the author has not settled it earlier.
+ - [ ] **the four identities stated as the contract**, with `SK-034`'s rule that
+       a fifth is a major version — the one thing about `nsockets` a consumer
+       most needs to know, and a rule no library in another language has to state
+-- [ ] the fact that **`src/addr/` costs exactly one arm** stated prominently: a
+-      program that only parses addresses pays almost nothing
++- [ ] the fact that **a program that parses addresses and never opens a socket
++      owes one arm of this library's** stated prominently — `ESockAddr`,
++      qualified by its module, beside the floor's six and what the parser's code
++      reaches (`SAFETY.md` S-8, @@PD-163@@)
+ 
+ ### 1.0.2 — the guide
+ - [ ] getting started: an echo server in under thirty lines
 diff --git a/meta/roadmap/ROADMAP.md b/meta/roadmap/ROADMAP.md
 index 0dc5edd..d09fa23 100644
 --- a/meta/roadmap/ROADMAP.md
@@ -241,6 +258,22 @@ index 0dc5edd..d09fa23 100644
  
  ## How this is organised
  
+diff --git a/meta/specs/CONCURRENCY_MODEL.md b/meta/specs/CONCURRENCY_MODEL.md
+index 0ef2e21..1e96f55 100644
+--- a/meta/specs/CONCURRENCY_MODEL.md
++++ b/meta/specs/CONCURRENCY_MODEL.md
+@@ -130,6 +130,11 @@ waits `NSOCK_EMFILE_BACKOFF` (a named constant, 50 ms) before retrying, which
+ turns a melt into a degradation. It also logs nothing, because a library does
+ not own an application's diagnostics — it returns the condition and the count.
+ 
++*(2026-10-18, @@PD-162@@: at compiler `c9baa9e` nothing names `EMFILE` that a
++program can compare an error with (probes 13 and 13b), so the loop cannot tell
++this condition from any other; the back-off waits, with `SOCKET_MODEL.md`
++K-19.1, on the compiler's answer to O-N5.)*
++
+ ---
+ 
+ ## 4. When a collection of sockets is genuinely wanted
 diff --git a/meta/specs/SAFETY.md b/meta/specs/SAFETY.md
 index b3bcf1c..396feeb 100644
 --- a/meta/specs/SAFETY.md
@@ -283,7 +316,7 @@ index 7b2724d..64ae2b0 100644
  descriptors, `accept4` fails immediately and the connection stays pending, so a
  naive retry loop spins at 100% CPU accepting nothing. `nsockets`' accept
 diff --git a/meta/specs/STREAM_MODEL.md b/meta/specs/STREAM_MODEL.md
-index 21a25fc..e2417c7 100644
+index f3d6112..6ea5841 100644
 --- a/meta/specs/STREAM_MODEL.md
 +++ b/meta/specs/STREAM_MODEL.md
 @@ -107,6 +107,14 @@ socket `connect` almost never completes immediately. The sequence is:
@@ -301,6 +334,34 @@ index 21a25fc..e2417c7 100644
  5. **`EINTR`** — the handshake continues in the background. Do **not** re-call
     `connect`; go to step 3. A second `connect` on a socket already connecting
     returns `EALREADY`, and a loop that retries on `EINTR` by re-calling
+@@ -145,6 +153,13 @@ loop:
+     otherwise                -> fail r.err
+ ```
+ 
++*(2026-10-18, @@PD-162@@: the `Interrupted` and `WouldBlock` rows compare — they
++are the prelude's; at compiler `c9baa9e` nothing names `ECONNABORTED`,
++`EMFILE` or `ENFILE` that a program can compare an error with (probes 13 and
++13b), and `ConnAborted` is no identity the prelude declares, so the loop
++cannot tell those two rows from `otherwise`. They, and T-13's retry, wait on
++the compiler's answer to O-N5, as `SOCKET_MODEL.md` K-19's rows do.)*
++
+ **Rule T-13 — `ECONNABORTED` is not an error about the listener.** The peer
+ sent a SYN and then reset before the accept. Failing the accept loop on it kills
+ a server because a client pressed Ctrl-C at the wrong moment, and it is a
+diff --git a/src/addr/README.md b/src/addr/README.md
+index 87215bd..b517514 100644
+--- a/src/addr/README.md
++++ b/src/addr/README.md
+@@ -3,5 +3,7 @@
+ `Ipv4Addr` … `UnixAddr`, the kernel `sockaddr` encodings byte by byte,
+ `hton`/`ntoh` in one module, the strict parsers and the RFC 5952 formatters.
+ Pure computation: no descriptors, no kernel. Declares **`ESockAddr` only**, so
+-a program that parses addresses and never opens a socket owes one `failsafe`
+-arm. Governed by `../../meta/specs/ADDRESS_MODEL.md`. Built in cycle 0.1.
++a program that parses addresses and never opens a socket owes one `failsafe` arm
++of this library's — `ESockAddr`, qualified by its module — beside the floor's
++six and what the parser's code reaches (`SAFETY.md` S-8, @@PD-163@@). Governed by
++`../../meta/specs/ADDRESS_MODEL.md`. Built in cycle 0.1.
 diff --git a/tests/probe/probe07_io_ready.npk b/tests/probe/probe07_io_ready.npk
 new file mode 100644
 index 0000000..fb3813e

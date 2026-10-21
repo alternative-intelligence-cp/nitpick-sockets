@@ -9,8 +9,13 @@ channel as a keyword | thread, channel|channel, atomic
 a reader over a plain slice | over uint8\[\]|takes uint8\[\]|\(uint8\[\]:src|uint8\[\]:sa\)|takes a byte slice|unix_addr_path\(uint8
 fixed as a size | fixed-(size|capacity|length)|a fixed \d+|fixed (array|buffer|block)\b
 SO_ERROR as the failure | fail with that errno|SO_ERROR.{0,40}forwarded|non-zero value is failed
+an unnamed errno compared | \bConnAborted\b|err ?== ?E[A-Z]{3,}|\b(ECONNABORTED|EMFILE|ENFILE|EINPROGRESS)\b[^.;]{0,60}?\b(retr(y|ies|ied)|returned|compared|matched|backs? off|waits?|means)\b|waits NSOCK_EMFILE_BACKOFF
 no cycle blocked | no cycle in this plan is blocked|nothing in this cycle is blocked
-owes exactly one arm | owes exactly one arm|every public error.{0,40}(arm|owes)
+the bill as one arm | (owes?|costs?|charges?|pays?|adds?) (exactly |only |just )?(one|a single) (failsafe |pick )?arms?\b|every public error.{0,40}(arm|owes)|(costs?|pays?) almost nothing
 twelve probes | twelve (small )?(programs|probes)
 the probe-12 sizes | 128-byte POD|20-byte and a 6-byte
 probe 03 for addresses | probe 03 \(.?SK-016
+# Each subject fix round 1 added or widened by subject (the plan verification's findings 4 and 5) is proved on its
+# claim in other words than its old text's (`tools/sweep.py`).
+twin: the bill as one arm | importing src/addr/ adds just a single pick arm to a program's failsafe
+twin: an unnamed errno compared | an ECONNABORTED from accept4 is retried at once, and an EMFILE backs off

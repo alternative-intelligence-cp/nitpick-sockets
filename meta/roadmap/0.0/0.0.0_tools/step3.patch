@@ -1,5 +1,5 @@
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index 623d528..9b7c023 100644
+index 4525d2b..77f4198 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
 @@ -114,6 +114,12 @@ than four struct declarations for the same guarantee.
@@ -39,7 +39,7 @@ index 623d528..9b7c023 100644
  ### SK-028 — `IPV6_V6ONLY` is set explicitly, never left to the sysctl
  **2026-09-03.** Every IPv6 socket sets it to whatever the caller asked for.
  The builder's default is **v6only on**.
-@@ -564,3 +580,29 @@ the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, a
+@@ -566,3 +582,30 @@ the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, a
  *Reversal:* none for the sizes, which are measurements — a later pin that moves one reddens probe 02, 03 or 12 on its
  first run, and the specification follows. If a later compiler frees `pid`, `uid` or `gid` as names, the fields keep
  the names they have, since renaming a public field is a major version.
@@ -59,7 +59,8 @@ index 623d528..9b7c023 100644
 +Z-2's `sin_port_at`), and cycle 0.1's checklist, with a test that `socket_addr_parse(string_bytes(s))` compiles —
 +and every parameter it writes stays a plain `uint8[]`: `addr_encode`'s and `unix_encode`'s `dest`, a receive's
 +`dest`. The stream implementations' checklist (cycle 0.3) names `fixed uint8[]:wsrc` and `flush`. And the bare word
-+`fixed` is the keyword's: a size is "constant-size", never "fixed" (SL-6's eight sites).
++`fixed` is the keyword's: a size is "constant-size", never "fixed" (SL-6: eleven lines in nine places, the pin
++audit's ten less `SK-022`'s settled text).
 +
 +*Alternatives declined:* **keep plain `uint8[]` and let a caller copy a `string` into a buffer first** — every call
 +from a `string` would allocate, the cost A-22 exists to avoid; **a `string` overload beside each parser** — two
@@ -501,10 +502,10 @@ index 0000000..a01b12f
 +};
 diff --git a/tests/probe/probe14_view_codec.npk b/tests/probe/probe14_view_codec.npk
 new file mode 100644
-index 0000000..d9f57fc
+index 0000000..5c58854
 --- /dev/null
 +++ b/tests/probe/probe14_view_codec.npk
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,49 @@
 +// expect-exit: 0
 +//
 +// PROBE 14 -- THE READ-ONLY VIEW AT A DECODER'S EDGE.
@@ -517,7 +518,8 @@ index 0000000..d9f57fc
 +// so its family reads 10 + 114 * 256 = 29194. Probe 14b declares the same
 +// decoder over a plain `uint8[]` and calls it with `string_bytes`.
 +// DEPENDS ON THE ANSWER: the pin audit's SL-1 -- every read-only byte parameter is `fixed uint8[]`
-+// (A-5, A-22, Z-2's accessors, `unix_addr_path`) -- and RX-230's read-only view (PD below).
++// (A-5, A-22, Z-2's accessors, `unix_addr_path`) -- and @@PD-161@@, which takes for every slot a
++// reader's bytes reach the read-only view `nitpick-regex`'s RX-230 names.
 +// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 19 are the assertions.
 +mod:probe14_view_codec;
 +

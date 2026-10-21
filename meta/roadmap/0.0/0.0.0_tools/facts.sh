@@ -14,6 +14,8 @@ echo "§1.1 decisions: $(grep -c '^### SK-' "$REPO/meta/DECISIONS.md") headings,
 # §1.2 -- the compiler's own text that the patches cite, read at the pin
 echo "§1.2 at $PIN, npkrt.ll installs SIGPIPE's handler: $(show $PIN:runtime/npkrt.ll | grep -c 'call i64 @npk_sys6(i64 13, i64 13, i64 %ap, i64 0, i64 8, i64 0, i64 0)') call, flags $(show $PIN:runtime/npkrt.ll | grep -m1 -oE 'store i64 469762048, ptr %a1'), handler $(show $PIN:runtime/npkrt.ll | grep -A2 -E '^define internal void @npk_pipe_handler' | grep -c 'ret void') returning"
 for c in 3d15ac9 c3bdae2; do echo "§1.2 at $c, npkrt.ll's rt_sigaction mentions: $(show $c:runtime/npkrt.ll | grep -c rt_sigaction)"; done
+# the commit that brought SIGPIPE's handler: none in its parent, the handler in it, and its subject
+echo "§1.2 npkrt.ll's npk_pipe_handler mentions: $(for c in 3d15ac9 b7244d2f^ b7244d2f c3bdae2 $PIN; do printf 'at %s %s; ' "$c" "$(show $c:runtime/npkrt.ll | grep -c npk_pipe_handler)"; done)b7244d2f is $(git -C "$NPK_TREE" show -s --format=%s b7244d2f | grep -oE '^1\.5\.8 step 3: THE LAST NET \(D-307; DEF-68 fixed\)')"
 echo "§1.2 at $PIN, runtime/ against 7e91730: $(git -C "$NPK_TREE" diff 7e91730 $PIN -- runtime/ | wc -l) line(s) of diff"
 echo "§1.2 at $PIN, nbridge.npk: $(show $PIN:lib/nbridge.npk | grep -m1 -oE 'socketpair whose peer died raises SIGPIPE, which terminates the') | $(show $PIN:lib/nbridge.npk | grep -m1 -oE 'unwrap-or-TRAP: right in a test.s main, wrong in this tier')"
 echo "§1.2 at $PIN, types.npk:1733: $(show $PIN:src/frontend/types.npk | sed -n '1733p' | sed -E 's/^ +//')"
@@ -54,11 +56,21 @@ for m in forward_shape identity_shape private_shape unraised_shape decoder_shape
 d=$A/facts/tree; rm -rf "${d:?}"; git clone -q --shared "$REPO" "$d"
 for s in 1 2 3 4 5; do python3 -B "$TL/apply.py" "$d" 0.0.0 $s > /dev/null; done
 
-# §1.5 -- probe 04's power: its leg 4 with no flags, under the default disposition, dies by signal 13
+# §1.5 -- probe 04's power, in three mutants of it: under the default disposition its leg 4 sets, that leg's send with
+# no flags dies by signal 13, and so does the floor's `write` in the send's place; and the probe started under the
+# default disposition, as a runtime with no handler leaves it, exits 11 in its first leg, before any send
 sed -e 's/^mod:probe04_sigpipe;/mod:probe04_mutant;/' \
   -e 's/Result<int64>:r4 = sys(SYS_SENDTO, a, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);/Result<int64>:r4 = sys(SYS_SENDTO, a, one, 1i64, 0i64, 0i64, 0i64);/' \
   "$d/tests/probe/probe04_sigpipe.npk" > "$F/probe04_mutant.npk"
 echo "§1.5 probe 04's leg 4 with no flags: $(grep -c 'r4 = sys(SYS_SENDTO, a, one, 1i64, 0i64' "$F/probe04_mutant.npk") line(s) changed; $(run4 "$F/probe04_mutant.npk" | sed 's/^probe04_mutant: //')"
+sed -e 's/^mod:probe04_sigpipe;/mod:probe04_write_mutant;/' \
+  -e 's/Result<int64>:r4 = sys(SYS_SENDTO, a, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);/Result<int64>:r4 = write((a =>! int32) =>! fd, one, 1i64);/' \
+  "$d/tests/probe/probe04_sigpipe.npk" > "$F/probe04_write_mutant.npk"
+echo "§1.5 probe 04's leg 4 with the floor's write: $(grep -c 'r4 = write((a =>! int32) =>! fd, one, 1i64);' "$F/probe04_write_mutant.npk") line(s) changed; $(run4 "$F/probe04_write_mutant.npk" | sed 's/^probe04_write_mutant: //')"
+sed -e 's/^mod:probe04_sigpipe;/mod:probe04_default_mutant;/' \
+  -e 's/^func:main = int32(cstring\[\]:_~argv) {$/&\n    wild int8->:act0 = calloc(1i64, 32i64); Result<int64>:rd0 = sys(SYS_RT_SIGACTION, SIGPIPE, act0, 0i64, 8i64); dalloc(act0); if (rd0.is_error) { exit 30i32; }/' \
+  "$d/tests/probe/probe04_sigpipe.npk" > "$F/probe04_default_mutant.npk"
+echo "§1.5 probe 04 started under SIG_DFL, as a runtime with no handler leaves it: $(grep -c 'rd0 = sys(SYS_RT_SIGACTION, SIGPIPE, act0, 0i64' "$F/probe04_default_mutant.npk") line(s) added; $(run4 "$F/probe04_default_mutant.npk" | sed 's/^probe04_default_mutant: //')"
 
 # §1.6 -- the shapes, over every `.npk` the patches add, comments and strings blanked; the scanners proved first
 echo "§1.6 the planted control:"; python3 -B "$TL/shapes.py" "$TL/shapes_planted.txt" | tail -n +2

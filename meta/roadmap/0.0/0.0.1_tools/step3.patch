@@ -31,10 +31,10 @@ index 8d284f7..f720eb1 100644
  ## Licence
  
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index bfd6b8b..f86f31d 100644
+index d7e34bc..e618144 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -712,3 +712,28 @@ names the call it bans. `OPTION_MODEL.md` P-1, `TESTING.md`'s check row, `ROADMA
+@@ -715,3 +715,28 @@ names the call it bans. `OPTION_MODEL.md` P-1, `TESTING.md`'s check row, `ROADMA
  what the form lacks, not what it holds.
  
  *Reversal:* a rename, by a later decision; no rule moves.

@@ -150,7 +150,8 @@ refs() {
 }
 
 # `apply.py`'s label checks, each seen to STOP on a mutated copy of this plan's folder: a bare PD-161 in an added line
-# of 0.0.0's step 3, and @@PD-162@@ cited in 0.0.0's step 1, which step 4 declares; and, planted in step 1, a number
+# of 0.0.0's step 3, and the same label in lower case, `pd-161`; @@PD-162@@ cited in 0.0.0's step 1, which step 4
+# declares; and, planted in step 1, a number
 # past the base -- `SK-` and the base plus 900, made here and named in the output, so no file of the plan writes it --
 # and @@PD-999@@, which no step declares. The copy is applied to no tree -- the checks stop it before `git apply` runs,
 # and a check that did not would fail on the missing directory instead, a different line -- and is removed after.
@@ -161,6 +162,9 @@ label_mutants() {
   rm -rf "${d:?}"; mkdir -p "$d"; cp -r "$TOOLS/.." "$d/plan"
   sed -i '0,/^+.*@@PD-161@@/s/@@PD-161@@/PD-161/' "$d/plan/0.0.0_tools/step3.patch"
   echo "label mutant, a bare PD-161 in 0.0.0's step 3: $(python3 -B "$d/plan/tools/apply.py" "$d/none" 0.0.0 3 2>&1)"
+  cp "$TOOLS/../0.0.0_tools/step3.patch" "$d/plan/0.0.0_tools/step3.patch"
+  sed -i '0,/^+.*@@PD-161@@/s/@@PD-161@@/pd-161/' "$d/plan/0.0.0_tools/step3.patch"
+  echo "label mutant, a lower-case pd-161 in 0.0.0's step 3: $(python3 -B "$d/plan/tools/apply.py" "$d/none" 0.0.0 3 2>&1)"
   cp "$TOOLS/../0.0.0_tools/step3.patch" "$d/plan/0.0.0_tools/step3.patch"
   sed -i '0,/^+\/\/ PROBE 04 /s//+\/\/ @@PD-162@@ PROBE 04 /' "$d/plan/0.0.0_tools/step1.patch"
   echo "label mutant, @@PD-162@@ cited in 0.0.0's step 1: $(python3 -B "$d/plan/tools/apply.py" "$d/none" 0.0.0 1 2>&1)"

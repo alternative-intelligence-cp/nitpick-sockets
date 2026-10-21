@@ -15,7 +15,7 @@ index 7f79b83..69b8909 100644
  **The substitutes this library uses**, so the tree stays consistent: `descr`
  for a raw descriptor number; `sock` for a `Sock`; `sink`/`src` for a byte
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index 923cfa3..623d528 100644
+index d902e7f..4525d2b 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
 @@ -130,6 +130,10 @@ a task suspension, and a blocking descriptor in the reactor parks the thread.
@@ -53,10 +53,10 @@ index 923cfa3..623d528 100644
  ### SK-023 — `UnixAddr` is not a `Path`
  **2026-09-03.** The prelude's `Path` (D-051, D-054) requires an **absolute**
  path — `path_parse` fails `BadPath` on anything whose first byte is not `/` —
-@@ -522,3 +536,31 @@ and a marker with no subject of its own is a marker nobody keeps working.
- *Reversal:* if a later runtime stops installing the handler, probe 04's first assertion fails (exit 11) and its
- no-flags send dies by signal 13 — red on that pin's first run — and a decision restores `SK-013`'s premise and the
- marker, with probe 04 its consumer.
+@@ -524,3 +538,31 @@ and a marker with no subject of its own is a marker nobody keeps working.
+ disposition as `SIG_DFL`, before any send — red on that pin's first run, as the probe started under `SIG_DFL` exits
+ 11 at this one (a third mutant); there a send with no flags dies by signal 13, as the no-flags mutant does here; and
+ a decision restores `SK-013`'s premise and the marker, with probe 04 its consumer.
 +
 +### @@PD-160@@ — the kernel layouts and the address types at their measured sizes; the names the pin refuses are not used
 +**2026-10-18, cycle 0.0.0 step 2, probes 01, 02, 03 and 12.**

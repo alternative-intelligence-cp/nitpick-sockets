@@ -2,7 +2,8 @@
 """Cycle 0.0 -- the stale-claim sweep a subcycle's last block runs after its prose lands, and its positive control.
 
     python3 -B sweep.py run     "$REPO" <subcycle>      # every candidate the patterns find, with denominators
-    python3 -B sweep.py control "$REPO" <subcycle>      # the transform's self-test, then every removed hunk's old
+    python3 -B sweep.py control "$REPO" <subcycle>      # the transform's self-test, then each planted twin matched
+                                                        # by its subject's pattern, then every removed hunk's old
                                                         # text, matched by some pattern?
 
 The patterns are `meta/roadmap/0.0/<subcycle>_tools/sweep_patterns.txt`, one per line, `<subject> | <regex>`; each is
@@ -23,6 +24,13 @@ emphasis strip that deleted every `_` made every pattern holding one unmatchable
   * `control` runs the transform's own self-test first -- one planted text and pattern per character class, each
     matched, and one pattern per refused kind, each refused -- and prints its count.
 
+A PATTERN BY SUBJECT IS PROVED ON A TWIN (the plan verification of 2026-10-18, its findings 4 and 5: three stale
+claims survived a sweep whose patterns matched the old text's words but not the same claim in other words). A line
+`twin: <subject> | <sentence>` in the patterns file plants that subject's claim phrased in other words than any old
+text the steps remove; `control` reads each through the transform and requires its subject's pattern to match it,
+and prints `twins: <n> of <m> ...`, with `TWIN NOT MATCHED <subject>` for each miss. A twin naming no subject is a
+STOP. The removed hunks stay the positive control for the old words; the twin is the control for the subject.
+
 `run` reads every file `git ls-files` lists plus every untracked file the steps added (`--others --exclude-standard`),
 but the cycle 0.0 plans, the patches, the `.npk` sources, `LICENSE`, and the research digests -- a file whose first
 line is a digest's heading, `# <topic> — research digest` (the workbench research skill's §5): a digest is dated and
@@ -32,7 +40,10 @@ line comes first.
 
 `control` then reads the patches' REMOVED lines, hunk by hunk, and reports the hunks whose old text no pattern
 matches -- each is a kind of sentence the sweep cannot see, which the plan names (`PLAYBOOK.md` §12: a stale-claim
-sweep's patterns get a positive control, the step's own hunks).
+sweep's patterns get a positive control, the step's own hunks) -- and then, pattern by pattern, how many hunks each
+matches: that pattern's own positive control. A pattern that matches no hunk has its positive control elsewhere,
+which the plan's sweep table says: the run's candidates, where the steps keep the old text beside its dated note,
+or nowhere in the tree, where the old claim was never in it.
 """
 import glob
 import os
@@ -90,11 +101,14 @@ def plan_dir(root):
     return d if os.path.isdir(d) else os.path.join(root, "meta", "roadmap", "done", "0.0")
 
 
+TWIN = "twin: "
+
+
 def patterns(root, sub):
     out = []
     with open(os.path.join(plan_dir(root), sub + "_tools", "sweep_patterns.txt"), encoding="utf-8") as fh:
         for line in fh:
-            if not line.strip() or line.startswith("#"):
+            if not line.strip() or line.startswith("#") or line.startswith(TWIN):
                 continue
             subj, _, rx = line.rstrip("\n").partition(" | ")
             why = unmatchable(rx.strip())
@@ -102,6 +116,20 @@ def patterns(root, sub):
                 raise SystemExit("STOP: %s's pattern `%s` holds %s, which the transform removes -- it can never match"
                                  % (sub, subj.strip(), why))
             out.append((subj.strip(), re.compile(rx.strip(), re.I)))
+    return out
+
+
+def twins(root, sub):
+    """Each `twin: <subject> | <sentence>` line: (subject, sentence), in the file's order."""
+    out = []
+    with open(os.path.join(plan_dir(root), sub + "_tools", "sweep_patterns.txt"), encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith(TWIN):
+                subj, sep, text = line[len(TWIN):].rstrip("\n").partition(" | ")
+                if not sep or not subj.strip() or not text.strip():
+                    raise SystemExit("STOP: %s's twin line is not `twin: <subject> | <sentence>`: %r"
+                                     % (sub, line.rstrip("\n")))
+                out.append((subj.strip(), text.strip()))
     return out
 
 
@@ -179,9 +207,23 @@ def run(root, sub):
 def control(root, sub):
     ok = selftest()
     pats = patterns(root, sub)
+    by_subject = dict(pats)
+    planted = twins(root, sub)
+    missed = []
+    for subj, text in planted:
+        if subj not in by_subject:
+            raise SystemExit("STOP: %s's twin names `%s`, which no pattern is the subject of" % (sub, subj))
+        if not by_subject[subj].search(joined([text])[0]):
+            missed.append(subj)
+    print("twins: %d of %d planted, each a subject's claim in other words than its old text's, matched by that "
+          "subject's pattern" % (len(planted) - len(missed), len(planted)))
+    for subj in missed:
+        print("  TWIN NOT MATCHED " + subj)
+    ok = ok and not missed
     tools = os.path.join(plan_dir(root), sub + "_tools")
     total = matched = 0
     misses = []
+    per = {subj: 0 for subj, _ in pats}
     for p in sorted(glob.glob(os.path.join(tools, "step*.patch"))):
         cur, hunk, removed = None, None, []
 
@@ -190,7 +232,10 @@ def control(root, sub):
             if removed and cur and not re.search(r"\.(npk|patch)$", cur):
                 total += 1
                 t, _ = joined(removed)
-                if any(rx.search(t) for _, rx in pats):
+                hit = [subj for subj, rx in pats if rx.search(t)]
+                for subj in hit:
+                    per[subj] += 1
+                if hit:
                     matched += 1
                 else:
                     misses.append("%s %s %s" % (os.path.basename(p), cur, hunk))
@@ -207,6 +252,11 @@ def control(root, sub):
     print("hunks that remove prose: %d; matched by a pattern: %d; not matched: %d" % (total, matched, total - matched))
     for m in misses:
         print("  NOT MATCHED " + m)
+    # Each pattern's own positive control: the removed hunks it matches. A hunk two patterns match counts for both, so
+    # a pattern whose old text shares a hunk with another subject's is still seen to match it (fix round 1).
+    print("hunks each pattern matches:")
+    for subj, _ in pats:
+        print("  %s: %d" % (subj, per[subj]))
     return 0 if ok else 1
 
 

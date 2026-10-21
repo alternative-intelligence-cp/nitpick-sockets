@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cycle 0.0 -- the shapes the compiler's rulings in landing 112's commit (D-353 … D-359) and its landing 114
 (DEF-250) refuse or reserve, counted over `.npk` files the way `shapes.py` counts (comments and strings blanked),
-so a plan can say which it writes. Added by cycle 0.0.2's plan.
+so a plan can say which it writes. Added by `nitpick-parse`'s cycle 0.0.2 plan, and taken from it by this cycle's 0.0.0.
 
     python3 -B rulings.py [--sites] <file>...
 

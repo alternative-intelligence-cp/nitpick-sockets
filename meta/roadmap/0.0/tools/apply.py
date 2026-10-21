@@ -21,8 +21,10 @@ a later patch's context holds the numbers an earlier one wrote.
 
 THE LABELS ARE CHECKED BEFORE ANY HUNK IS (the plan verification of 2026-10-15, its findings 1 and 5). A patch whose
 added lines hold any of these is a STOP, by name, and nothing is written:
-  * a BARE label, `PD-<n>` outside `@@...@@` -- the substitution never sees it, so it would land as a label no
-    decision log defines, in a text the review makes immutable;
+  * a BARE label, `PD-<n>` outside `@@...@@`, in either case (`pd-161` too, and `@@pd-161@@`, which the
+    substitution does not read as a placeholder: fix round 1, the plan verification's finding 11) -- the
+    substitution never sees it, so it would land as a label no decision log defines, in a text the review makes
+    immutable;
   * a number past the base written out, `SK-<n>` with n > base -- that number is the review's to give;
   * a placeholder CITED BEFORE THE STEP THAT DECLARES IT -- its `### @@PD-n@@` heading is added by a later patch,
     in plan order (every `<subcycle>_tools/step<k>.patch` beside this plan, subcycle by subcycle, step by step),
@@ -90,8 +92,8 @@ def label_findings(sub, step, raw):
     """Each way this patch's added lines misuse a decision label (the module's docstring), or []."""
     bad, base = [], base_number()
     for line in added(raw):
-        for m in re.finditer(r"\bPD-\d+\b", PLACEHOLDER.sub("", line)):
-            bad.append("a bare %s in an added line -- a label is written @@%s@@" % (m.group(0), m.group(0)))
+        for m in re.finditer(r"\bPD-\d+\b", PLACEHOLDER.sub("", line), re.I):
+            bad.append("a bare %s in an added line -- a label is written @@%s@@" % (m.group(0), m.group(0).upper()))
         for m in re.finditer(r"\bSK-(\d+)\b", line):
             if int(m.group(1)) > base:
                 bad.append("%s written out in an added line -- a number past the base is the review's" % m.group(0))
