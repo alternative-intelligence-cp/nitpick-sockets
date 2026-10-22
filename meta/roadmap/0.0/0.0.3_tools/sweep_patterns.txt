@@ -1,0 +1,22 @@
+# 0.0.3's stale-claim sweep: one subject per claim the steps changed, in more than one wording, each proved on a twin
+# phrased in other words than its old text's (`tools/sweep.py`).
+the accept stage | accepted by tools/check|accept \| tests/conformance|\baccept\b.{0,12}(stage|in silence)|compiles in a program that only imports it
+the compiler's tools as judges | tools/parse_check|tools/check\b|refused by the frontend|built once per run from the pinned|(built|build).{0,30}from the pinned (compiler )?checkout
+a check described as a grep | \bgreps\b|\ba grep\b|\bgrep (with|for|every)\b|searches? the (source )?text
+the error budget counted by public declarations | count and names of public|public .?error:.? declarations|count of (the )?public|(tall(y|ies)|counts?) the (exported|public) error
+five modules declare the two identities | src/server/ declare|(stream|datagram|option|server)[^.]{0,80}\bdeclare ESockState
+the specs check reports only | reports, does not fail|\breports only\b|report-only|never fails the run
+D-151 traps a socket left open | D-151 should trap|leaves a socket open at exit|exit 0.{0,20}asserts every descriptor|(gate|trap)s?.{0,40}(socket|descriptor).{0,30}left open
+the self-check's seven | seven (planned )?(cases|ways)|fails? seven\b|self-check.{0,40}\bseven\b
+a cycle file's section cited by a permanent file | cycle 0\.0\.\d.s (§|block)|0\.0\.\d\.md.? §|block 0b of cycle
+a self-check case pending until a later cycle | self-check case.{0,40}un-?pended|case un-?pended|out of pending
+twin: the accept stage | the conformance program belongs to the accept stage, which passes it in silence
+twin: the compiler's tools as judges | each refusal is judged by the compiler's frontend checker, built from the pinned checkout
+twin: a check described as a grep | the nosignal check searches the source text for every send
+twin: the error budget counted by public declarations | the budget check tallies the exported error declarations
+twin: five modules declare the two identities | the stream, datagram, option and server modules each declare ESockState
+twin: the specs check reports only | the citation check prints what it finds and never fails the run
+twin: D-151 traps a socket left open | the exit gate traps a socket descriptor that a test left open
+twin: the self-check's seven | the harness is shown to fail in its seven planned ways
+twin: a cycle file's section cited by a permanent file | as block 0b of cycle 0.0.0 measured it
+twin: a self-check case pending until a later cycle | the later cycle takes the 0.0.3 self-check case out of pending

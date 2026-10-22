@@ -1,0 +1,146 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index cee2b7f..76e3495 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -45,7 +45,8 @@ The corollary that will be broken by accident: **this library does not use the
+ runtime floor's `write` on a socket**, and neither may an impl of the prelude's
+ `Writer`. `impl:ByteWriter:Writer` in the prelude *does* use it and looks like
+ the thing to copy — it writes to a file, where the hazard does not exist.
+-`check_msg_nosignal` greps every send site with a whitelist of zero.
++`check_msg_nosignal` reads every send site in the code with a whitelist of zero
++(@@PD-175@@).
+ 
+ **2. A connection cannot cross a channel, but can be moved into a spawn**
+ (`SK-035`). `chan_elem_verdict_recorded` refuses `TY_OWNEDFD` as a channel
+@@ -119,7 +120,10 @@ compiler's own bootstrap ladder, and `[dependencies]` resolves to nothing.
+ `src/`, judges every suite `nitpick.toml` declares — each program at −O0 and
+ through `opt -O2`, each refusal by its exact codes — and prints its verdict last
+ (`harness/README.md`). *(Until cycle 0.0.2 the probes
+-were run by hand, by `meta/roadmap/0.0/0.0.0.md` §2's command.)*
++were run by hand.)* Since cycle 0.0.3 a full run proves first that it can fail —
++the self-check, every case beside its control — sweeps every `.npk` in the tree
++with the `parse` stage, and runs the tree checks of `meta/specs/TESTING.md` §5,
++each saying what it read (@@PD-173@@ … @@PD-175@@).
+ 
+ Almost the whole suite runs over `socketpair` and loopback: no network, no
+ port, no privilege. The `network` stage is two tests and is skipped loudly.
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index f2f37ec..5f8258b 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -32,8 +32,8 @@ never for concluding.
+ 1. **Every send must carry `MSG_NOSIGNAL`.** Not "should" — the floor's runtime
+    catches `SIGPIPE`, so on it a plain send to a dead peer answers `EPIPE`, but
+    under the default disposition, which a host may restore, the same send
+-   terminates the process (a mutant of probe 04, cycle 0.0.0's block 0b). `check_msg_nosignal` greps every `sendto`/`sendmsg` site in
+-   `src/` with a whitelist of zero, and it will catch you. Do not use the
++   terminates the process (a mutant of probe 04, @@PD-159@@). `check_msg_nosignal` reads every `sendto`/`sendmsg` site in
++   `src/`'s code with a whitelist of zero, and it will catch you. Do not use the
+    runtime floor's `write` on a socket, and do not copy the prelude's
+    `ByteWriter` impl, which does.
+ 
+@@ -77,7 +77,7 @@ never for concluding.
+ - **A negative test with no expectation is a failing test.**
+ - **Unexpected diagnostics fail a test as surely as missing ones.**
+ - **Bind to port 0 and read the port back.** No hardcoded ports; a tree check
+-  greps for them.
++  reads the suite's code for them.
+ - **Use the abstract namespace for `AF_UNIX` tests.** Nothing to unlink, nothing
+   left behind by a crash, no collision between concurrent runs.
+ - **Anything with a timing dimension runs forty times**, not once.
+diff --git a/meta/roadmap/0.10/README.md b/meta/roadmap/0.10/README.md
+index 228d80d..47a77d6 100644
+--- a/meta/roadmap/0.10/README.md
++++ b/meta/roadmap/0.10/README.md
+@@ -67,6 +67,7 @@ release", collected.
+ - [ ] the tree checks' coverage reviewed: **is there a document nothing diffs
+       against?**
+ - [ ] `check_specs_current`'s backlog drained
++  *(2026-10-22, cycle 0.0.3 — @@PD-175@@: the check fails the run from 0.0.3, so no backlog can stand; this box reads that it still fails one.)*
+ - [ ] `check_msg_nosignal`'s input confirmed non-empty and covering every send
+       site in the tree — the rule the whole library rests on, checked one last
+       time before it is frozen
+diff --git a/meta/roadmap/0.2/README.md b/meta/roadmap/0.2/README.md
+index eb8f43c..d1078eb 100644
+--- a/meta/roadmap/0.2/README.md
++++ b/meta/roadmap/0.2/README.md
+@@ -46,6 +46,7 @@ consuming calls in `src/stream/` that take the builder).
+ - [ ] `sendto` and `recvfrom` wrappers, **`MSG_NOSIGNAL` unconditional** (`SK-013`)
+ - [ ] the retry loop shape from `STREAM_MODEL.md` T-6: `EINTR` retries, `EAGAIN` waits on readiness, everything else forwards
+ - [ ] **`check_msg_nosignal` goes live**, with a whitelist of zero, and the 0.0.3 self-check case that proves it bites is un-pended
++  *(2026-10-22, cycle 0.0.3 — @@PD-174@@: the case is live from 0.0.3, over a planted tree; what goes live here is the check's input, the first send site.)*
+ - [ ] **`check_no_floor_write` goes live**
+ - [ ] the `SIGPIPE` regression test (`specs/TESTING.md` §3), both legs, as a permanent suite entry rather than only a probe
+ - [ ] `// stress: 40` on the send/receive round trip
+diff --git a/meta/roadmap/0.7/README.md b/meta/roadmap/0.7/README.md
+index 293f394..9239bc1 100644
+--- a/meta/roadmap/0.7/README.md
++++ b/meta/roadmap/0.7/README.md
+@@ -25,6 +25,7 @@
+ - [ ] `src/option/sockopt.npk` holding the only `setsockopt`/`getsockopt` calls (@@PD-165@@)
+ - [ ] **not re-exported by `src/lib.npk`** — a consumer cannot reach it
+ - [ ] `check_no_raw_setsockopt` live, with the 0.0.3 self-check case un-pended
++  *(2026-10-22, cycle 0.0.3 — @@PD-174@@: the case is live from 0.0.3, over a planted tree; what goes live here is the check's input, `sockopt.npk`.)*
+ - [ ] every typed wrapper's level is a constant **inside** the wrapper and never
+       a parameter (P-10)
+ 
+diff --git a/meta/roadmap/ROADMAP.md b/meta/roadmap/ROADMAP.md
+index 2de4c4b..d8616bb 100644
+--- a/meta/roadmap/ROADMAP.md
++++ b/meta/roadmap/ROADMAP.md
+@@ -52,8 +52,8 @@ And the two that shape the *design*:
+ Both were read in the compiler's own source and then run, by cycle 0.0.0's
+ probes 04, 09 and 10 at compiler `c9baa9e` — the first contradicted its reading
+ (@@PD-159@@), the second confirmed it — and both are enforced mechanically
+-rather than by discipline: `check_msg_nosignal` greps
+-every send site, and the second is enforced by the compiler itself.
++rather than by discipline: `check_msg_nosignal` reads
++every send site in the code, and the second is enforced by the compiler itself.
+ 
+ ---
+ 
+diff --git a/meta/specs/SAFETY.md b/meta/specs/SAFETY.md
+index d5a3d88..83cf3fc 100644
+--- a/meta/specs/SAFETY.md
++++ b/meta/specs/SAFETY.md
+@@ -54,7 +54,7 @@ no flags to a dead peer **answers `EPIPE`** and the program lives, and so do
+ the same send with `MSG_NOSIGNAL`, the floor's `write` on the socket, and a
+ `write` to a pipe whose reader is gone — all four the same error. Under the
+ default disposition, set by the probe itself, the `MSG_NOSIGNAL` send still
+-answers `EPIPE`, and with no flags it **dies by signal 13** (its mutant, cycle 0.0.0's block 0b).
++answers `EPIPE`, and with no flags it **dies by signal 13** (its mutant, @@PD-159@@).
+ 
+ *(Corrected 2026-10-18 by @@PD-159@@. This paragraph said the runtime installs
+ no signal disposition for anything — a search of `npkrt.ll` found no
+@@ -77,7 +77,7 @@ whatever the process's disposition is, the floor's handler or the default.
+ `write`** on a socket, and neither may an impl of the prelude's `Writer` trait
+ over one. The floor's `write` is `write(2)`, which raises `SIGPIPE` on a socket
+ exactly as it does in C — answered `EPIPE` by the floor's handler (probe 04),
+-fatal under the default disposition (its mutant, cycle 0.0.0's block 0b) — and
++fatal under the default disposition (its mutant, @@PD-159@@) — and
+ has no flags word to carry `MSG_NOSIGNAL`; the only send primitives this library uses are
+ `sendto` (syscall 44) and `sendmsg` (syscall 46), both with `MSG_NOSIGNAL` in
+ the flags word. This is the single most likely rule to be broken by accident,
+@@ -136,8 +136,7 @@ import-scoped:
+ - `src/addr/` declares **`ESockAddr` only**. A program that parses and formats
+   addresses and never opens a socket owes one arm of this library's — `ESockAddr`,
+   qualified by its module — beside the floor's six and what the parser's code
+-  reaches (`IntOverflow`, `OutOfBounds`), measured by cycle 0.0.0's block 0b
+-  (@@PD-163@@).
++  reaches (`IntOverflow`, `OutOfBounds`), measured (@@PD-163@@).
+ - `src/socket/` declares `ESockState` and `ESockCapacity`, and a module raises
+   them through its import of `src/socket/`, which `stream`'s, `datagram`'s,
+   `ancillary`'s and `server`'s rows of `BUILD.md` B-18's table give them;
+diff --git a/meta/specs/STREAM_MODEL.md b/meta/specs/STREAM_MODEL.md
+index 6ea5841..70f0f7d 100644
+--- a/meta/specs/STREAM_MODEL.md
++++ b/meta/specs/STREAM_MODEL.md
+@@ -59,7 +59,7 @@ which is D-072's rule and the prelude's own shape — `ByteWriter`'s `flush` is
+ `impl:ByteWriter:Writer` out of the prelude, which uses `write(2)` because it
+ writes to a file. On a socket, `write(2)` raises `SIGPIPE` — answered `EPIPE`
+ by the floor's handler (probe 04), fatal under the default disposition (its
+-mutant, cycle 0.0.0's block 0b) — and it has no flags word for `MSG_NOSIGNAL`.
++mutant, @@PD-159@@) — and it has no flags word for `MSG_NOSIGNAL`.
+ **The two impls cannot share a body**, and a comment at both sites says so.
+ 
+ **Rule T-6 — the retry loop is the prelude's shape**, and only the syscall

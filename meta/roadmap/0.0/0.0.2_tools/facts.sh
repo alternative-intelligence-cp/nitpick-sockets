@@ -217,7 +217,7 @@ echo "§1.12 placeholders in the patches: $(grep -ohE '@@PD-[0-9]+@@' "$T2"/step
 echo "§1.12 declared by them: $(grep -ohE '^\+### @@PD-[0-9]+@@' "$T2"/step*.patch | grep -oE 'PD-[0-9]+' | tr '\n' ' ')"
 echo "§1.12 numbered by decisions.txt: $(python3 -B -c "
 import sys; sys.path.insert(0, sys.argv[1]); import apply
-t = apply.numbers(); print(' '.join('%s=base+%d' % (k, int(t[k].split('-')[1]) - apply.base_number()) for k in sorted(t) if 'PD-169' <= k <= 'PD-178'))" "$TL")"
+t = apply.numbers(); print(' '.join('%s=base+%d' % (k, int(t[k].split('-')[1]) - apply.base_number()) for k in sorted(t) if 'PD-169' <= k <= 'PD-172'))" "$TL")"
 python3 -B "$TL/pointers.py" "$d" "$T2" | sed 's/^§1\.8 /§1.13 /'
 
 # §1.14 -- the workflow, read as GitHub reads it; its harness step's logic run against two stand-in runners; and its
