@@ -44,14 +44,14 @@ index 0000000..8859f79
 +  contents: read
 +
 +env:
-+  # The workbench's pinned compiler, by FULL sha (`c9baa9e` in the roadmap).
-+  NITPICK_COMMIT: "c9baa9e91c553d8db2a2a62f09c36b30a984b07f"
++  # The workbench's pinned compiler, by FULL sha (`2e1cb4a` in the roadmap).
++  NITPICK_COMMIT: "2e1cb4adef795488c0530be297e441f923bbe090"
 +  NITPICK_REPO: "https://github.com/alternative-intelligence-cp/nitpick"
-+  # THE EMISSION AT THAT COMMIT, as the compiler's own build recorded it -- notice 118's
++  # THE EMISSION AT THAT COMMIT, as the compiler's own build recorded it -- notice 140's
 +  # `npkc.ll` row. The emission step below ASSERTS it: the compiler's D-265 says the
 +  # emission, not the binary, is the cross-machine claim. Moved with every pin.
-+  NPKC_LL_SHA256: "1f48a31a5c9b5b78053444c404b7b2dd7c8c470c354dd3b14d47b3e75585ee2a"
-+  NPKC_LL_BYTES: "31731079"
++  NPKC_LL_SHA256: "0073060250f0e56329ab77a01de45b0f499c0441db66215b7b762c9fe911b27c"
++  NPKC_LL_BYTES: "32569732"
 +  # nitpick.toml's [toolchain] llvm: an exact patch release. Upstream publishes
 +  # `LLVM-20.1.8-Linux-X64.tar.xz` at its `llvmorg-20.1.8` release.
 +  LLVM_VERSION: "20.1.8"
@@ -260,7 +260,7 @@ index e618144..4da12d4 100644
 +
 +*So:* `.github/workflows/ci.yml` runs no action at all. Its two checkouts are `git` — this repository at the commit
 +the run is for, and the compiler at `NITPICK_COMMIT` by full sha, each asserted; the compiler is built from its
-+commit and its `npkc.ll` asserted, digest and size, against notice 118's row. LLVM is pinned by its version: the
++commit and its `npkc.ll` asserted, digest and size, against the pin's row. LLVM is pinned by its version: the
 +`llvmorg-20.1.8` release tarball, fetched by name, with `llc`, `opt` and `ld.lld` each asserted at 20.1.8 by
 +`--version`; the tarball's own digest and size are not pinned at this step: cycle 0.0.2 pins them by content, and
 +`CURRENCY.md` holds them as a row until then.

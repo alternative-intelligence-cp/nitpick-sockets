@@ -86,7 +86,7 @@ PY
 n=0; bad=0; for r in "$F"/run*.sh; do n=$((n+1)); bash -n "$r" || bad=$((bad+1)); done
 echo "§1.5 the steps' scripts: $n, and $bad that bash -n refuses; lines naming an action: $(grep -cE '^\s*(- )?uses:' "$W")"
 pinrow=$(grep -E '^  npkc\.ll ' "$WB/.internal/toolchain/$PIN/PIN.md" | awk '{print $2, $3}')
-echo "§1.5 the pinned rows: NITPICK_COMMIT $( [ "$(sed -nE 's/^  NITPICK_COMMIT: "([0-9a-f]+)"$/\1/p' "$W")" = "$PIN_FULL" ] && echo 'is the pin' || echo 'is NOT the pin'); npkc.ll $( [ "$(sed -nE 's/^  NPKC_LL_SHA256: "([0-9a-f]+)"$/\1/p' "$W") $(sed -nE 's/^  NPKC_LL_BYTES: "([0-9]+)"$/\1/p' "$W")" = "$pinrow" ] && echo "is PIN.md's row of notice 118" || echo "is NOT PIN.md's row")"
+echo "§1.5 the pinned rows: NITPICK_COMMIT $( [ "$(sed -nE 's/^  NITPICK_COMMIT: "([0-9a-f]+)"$/\1/p' "$W")" = "$PIN_FULL" ] && echo 'is the pin' || echo 'is NOT the pin'); npkc.ll $( [ "$(sed -nE 's/^  NPKC_LL_SHA256: "([0-9a-f]+)"$/\1/p' "$W") $(sed -nE 's/^  NPKC_LL_BYTES: "([0-9]+)"$/\1/p' "$W")" = "$pinrow" ] && echo "is PIN.md's row of notice 140" || echo "is NOT PIN.md's row")"
 echo "§1.5 the compiler's bootstrap harness at the pin: $(show $PIN:bootstrap/harness/quickemit.py > /dev/null 2>&1 && echo 'bootstrap/harness/quickemit.py exists' || echo 'NO quickemit.py')"
 
 # §1.6 -- the shapes, over every `.npk` the patches add, comments and strings blanked
