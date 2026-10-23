@@ -72,12 +72,14 @@ Each is settled with a recommendation and states its reversal; **none is left op
 
 ## The pin, and what each landing would move
 
-**The pin is `c9baa9e`**, landings 83 … 118 (the workbench's `.internal/toolchain/c9baa9e/PIN.md`, CARRIES and NOT
-CARRIED). This cycle was planned at it, so a landing it carries is measured, not predicted; a landing it does not carry
-is named with the place it would move this plan, so that **the next adoption is this list, not a search**. A re-pin is
-taken **between subcycles**, never inside one (the early ecosystem audit's EC9).
+**The pin is `2e1cb4a`**, landings 83 … 140 (the workbench's `.internal/toolchain/2e1cb4a/PIN.md`, CARRIES and NOT
+CARRIED). This cycle was planned at `c9baa9e`, landing 118, and adopted `2e1cb4a` before any subcycle started (T7a,
+2026-10-23), so a landing the pin carries is measured, not predicted; a landing it does not carry is named with the
+place it would move this plan, so that **the next adoption is this list, not a search**. A re-pin is taken **between
+subcycles**, never inside one (the early ecosystem audit's EC9).
 
-**Carried, 104 … 118** — what each moves, measured at `c9baa9e` by 0.0.0's blocks:
+**Carried, 104 … 118** — what each moves, measured at `c9baa9e` by 0.0.0's blocks, and again at `2e1cb4a` by the
+adoption (below): nothing moved but what row 115 names.
 
 | Landing | What it does | What it moves here |
 |---|---|---|
@@ -92,48 +94,78 @@ taken **between subcycles**, never inside one (the early ecosystem audit's EC9).
 | 112 (DEF-232) | a `NIL` member is zero-sized | **nothing**: no `NIL` field |
 | 113 (DEF-235 and its company) | a keyword declared as a name of any kind is `PARSE-001` | **checked against the pin's `src/frontend/keywords.npk`, 170 words**: no declared name of 0.0.0's 651 or 0.0.1's 15 is one (`tools/names.py`); `ucred`'s `pid`/`uid`/`gid` and a module named `raw` are (@@PD-160@@, EC7), so the generic option form's file is `sockopt.npk` (@@PD-165@@) |
 | 114 (DEF-250) | a bare module-level binding is `TYPE-055` | **nothing**: every one `fixed`, initialised (`tools/rulings.py`) |
-| 115 (DEF-251 (i)) | every `define` carries `null_pointer_is_valid` | **every emission moves in text**; the cycle records no IR digest or byte count, and CI's `npkc.ll` row (0.0.1) is notice 118's. A byte comparison across pins reads through the compiler's `meta/roadmap/1.6/tools/attrnorm.py` and `dropnorm.py`, both by `git show c9baa9e:` |
+| 115 (DEF-251 (i)) | every `define` carries `null_pointer_is_valid` | **every emission moves in text**; the cycle records no IR digest or byte count, and CI's `npkc.ll` row (0.0.1) is the pin's notice's, 140's since the adoption (118's before it). A byte comparison across 105 and 115 reads through the compiler's `meta/roadmap/1.6/tools/attrnorm.py` and `dropnorm.py`, and across 126 through its `sitenorm.py --site-path-cap` (row 126 below), each by `git show 2e1cb4a:` |
 | 116 (DEF-252) | a view a callee stores is held to the holder's block | **nothing**: no callee stores a view |
 | 117 (D-353) | a `comptime` value parameter is `TYPE-095` | **nothing**: none written |
 | 118 (DEF-253, DEF-254) | a `Self->` method through a bound links; a default's sibling call links | **probe 06 measures it**: an `async` `Self->` `write` through a bound runs; no default calls a sibling (`tools/shapes.py`) |
 
-**Not carried** — landed on the compiler's `main` after the pin (`463cf93` by its local ref at 05:43:11 on
-2026-10-18, for 119 … 128; `c72639f`, landing 137, by the 0.0.2 dispatch's `ls-remote` and the Workspace clone's local
-ref on 2026-10-21, for 129 … 137; `a3c873c`, landing 139, by the 0.0.3 dispatch's `ls-remote` and the Workspace clone's
-ref on 2026-10-22, for 138 and 139; each read at its own sha in the compiler's `meta/NOTICES.md`), and where each would
-move this plan (`0.0.2.md` §11 and `0.0.3.md` §11 have each subcycle's places for every one; the self-check's
-fixtures, which `npkc` compiles at every full run from 0.0.3, are named where a landing reaches one):
+**Carried since the adoption, 119 … 140** — each read at its own sha in the compiler's `meta/NOTICES.md` while it was
+not yet carried (`463cf93`, landing 128, for 119 … 128; `c72639f`, landing 137, for 129 … 137; `a3c873c`, landing 139,
+for 138 and 139, by the earlier planners), and 140 at `2e1cb4a`; `0.0.1.md` §10, `0.0.2.md` §11 and `0.0.3.md` §11 name
+each subcycle's places. Each row's last column is now **what the adoption measured here**, at `2e1cb4a` on 2026-10-23:
+every block of 0.0.0 … 0.0.3 run in plan order in a stand-in, each the same as at `c9baa9e` but for the lines each
+file's §1 names; and the old-pin leg — every `.npk` of the patched tree, 33, and every fixture of the self-check, 105,
+compiled by both pins' `npkc` from its own directory: the same exit, codes and sites at both, and every emission that
+compiles at both, 108, different in text and the same through the compiler's `meta/roadmap/1.6/tools/sitenorm.py
+--site-path-cap`, landing 126's normaliser. **"Nothing moved" below is that measurement**, never a notice's census: the
+compiler's census reads the libraries' trees, where this plan's programs are not yet, since they are still its patches.
+
+| Landing | What it does | What the adoption measured here |
+|---|---|---|
+| 119 `34979dc` (D-355, F61) | `NULL` for a plain pointer or an `Optional` is `TYPE-096`; "maybe no pointer" is `T->?` with `NIL` | **nothing moved**: the cycle writes no `NULL` (`tools/rulings.py`), and every pointer field of a kernel-structure mirror is `wild`, where `NULL` stays legal; DEF-257's `(NULL)` arm is not written |
+| 120 `0156326` (D-360, F62) | `??!`, an `Optional`'s unwrap-or-trap | **nothing moved**: not used |
+| 121 `f9a9428` (D-361, F63) | a value of wild provenance enters a plain pointer slot only through `=>! T->`, else `TYPE-097` | **nothing moved**: every `wild` value the probes make goes into a `wild` slot or is dereferenced in place, and a view's `.ptr` goes to `sys`, which is no pointer slot; 0.0.2's floor-writer and 0.0.3's `scan-floor-write` fixture fill the floor's `write`'s `wild any->` slot, as before. The `#ptr_add` sites are the probes' 63, listed by `tools/shapes.py`, and `src/` has none: the library's count starts at zero and stays few and listed, never confined to `wild` context on `BUILTIN_REFERENCE.md`'s sentence, which landing 128 struck |
+| 122 `29e93a9` (D-357) | a `comptime func:` is compile-time only, `TYPE-098` | **nothing moved**: none written |
+| 123 `284402d` (D-356) | a payload-less variant is a constant outside the evaluator | **nothing moved**: no initialiser names a variant |
+| 124 `ccf7f95` (D-359) | the orphan rule, `TYPE-099` | **nothing moved**: every `impl` sits beside its type (`tools/rulings.py`). With 127 and 128 it moved O-N3's comment in the compiler's `src/frontend/types.npk` from line 1733 to 1756, its text the same — `0.0.0.md` §1.2's line |
+| 125 `2b95bb4` (DEF-234 (a), (b)) | a driver method takes a byte payload; `use mod.f;` binds its member | **nothing moved**: no `extern` driver; every import is by path, which the parser's new single-name walk never enters, so `harness/lexical.py`'s reading of `use` holds |
+| 126 `e709f77` (DEF-242, DEF-263) | the site table holds the emission's sites; `site_path` answers a view | **every emission moved, and nothing else**: the 108 pairs, each the same through `sitenorm.py --site-path-cap`; no block compares IR across pins, and 0.0.2's `repro` compares two builds at one pin, byte-identical |
+| 127 `1670427` (D-339, DEF-181) | the lock walk's holes closed | **nothing moved**: no lock in the probes, and probe 09's channel is refused at its annotation as before; 0.0.3's `scan-lock` fixture, which holds a `Guard` and calls nothing while it does, compiles as before and its case is caught |
+| 128 `463cf93` (D-341, F70) | a `buffer` gets the checked `b[i]` and `b[lo...hi]`; a `#wild_slice` over a header's `.ptr` is a view of its owner (`BORROW-015`, `BORROW-001`); `#ptr_add`'s "`wild` context" sentence struck | **nothing moved** in 0.0.0 … 0.0.3, which write no `buffer` index and no `#wild_slice`. **0.0.4's `Bytes` is designed to it**: no raw `.ptr[i]`, no `#wild_slice` over `.ptr` held across a write — `nitpick-time`'s `bytes.npk` line 140 is the shape that breaks |
+| 129 `17d26ad` (DEF-244) | the source manager keys a file by its identity, so a root imported back from a sibling is one module | **nothing moved**: no module imports another back; 0.0.2's `repro` reads byte-identical IR from two directories |
+| 130 `c1e20e8` (DEF-245, DEF-260) | a declaration whose header fails is one report | **nothing moved**: each refused probe, and each of the self-check's 23 refused fixtures, reports the same codes at the same sites at both pins, which the exact-code rule (0.0.2) judges |
+| 131 `b1a23b8`, 137 `c72639f` (DEF-255, DEF-267) | the qualified trait call reaches a bound and a pointer receiver; awaited and spawned | **nothing moved**: every trait method is called with the dotted form |
+| 132 `6f0f518` (DEF-256) | a consuming `pick`'s binding re-assigned after a move is live again | **nothing moved**: none written |
+| 133 `c230073` (DEF-257, D-362) | a `pick` does not select on a pointer; the pipe operators struck | **nothing moved**: every `pick` selects an `Error` or an enum; no pipe |
+| 134 `a73b68d` (DEF-178, DEF-187) | a `pick`'s value pattern is a constant of the selector's type | **nothing moved**: no value pattern written |
+| 135 `0280fc9` (DEF-190, DEF-182) | a numeral's digit run ends in a digit; an attribute decorates only what keeps one | **nothing moved**: no numeral holds an `_`, and probe 12's `derive(Copy)` decorates structs; the lexer's change is to numerals, which `harness/lexical.py` does not read |
+| 136 `19d674b` (DEF-258, DEF-259, DEF-261) | a keyword is never a parameter's name; a local `T:keyword` is `PARSE-001`; a function modifier stands before `func:` alone | **nothing moved**: no declared name of the patched tree or of the self-check's fixtures is a keyword (`tools/names.py`, against the pin's `src/frontend/keywords.npk`, 170 words, byte-identical at the two pins); 0.0.2's mutant `thread-in-library` and 0.0.3's `scan-thread` fixture write `thread async func:`, which compiles at both pins |
+| 138 `2a9d601` (DEF-272) | an explicit `<-` is a place step to the escape and aliasing analyses: a callee's store, write, view or move through `(<-a)[i]` enters their summaries and the aliasing walk's parties, and a destination through a pointer local is `BORROW-002` | **nothing moved**: the eight probes that store through `<-` into `wild` storage — 02, 03, 04, 07, 08, 10, 11 and 12 — compile and run as before; no fixture of the self-check writes through `<-` |
+| 139 `a3c873c` (DEF-265, DEF-271) | after a failed expression a struct literal's braces are the expression's; a block without its `{` reads nothing | **nothing moved**: 0.0.3's `parse-not-parsing` fixture, a statement missing its `;`, is `NITPICK-PARSE-001` at 5:1 at both pins (`0.0.3.md` §1.3); no probe holds a parse error |
+| 140 `2e1cb4a` (DEF-275) | a pointer local's value handed to a callee is checked against the views through it, as `@place` always was | **the pin**: CI's three rows take its notice's (0.0.1); no program is refused anew; its reading tool, `--dump-refs FILE`, joins `npkc`'s usage — `0.0.3.md` §1.2's line |
+
+**Not carried** — landed on the compiler's `main` after the pin, up to `9eaf3b6`, landing 151, by the adoption's
+dispatch's `ls-remote` (03:03:02 on 2026-10-23) and the Workspace compiler clone's ref; each read in its commit and at
+its own sha in the compiler's `meta/NOTICES.md`, and where each would move this plan. The shapes are counted over the
+cycle's 138 programs — the patched tree's 33 and the self-check's 105 fixtures — read as `tools/shapes.py` reads them:
 
 | Landing | What it does | Where it would move this plan |
 |---|---|---|
-| 119 `34979dc` (D-355, F61) | `NULL` for a plain pointer or an `Optional` is `TYPE-096`; "maybe no pointer" is `T->?` with `NIL` | **nowhere written**: the cycle writes no `NULL` (`tools/rulings.py`), and every pointer field of a kernel-structure mirror is `wild`, where `NULL` stays legal; DEF-257's `(NULL)` arm is not written |
-| 120 `0156326` (D-360, F62) | `??!`, an `Optional`'s unwrap-or-trap | **not used** |
-| 121 `f9a9428` (D-361, F63) | a value of wild provenance enters a plain pointer slot only through `=>! T->`, else `TYPE-097` | **nowhere written**: every `wild` value the probes make goes into a `wild` slot or is dereferenced in place; a view's `.ptr` goes to `sys`, which is no pointer slot. The `#ptr_add` sites are the probes' 63, listed by `tools/shapes.py`, and `src/` has none: the library's count starts at zero and stays few and listed, never confined to `wild` context on `BUILTIN_REFERENCE.md`'s sentence, which landing 128 struck; 0.0.2's floor-writer fills the floor's `write`'s `wild any->` slot with its view's `.ptr`, and 0.0.3's `scan-floor-write` fixture with a `wild int8->` |
-| 122 `29e93a9` (D-357) | a `comptime func:` is compile-time only, `TYPE-098` | **nothing**: none written |
-| 123 `284402d` (D-356) | a payload-less variant is a constant outside the evaluator | **nothing**: no initialiser names a variant |
-| 124 `ccf7f95` (D-359) | the orphan rule, `TYPE-099` | **nothing**: every `impl` sits beside its type (`tools/rulings.py`) |
-| 125 `2b95bb4` (DEF-234 (a), (b)) | a driver method takes a byte payload; `use mod.f;` binds its member | **nothing**: no `extern` driver; 0.0.1's consumer imports by path |
-| 126 `e709f77` (DEF-242) | the site table holds the emission's sites | **emission only**: no IR is compared |
-| 127 `1670427` (D-339, DEF-181) | the lock walk's holes closed | **nothing** in the probes: no lock; probe 09's channel is refused at its annotation. **Re-read** for 0.0.3's `scan-lock` fixture, which holds a `Guard` and calls nothing while it does |
-| 128 `463cf93` (D-341, F70) | a `buffer` gets the checked `b[i]` and `b[lo...hi]`; a `#wild_slice` over a header's `.ptr` is a view of its owner (`BORROW-015`, `BORROW-001`); `#ptr_add`'s "`wild` context" sentence struck | **nowhere in 0.0.0**, which writes no `buffer` index and no `#wild_slice`; notice 128 counts no sockets site. **0.0.4's `Bytes` is designed to it**: no raw `.ptr[i]`, no `#wild_slice` over `.ptr` held across a write — nitpick-time's `bytes.npk` line 140 is the shape that breaks |
-| 129 `17d26ad` (DEF-244) | the source manager keys a file by its identity, so a root imported back from a sibling is one module | **nothing measured**: its row says the shown path is unchanged (D-236) and every program it compared byte-identical; no module imports another back; 0.0.2's `repro` step re-reads it |
-| 130 `c1e20e8` (DEF-245, DEF-260) | a declaration whose header fails is one report | **nothing**: each refused probe, and each of 0.0.3's refusal fixtures, reports one diagnostic per site at the pin, which the exact-code rule (0.0.2) re-reads at the adoption |
-| 131 `b1a23b8`, 137 `c72639f` (DEF-255, DEF-267) | the qualified trait call reaches a bound and a pointer receiver; awaited and spawned | **nothing**: every trait method is called with the dotted form |
-| 132 `6f0f518` (DEF-256) | a consuming `pick`'s binding re-assigned after a move is live again | **nothing**: none written |
-| 133 `c230073` (DEF-257, D-362) | a `pick` does not select on a pointer; the pipe operators struck | **nothing**: every `pick` selects an `Error` or an enum; no pipe |
-| 134 `a73b68d` (DEF-178, DEF-187) | a `pick`'s value pattern is a constant of the selector's type | **nothing**: no value pattern written |
-| 135 `0280fc9` (DEF-190, DEF-182) | a numeral's digit run ends in a digit; an attribute decorates only what keeps one | **nothing**: no numeral holds an `_`; probe 12's `derive(Copy)` decorates structs |
-| 136 `19d674b` (DEF-258, DEF-259, DEF-261) | a keyword is never a parameter's name; a local `T:keyword` is `PARSE-001`; a function modifier stands before `func:` alone | **nothing measured**: no declared name of 0.0.0's, 0.0.1's, 0.0.2's or 0.0.3's patched tree, or of 0.0.3's self-check fixtures, is a keyword (`tools/names.py`); 0.0.2's mutant `thread-in-library` and 0.0.3's `scan-thread` fixture write `thread async func:`, as the compiler's own test does at the pin |
-| 138 `2a9d601` (DEF-272) | an explicit `<-` is a place step to the escape and aliasing analyses: a callee's store, write, view or move through `(<-a)[i]` enters their summaries and the aliasing walk's parties, and a destination through a pointer local is `BORROW-002` | **re-read**: eight probes store through `<-` into `wild` storage — 02, 03, 04, 07, 08, 10, 11 and 12 — which those analyses now step through; no fixture of 0.0.3's self-check writes through `<-` |
-| 139 `a3c873c` (DEF-265, DEF-271) | after a failed expression a struct literal's braces are the expression's; a block without its `{` reads nothing | **re-read**: 0.0.3's `parse-not-parsing` fixture, a statement missing its `;`, `NITPICK-PARSE-001` at 5:1 (`0.0.3.md` §1.3); no probe holds a parse error |
+| 141 `6370cae` (DEF-268) | a function declared inside a body is one report, `PARSE-001` at `func` naming D-018 | **nowhere written**: the five `func:` within braces are methods of `impl` blocks (probes 06 and 06b), none inside a body |
+| 142 `79cd363` (DEF-176), 150 `ea571d5` (DEF-276) | a non-folding chain at the depth bound compiles; the emitter holds every chain at the bound | **nothing**: no chain near the bound; 150's notice reads every emission byte-identical |
+| 143 `753e783` (DEF-184, DEF-177) | a type nested past 256 levels is `PARSE-012`; after a `.`, anything but a member's name is `PARSE-001` | **nothing**: 218 member dots, each followed by a name — one by `acquire`, the `scan-lock` fixture's mutex call, one of the four keywords the parser takes after a dot (D-056) |
+| 144 `6451911` (DEF-185, DEF-186, DEF-188, DEF-240) | a macro body declares only what an expansion emits; a macro takes no type arguments; `npkg`'s stage list is one list | **re-read**: no macro written; `npkg/manifest.npk`'s read of the `target` key moves from its line 96 to 119 — 0.0.1's block 0b, §1.11 — and its `schema_allows` is unchanged (0.0.2's §1.2, 0.0.3's §1.9) |
+| 145 `9c08ccc`, 148 `aba4a69`, 149 `50ebf7d` (DEF-269, DEF-279, DEF-277) | the verified build's encoder and statement walk hold at their bounds | **nothing**: nothing here runs `--obligations` or `--elide` |
+| 146 `915f427` (DEF-274, S-134's R4) | an atomic's methods lower through a pointer; `npkc FILE --reach OUT` writes the identities a `failsafe` must name | **re-read**: no atomic written; `npkc`'s usage gains `[--reach FILE]` — 0.0.3's block 0b, §1.2, and its sentence — another file written beside the IR, so still no mode that stops after the parser (@@PD-173@@'s reading) |
+| 147 `d422c1e` (DEF-270, DEF-280) | a generic `comptime func:` names its type parameter in a type under evaluation; `move` folds in a comptime body | **nothing**: no `comptime` (`tools/rulings.py`) |
+| 151 `9eaf3b6` (D-363 R1) | a `pick` arm names several values with one body; a value repeated in a `pick` is `PICK-004`; a path over a selector that is no enum is `TYPE-007` | **nothing written**: 59 `pick`s, none with a list and none repeating a value; every program compiles at the pin, so none holds the shape the emitter died on |
 
 **At the adoption that carries any landing past the pin, 0.0.1's CI moves**: its three rows that pin the compiler —
 `NITPICK_COMMIT`, `NPKC_LL_SHA256`, `NPKC_LL_BYTES` — take the new notice's, and `LLVM_VERSION`, with the manifest's
 `llvm` row, only if a landing moves the compiler's D-349 (`0.0.1.md` §10, which also names what each item not yet
 landed would move) — and a new LLVM pin is a new research digest (@@PD-172@@). **And 0.0.2's harness is re-read**:
 `harness/runtime_symbols.tsv` stops the run on any global symbol of the runtime it does not class, so a landing that
-rebuilds the floor (D-358, not landed) is classed before a run can be green, and build step 1's printed counts move
-with it (`0.0.2.md` §11).
+rebuilds the floor (D-358, not landed by 151: no notice 119 … 151 names it) is classed before a run can be green, and
+build step 1's printed counts move with it (`0.0.2.md` §11).
+
+**The adoption of `2e1cb4a` was taken on 2026-10-23 (T7a), before any subcycle started**, and measured. CI's rows are
+`2e1cb4adef79…` and notice 140's `npkc.ll` row, `00730602…`, 32569732 B; `LLVM_VERSION` stays 20.1.8, since no landing
+119 … 140 moves the compiler's D-349. `npkrt.o` is byte-identical at the two pins (`c8e5033a…`, 72 656 B), so the
+runtime table classes the same 119 globals and build step 1 prints the same counts. The self-check's 105 fixtures
+compile to the same codes and sites at both pins. Every block of 0.0.0 … 0.0.3 reads as at `c9baa9e` but block 0a's
+commit line, 0.0.0's §1.2 lines (their label, and O-N3's comment at line 1756), 0.0.1's §1.5 and §1.11 (the pin's own
+rows and subject) and 0.0.3's §1.2 (`npkc`'s usage, with `--dump-refs`), each retaken from a run. No verdict moved,
+and no compiler defect was found.
 
 ## The shapes this cycle does not write
 
@@ -149,8 +181,8 @@ planted and clean controls (`tools/shapes.py`, `rulings.py`, `names.py`).
 | a bare or plain module-level binding; `comptime`; an orphan `impl`; `NULL` | every module binding `fixed` with an initialiser; none of the rest (`rulings.py`) |
 | a name that is a keyword at 113, or a prelude name declared again | every declared name read against the pin's table (`names.py`); `RESOLVE-001` names in `specs/BUILD.md` §7 |
 | a generic value parameter; a trait default calling a sibling on `self` | none written (`shapes.py`) |
-| a qualified trait call through a bound (DEF-255, open) | every trait method called with the dotted form |
-| a `buffer` read or written through an untied view (D-341 not carried) | no `#wild_slice`; `.ptr` only behind 0.0.4's checked accessors (Addition 1) |
+| a qualified trait call through a bound (DEF-255, open at `c9baa9e`; fixed by landing 131, which the pin carries) | every trait method called with the dotted form |
+| a `buffer` read or written through an untied view (D-341, carried from landing 128: a `#wild_slice` over `.ptr` is a view of its owner, `BORROW-015` across a write) | no `#wild_slice`; `.ptr` only behind 0.0.4's checked accessors (Addition 1) |
 | `PLAYBOOK.md` §2's open rows | the read-only view in every reader slot (@@PD-161@@); no part of a `fixed` binding written; every path leaving explicitly; `main` exactly `int32(cstring[]:_~argv)`; each `Result` tested alone; `#size_of` measured, never summed |
 
 ## What the audits found owed, and where each is carried
