@@ -18,7 +18,7 @@ for c in 3d15ac9 c3bdae2; do echo "§1.2 at $c, npkrt.ll's rt_sigaction mentions
 echo "§1.2 npkrt.ll's npk_pipe_handler mentions: $(for c in 3d15ac9 b7244d2f^ b7244d2f c3bdae2 $PIN; do printf 'at %s %s; ' "$c" "$(show $c:runtime/npkrt.ll | grep -c npk_pipe_handler)"; done)b7244d2f is $(git -C "$NPK_TREE" show -s --format=%s b7244d2f | grep -oE '^1\.5\.8 step 3: THE LAST NET \(D-307; DEF-68 fixed\)')"
 echo "§1.2 at $PIN, runtime/ against 7e91730: $(git -C "$NPK_TREE" diff 7e91730 $PIN -- runtime/ | wc -l) line(s) of diff"
 echo "§1.2 at $PIN, nbridge.npk: $(show $PIN:lib/nbridge.npk | grep -m1 -oE 'socketpair whose peer died raises SIGPIPE, which terminates the') | $(show $PIN:lib/nbridge.npk | grep -m1 -oE 'unwrap-or-TRAP: right in a test.s main, wrong in this tier')"
-echo "§1.2 at $PIN, types.npk:1733: $(show $PIN:src/frontend/types.npk | sed -n '1733p' | sed -E 's/^ +//')"
+echo "§1.2 at $PIN, types.npk:1756: $(show $PIN:src/frontend/types.npk | sed -n '1756p' | sed -E 's/^ +//')"
 echo "§1.2 at $PIN, the prelude's named errnos: $(show $PIN:src/prelude/prelude.npk | grep -oE '^pub error:(WouldBlock|Interrupted|NotFound|Exists|CrossDevice) = [0-9]+i32;' | tr '\n' ' ')"
 echo "§1.2 at $PIN, the prelude's Writer: $(show $PIN:src/prelude/prelude.npk | grep -m1 -oE 'async func:write = int64\(Self->:self, fixed uint8\[\]:wsrc, Duration:within\);')"
 show $PIN:src/frontend/keywords.npk > "$F/keywords.npk"

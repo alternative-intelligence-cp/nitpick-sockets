@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Cycle 0.0 -- read `.npk` files the way the compiler does (bytes; `\\n` the only line end; comments and string
 literals blanked) and count the shapes a plan must not write: those whose answer moved between compiler `7e91730`,
-the libraries' pin before this one, and the landings the pin `c9baa9e` carries (the cycle README's landing list), and
-those a pin is silent on -- and list the one it must keep few: `#ptr_add`.
+the libraries' pin before `c9baa9e`, and landings 104 … 118, which `c9baa9e` carries (the cycle README's landing
+list), and those a pin is silent on -- and list the one it must keep few: `#ptr_add`.
 
     python3 -B shapes.py <file>...           one line per shape: its count over all the files
     python3 -B shapes.py --sites <file>...   and every site, `<file>:<line>`, beside it
@@ -23,7 +23,7 @@ The shapes, each with the landing or the row that moves it:
   `.is_error ||` and its mirror  `PLAYBOOK.md` §2 (`if (a.is_error || b.is_error)` clears neither taint)
   a `failsafe` whose first statement is not its `pick`   109 (DEF-224 finds a nested pick; `7e91730` did not)
   a trait default calling a sibling on `self`   118 (DEF-254: it never links before)
-  `#ptr_add`                     landing 121 (D-361, not in the pin): a wild value enters a plain pointer slot only
+  `#ptr_add`                     landing 121 (D-361, in the pin `2e1cb4a`): a wild value enters a plain pointer slot only
                                  through `=>! T->` there, so the sites are kept few and listed, never confined by hand
 """
 import re

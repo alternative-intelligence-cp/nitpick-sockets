@@ -403,7 +403,7 @@ index 0000000..099b049
 +#!/usr/bin/env python3
 +"""A test's expectations, read from the test file -- `meta/specs/BUILD.md` B-6 and B-6a.
 +
-+THE COMPILER'S GRAMMAR, as `npkg/expect.npk` reads it at the pin `c9baa9e`: a line whose
++THE COMPILER'S GRAMMAR, as `npkg/expect.npk` reads it at the pin `2e1cb4a`: a line whose
 +stripped form starts with `//` is a comment; its body, stripped, is a MARKER when it starts
 +with a marker's name -- `// see expect-exit: 94` is prose -- and the marker's value is the
 +WHOLE rest of the line, so `// expect-exit: 94 -- the OutOfBounds arm` cannot be read, and a
@@ -648,7 +648,7 @@ index 0000000..20902a4
 +single-line arrays -- and a key the schema lacks is refused by name: a key nothing reads is
 +the next stale document (the compiler's D-204). After `nitpick-parse`'s `harness/manifest.py`.
 +
-+THE SCHEMA IS THE COMPILER'S AT THE PIN: `npkg/manifest.npk`'s `schema_allows` at `c9baa9e`,
++THE SCHEMA IS THE COMPILER'S AT THE PIN: `npkg/manifest.npk`'s `schema_allows` at `2e1cb4a`,
 +table for table and key for key, `[dependencies]` taking any key. Cycle 0.0.2's facts script
 +re-derives it from that function and compares (`0.0.2.md` §1.2).
 +

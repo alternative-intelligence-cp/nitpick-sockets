@@ -8,17 +8,20 @@ for 0.0.2 (2026-10-21), T7c3 for 0.0.3 (2026-10-22) —** one subcycle file at a
 0.0.1 corrected by fix round 1 (2026-10-21) where the first plan verification found them wrong, and 0.0.1's steps 4
 and 5 by 0.0.2's planner, so that each says what CI pins at its step. The six files were written at the repository's setup (2026-09-03), against
 the compiler's cycle 1.5 and LLVM 20.1.2; each is re-measured at the pin, with what the audits found owed carried into
-the step that owes it (the owed-items table below). **`c9baa9e` is the libraries' one re-pin**, landing 118's commit,
-by the author's word on the workbench's question 32 (2026-10-15 12:04:21), taken on 2026-10-16 and committed at the
-workbench's `4540f20`; this cycle is planned at it from the start, and no subcycle has started.
+the step that owes it (the owed-items table below). **`c9baa9e` was the libraries' one re-pin of 2026-10-16**,
+landing 118's commit, by the author's word on the workbench's question 32 (2026-10-15 12:04:21), committed at the
+workbench's `4540f20`; this cycle was planned at it from the start. **The pin is now `2e1cb4a`**, landing 140's commit,
+the libraries' next re-pin, by the author's word of 2026-10-22 03:49:41, taken on 2026-10-22 and committed at the
+workbench's `4db3f92`; **T7a adopted it here on 2026-10-23, before any subcycle started**, by the landing table below,
+row by row, every block of 0.0.0 … 0.0.3 run again at the new pin. No subcycle has started.
 
-| File | At `c9baa9e` |
+| File | At `2e1cb4a` |
 |---|---|
-| [0.0.0](0.0.0.md) | **yes** — probes measured, five patches, blocks with filled Expects |
-| [0.0.1](0.0.1.md) | **yes** — the layout, the skeleton, the manifest, CI and the currency table; six patches, blocks with filled Expects |
-| [0.0.2](0.0.2.md) | **yes** — the harness, part 1: the runner, its two scans and their controls, `repro`, three stages, the probes as suites, CI's summary and LLVM by content; three patches, the mutants, blocks with filled Expects |
-| [0.0.3](0.0.3.md) | **yes** — the harness, part 2: the `check` stage and the `parse` sweep, `loopback` and `network`, the self-check beside its controls, nine tree checks and `--only`; two patches, the mutants, blocks with filled Expects |
-| [0.0.4](0.0.4.md) | **not yet** — the setup-era text; the pass's continuation re-derives it |
+| [0.0.0](0.0.0.md) | **yes**, adopted — probes measured, five patches, blocks with filled Expects |
+| [0.0.1](0.0.1.md) | **yes**, adopted — the layout, the skeleton, the manifest, CI and the currency table; six patches, blocks with filled Expects |
+| [0.0.2](0.0.2.md) | **yes**, adopted — the harness, part 1: the runner, its two scans and their controls, `repro`, three stages, the probes as suites, CI's summary and LLVM by content; three patches, the mutants, blocks with filled Expects |
+| [0.0.3](0.0.3.md) | **yes**, adopted — the harness, part 2: the `check` stage and the `parse` sweep, `loopback` and `network`, the self-check beside its controls, nine tree checks and `--only`; two patches, the mutants, blocks with filled Expects |
+| [0.0.4](0.0.4.md) | **not yet** — the setup-era text; the pass's continuation re-derives it, at `2e1cb4a` |
 | [0.0.5](0.0.5.md) | **not yet** — as 0.0.4; its execution, the close, is the libraries' seat's |
 
 A file marked *not yet* is a target, not a plan: its steps are re-derived at the pin before anything is dispatched from
@@ -200,7 +203,7 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 
 | # | Point | Answer |
 |---|---|---|
-| 1 | which compiler | `c9baa9e`, the one re-pin, from the start |
+| 1 | which compiler | `2e1cb4a`, adopted on 2026-10-23 before any subcycle started; planned at `c9baa9e`, the one re-pin of 2026-10-16, from the start |
 | 2 | `SK-013` after the handler | settled by 0.0.0: the rule kept, its fact superseded, V-5 rewritten around probe 04, the marker retired (@@PD-159@@); 0.0.2's runner fails a file carrying it by name (@@PD-171@@), and 0.0.3's self-check proves it (@@PD-174@@) |
 | 3 | verification clauses (Z-1, Z-4, Z-5) | handed to 0.0.4, with EK1 |
 | 4 | how error detail reaches a caller | not this cycle's (NH-9) |

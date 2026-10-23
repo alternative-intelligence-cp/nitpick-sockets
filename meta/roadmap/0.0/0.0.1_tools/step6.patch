@@ -89,7 +89,7 @@ index f720eb1..a9e4d55 100644
 -> is planned now so that implementation can start the day the language stops
 -> moving.
 +> then code. The plan is measured against the compiler at the workbench's pin,
-+> `c9baa9e` — its landing 118, in its cycle 1.6; its cycle 1.5, verification,
++> `2e1cb4a` — its landing 140, in its cycle 1.6; its cycle 1.5, verification,
 +> closed on 2026-09-25.
  
  ---

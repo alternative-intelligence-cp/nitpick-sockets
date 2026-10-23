@@ -141,7 +141,7 @@ index 0000000..b3890ad
 +by their repository, and its docstrings restated for this harness. That reader mirrors the compiler's lexer
 +(`src/frontend/lexer.npk`'s `lexer_skip_trivia` and `lexer_next`), its escapes (`src/frontend/escapes.npk`'s
 +`escape_decode` and `decode_string`) and its import parser (`p_parse_import` in `src/frontend/parse_decl.npk`), by
-+that module's own header, which records its re-reading of all three at this pin, `c9baa9e` (`nitpick-regex`'s RX-245).
++that module's own header, which records its re-reading of all three at compiler `c9baa9e` (`nitpick-regex`'s RX-245).
 +The rules it carries are `PLAYBOOK.md`'s:
 +
 +  * THE TEXT IS BYTES, one character per byte (latin-1), so `\\n` is the only line end and a carriage return is
@@ -478,11 +478,11 @@ index 20902a4..471b777 100644
 @@ -8,8 +8,8 @@ single-line arrays -- and a key the schema lacks is refused by name: a key nothi
  the next stale document (the compiler's D-204). After `nitpick-parse`'s `harness/manifest.py`.
  
- THE SCHEMA IS THE COMPILER'S AT THE PIN: `npkg/manifest.npk`'s `schema_allows` at `c9baa9e`,
+ THE SCHEMA IS THE COMPILER'S AT THE PIN: `npkg/manifest.npk`'s `schema_allows` at `2e1cb4a`,
 -table for table and key for key, `[dependencies]` taking any key. Cycle 0.0.2's facts script
 -re-derives it from that function and compares (`0.0.2.md` §1.2).
 +table for table and key for key, `[dependencies]` taking any key -- measured equal to that
-+function, read by `git show`, at the pin on 2026-10-22.
++function, read by `git show`, at the pin on 2026-10-23.
  
  THE STAGES are the compiler's vocabulary (`BUILD_REFERENCE.md` §7.1 at the pin) and this
  library's two (`loopback`, `network`; `BUILD.md` §3). The compiler's rule is this runner's:
