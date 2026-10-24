@@ -1,0 +1,408 @@
+diff --git a/harness/selfcheck.py b/harness/selfcheck.py
+index ac2fac2..e969036 100644
+--- a/harness/selfcheck.py
++++ b/harness/selfcheck.py
+@@ -268,6 +268,22 @@ SYSMOD = ("mod:sys;\n\npub fixed int64:SYS_SOCKET = 41i64;\npub fixed int64:SYS_
+           "pub fixed int64:MSG_NOSIGNAL = 16384i64;\npub fixed int64:AF_INET = 2i64;\n")
+ 
+ 
++LIM = "src/core/limits.npk"
++
++
++def _limits(root):
++    """The tree's own bounds file, as the text `_write` writes back -- every bounds case and its control holds it."""
++    with open(os.path.join(root, LIM), encoding="utf-8") as fh:
++        return fh.read()
++
++
++def _swap(text, old, new):
++    """`text` with `old` replaced by `new`, exactly once -- a case whose substitution did not match proves nothing."""
++    if text.count(old) != 1:
++        raise ValueError(f"the self-check's substitution {old!r} matches {text.count(old)} time(s), not once")
++    return text.replace(old, new)
++
++
+ def _sock(body):
+     return "mod:socket;\n\n// MAY IMPORT: `option`, `addr`, `sys` and `core`\nuse \"../sys/sys.npk\".*;\n\n" + body
+ 
+@@ -320,15 +336,24 @@ def _tree_cases(c):
+     c.tree("constants-outside-sys", treecheck.check_constants_named,
+            {SYS: SYSMOD, "src/socket/socket.npk": _sock("fixed int64:AF_UNIX = 1i64;\n")}, "a kernel constant outside",
+            {SYS: SYSMOD + "pub fixed int64:AF_UNIX = 1i64;\n", "src/socket/socket.npk": _sock("// fixed int64:AF_UNIX = 1i64;\n")})
++    # The bounds: each fixture holds the tree's own `src/core/limits.npk`, which the run's check holds to the rules that
++    # state each value, so a case breaks one facet of it and its control is the file as it stands (@@PD-176@@).
++    lim = _limits(c.root)
+     c.tree("constants-bound-outside-limits", treecheck.check_constants_named,
+-           {"src/socket/socket.npk": _sock("fixed int64:NSOCK_LOCAL_MAX = 7i64;\n")}, "a bound outside",
+-           {"src/core/limits.npk": "mod:limits;\n\npub fixed int64:NSOCK_LOCAL_MAX = 7i64;\n"})
++           {LIM: lim, "src/socket/socket.npk": _sock("fixed int64:NSOCK_CMSG_MAX = 256i64;\n")}, "a bound outside",
++           {LIM: lim, "src/socket/socket.npk": _sock("// fixed int64:NSOCK_CMSG_MAX = 256i64;\n")})
+     c.tree("constants-bound-by-value", treecheck.check_constants_named,
+-           {"src/core/limits.npk": "mod:limits;\n\npub fixed int64:NSOCK_LOCAL_MAX = 4093i64;\n",
+-            "src/socket/socket.npk": _sock("pub func:m = int64() never fails {\n    pass 4093i64;\n};\n")},
+-           "the literal 4093 is `NSOCK_LOCAL_MAX`'s value",
+-           {"src/core/limits.npk": "mod:limits;\n\npub fixed int64:NSOCK_LOCAL_MAX = 4093i64;\n",
+-            "src/socket/socket.npk": _sock("pub func:m = int64() never fails {\n    pass 4092i64; // 4093i64\n};\n")})
++           {LIM: lim, "src/socket/socket.npk": _sock("pub func:m = int64() never fails {\n    pass 256i64;\n};\n")},
++           "the literal 256 is `NSOCK_CMSG_MAX`'s value",
++           {LIM: lim, "src/socket/socket.npk": _sock("pub func:m = int64() never fails {\n    pass 16i64 + 50i64; // 256i64\n};\n")})
++    c.tree("constants-bound-unstated", treecheck.check_constants_named,
++           {LIM: lim + "pub fixed int64:NSOCK_LOCAL_MAX = 4093i64;\n"}, "a bound no specification states", {LIM: lim})
++    c.tree("constants-bound-off-its-rule", treecheck.check_constants_named,
++           {LIM: _swap(lim, "NSOCK_SCM_MAX_FDS = 16i64;", "NSOCK_SCM_MAX_FDS = 17i64;")},
++           "`NSOCK_SCM_MAX_FDS` is 17; meta/specs/ANCILLARY_MODEL.md states 16", {LIM: lim})
++    c.tree("constants-bound-undeclared", treecheck.check_constants_named,
++           {LIM: _swap(lim, "pub fixed int64:NSOCK_EMFILE_BACKOFF = 50i64;\n", "")},
++           "states `NSOCK_EMFILE_BACKOFF` = 50, which src/core/limits.npk does not declare", {LIM: lim})
+     c.tree("port-hardcoded", treecheck.check_no_hardcoded_port,
+            {"tests/unit/net/t.npk": "mod:t;\n\nstruct:S = { uint16:port_be; };\n\nfunc:f = S() never fails {\n"
+             "    pass S{ port_be: 8080u16 };\n};\n"}, "`port_be` is given 8080",
+diff --git a/harness/treecheck.py b/harness/treecheck.py
+index 92743d3..fe3da07 100644
+--- a/harness/treecheck.py
++++ b/harness/treecheck.py
+@@ -20,9 +20,12 @@ included (the planning guide's G20). Each returns `(line, findings)`; the run pr
+   check_constants_named    every `sys` call under `src/` names its number by a `SYS_<CALL>` constant `src/sys/`
+                            declares, its call one of `SOCKET_MODEL.md` K-1's table, its value K-1's; no `SYS_` name and
+                            no kernel constant a specification states -- `NAME` = n or `NAME` (n), a bound's `NSOCK_`
+-                           aside -- declared outside `src/sys/`, and each declared there at the value stated; and no
+-                           `NSOCK_` bound declared outside `src/core/limits.npk`, nor a value that file declares
+-                           written as a literal elsewhere under `src/`
++                           aside -- declared outside `src/sys/`, and each declared there at the value stated; no
++                           `NSOCK_` bound declared outside `src/core/limits.npk`; that file holding every bound a
++                           specification states with its value, at that value, and no other; and no bound's value
++                           written as a literal elsewhere under `src/` -- where no specification states the same
++                           number as a kernel constant, a syscall number or a structure size, which a literal cannot
++                           be told apart from, so such a bound is held by its name alone and the run's line says so
+   check_no_hardcoded_port  no non-zero integer literal bound or initialised to a name whose word is `port` --
+                            `port`, `port_be`, `sin_port` -- in `tests/` (V-3)
+   check_msg_nosignal       every `sys` call under `src/` whose number is `sendto`'s or `sendmsg`'s by K-1's table names
+@@ -204,6 +207,36 @@ def _k1(root):
+     return calls_, consts
+ 
+ 
++
++def _stated_sizes(root):
++    """Every structure size a specification states: [(name, bytes, specification)] -- a heading `` ### `name` — n
++    bytes ``, a declaration's comment `// n bytes`, and N-13's `` `struct ucred`: **12 bytes** ``."""
++    stated = []
++    for name in sorted(os.listdir(os.path.join(root, SPECS))):
++        if not name.endswith(".md"):
++            continue
++        t = _spec(root, name)
++        for m in re.finditer(r"^### `(\w+)` — (\d+) bytes", t, re.M):
++            stated.append((m.group(1), int(m.group(2)), name))
++        for m in re.finditer(r"^pub (?:struct|enum):(\w+)\s*=.*//\s*(\d+) bytes", t, re.M):
++            stated.append((m.group(1), int(m.group(2)), name))
++        for m in re.finditer(r"`struct (\w+)`: \*\*(\d+) bytes\*\*", t):
++            stated.append((m.group(1), int(m.group(2)), name))
++    return stated
++
++
++def _bounds(root):
++    """{NAME: [(value or None, specification)]} for every `NSOCK_` bound a specification under `meta/specs/` names: a
++    value where the specification states it as `` `NSOCK_<NAME>` = n ``, the form N-4, N-5 and C-11 use, and None for a
++    mention that states none -- C-13's `NSOCK_POLLSET_MAX`, or a note that names a bound in passing."""
++    out = {}
++    for f in sorted(os.listdir(os.path.join(root, SPECS))):
++        if not f.endswith(".md"):
++            continue
++        for m in re.finditer(r"`(NSOCK_[A-Z0-9_]+)`(?: = (\d+))?", _spec(root, f)):
++            out.setdefault(m.group(1), []).append((int(m.group(2)) if m.group(2) else None, f))
++    return out
++
+ def _sys_names(root):
+     """{NAME: (value, file)} for every module-level constant a module under `src/sys/` declares."""
+     out = {}
+@@ -240,10 +273,28 @@ def check_constants_named(root):
+                 bad.append(f"{_rel(root, f)}: `{name}` is {value}; K-1's table gives `{call}` {k1[call]}")
+         elif name in kconst and value != kconst[name]:
+             bad.append(f"{_rel(root, f)}: `{name}` is {value}; meta/specs/ states {kconst[name]}")
+-    bounds = {}
++    bounds, stated = {}, _bounds(root)
+     if os.path.isfile(limits):
+         bounds = {m.group(1): _int(m.group(2)) for m in _CONST.finditer(blank(read(limits)))
+                   if m.group(1).startswith("NSOCK_")}
++        for name, says in sorted(stated.items()):
++            values = sorted({v for v, _ in says if v is not None})
++            where = ", ".join(sorted({f for v, f in says if v is not None or not values}))
++            if len(values) > 1:
++                bad.append(f"meta/specs/{where} state `{name}` as {' and as '.join(map(str, values))} -- one bound, one value")
++            elif values and name not in bounds:
++                bad.append(f"meta/specs/{where} states `{name}` = {values[0]}, which src/core/limits.npk does not "
++                           "declare -- every named bound lives there")
++            elif values and bounds[name] != values[0]:
++                bad.append(f"src/core/limits.npk: `{name}` is {bounds[name]}; meta/specs/{where} states {values[0]}")
++            elif not values and name in bounds:
++                bad.append(f"src/core/limits.npk: `{name}` is {bounds[name]}, and meta/specs/{where} names it with no "
++                           "value -- a bound's value is its rule's to state first")
++        for name in sorted(set(bounds) - set(stated)):
++            bad.append(f"src/core/limits.npk: `{name}` is a bound no specification states -- a bound with no rule is "
++                       "not one")
++    shared = set(kconst.values()) | set(k1.values()) | {n for _, n, _ in _stated_sizes(root)}
++    by_value = {v: k for k, v in bounds.items() if v not in shared}
+     for f in files:
+         code = blank(read(f))
+         for m in _CONST.finditer(code):
+@@ -267,15 +318,18 @@ def check_constants_named(root):
+             elif num not in by_number:
+                 bad.append(f"{_rel(root, f)}:{line}: `sys({args[0]}, ...)` is syscall {num}, which K-1's table does "
+                            "not hold")
+-        if f != limits and bounds:
+-            values = {v: k for k, v in bounds.items()}
++        if f != limits and by_value:
+             for m in re.finditer(r"(?<![\w.])(0x[0-9a-fA-F_]+|[0-9][0-9_]*)(?:i|u)\d+", code):
+-                if _int(m.group(1)) in values:
++                if _int(m.group(1)) in by_value:
+                     bad.append(f"{_rel(root, f)}:{code.count(chr(10), 0, m.start()) + 1}: the literal "
+-                               f"{_int(m.group(1))} is `{values[_int(m.group(1))]}`'s value -- name it from "
++                               f"{_int(m.group(1))} is `{by_value[_int(m.group(1))]}`'s value -- name it from "
+                                "src/core/limits.npk")
+-    have = f"{len(bounds)} bound(s) in src/core/limits.npk" if os.path.isfile(limits) else \
+-        "src/core/limits.npk absent until cycle 0.0.4"
++    unvalued = sorted(n for n, says in stated.items() if all(v is None for v, _ in says))
++    by_name = sorted(k for k, v in bounds.items() if v in shared)
++    have = (f"{len(bounds)} bound(s) in src/core/limits.npk, held to the rules that state them; a literal elsewhere held "
++            f"to {len(by_value)} ({', '.join(sorted(by_value.values())) or 'none'}), and "
++            f"{len(by_name)} by name alone, a kernel value's number too ({', '.join(by_name) or 'none'}); named with no "
++            f"value yet: {', '.join(unvalued) or 'none'}") if os.path.isfile(limits) else "src/core/limits.npk absent"
+     return (f"check_constants_named: {len(k1)} call(s) in K-1's table and {len(kconst)} kernel constant(s) "
+             f"meta/specs/ states; {len(files)} module file(s) under src/, {ncalls} `sys` call(s), {len(sysn)} constant(s) in "
+             f"src/sys/; {have}"), bad
+@@ -367,17 +421,7 @@ def _norm(name):
+ 
+ 
+ def check_struct_sizes(root):
+-    stated = []
+-    for name in sorted(os.listdir(os.path.join(root, SPECS))):
+-        if not name.endswith(".md"):
+-            continue
+-        t = _spec(root, name)
+-        for m in re.finditer(r"^### `(\w+)` — (\d+) bytes", t, re.M):
+-            stated.append((m.group(1), int(m.group(2)), name))
+-        for m in re.finditer(r"^pub (?:struct|enum):(\w+)\s*=.*//\s*(\d+) bytes", t, re.M):
+-            stated.append((m.group(1), int(m.group(2)), name))
+-        for m in re.finditer(r"`struct (\w+)`: \*\*(\d+) bytes\*\*", t):
+-            stated.append((m.group(1), int(m.group(2)), name))
++    stated = _stated_sizes(root)
+     probes = _files(root, os.path.join("tests", "probe"))
+     asserted = {}
+     for f in probes:
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index cc5a5ba..bdb9422 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -1079,3 +1079,41 @@ report nobody reads is the backlog cycle 0.10's checklist would have to drain.
+ 
+ *Reversal:* none for the key; a new identity, or a declaring module the table does not name, is a change to
+ `SAFETY.md` §3 by a decision, which the check then reads.
++
++### @@PD-176@@ — `limits.npk` holds every bound a specification states with its value, `check_constants_named` holds it to those statements both ways, and a bound's value is refused as a literal only where no kernel value shares it
++**@@DATE@@, cycle 0.0.4 step 1.** `specs/BUILD.md` B-13; `ANCILLARY_MODEL.md` N-4, N-5; `CONCURRENCY_MODEL.md` C-11,
++C-13; `TESTING.md` §5.
++
++*What was read and measured* — at the pin `2e1cb4a`. The plan's first writing listed `limits.npk`'s bounds twice, and
++differently: its cycle README four, "and the deadline defaults", and its 0.0.4 file nine. The specifications state three
++with a value — N-4's `NSOCK_CMSG_MAX` = 256 bytes, N-5's `NSOCK_SCM_MAX_FDS` = 16 descriptors and C-11's
++`NSOCK_EMFILE_BACKOFF`, 50 ms — and name a fourth, C-13's `NSOCK_POLLSET_MAX`, with no value. The first writing's other
++five, `NSOCK_ADDR_MAX`, `NSOCK_DEFAULT_BACKLOG`, `NSOCK_CONNECT_TIMEOUT`, `NSOCK_ACCEPT_TIMEOUT` and `NSOCK_IO_TIMEOUT`,
++no specification names: every operation that can wait takes its caller's `Duration:within` (`SAFETY.md` S-10), `listen`
++passes the backlog it is given (`SOCKET_MODEL.md` K-16), and the room an address takes is `sockaddr_storage`'s 128 bytes,
++a structure size. And cycle 0.0.3's `check_constants_named` refused, anywhere under `src/` but `limits.npk`, a literal
++equal to a bound's value. 16 is also `SO_PASSCRED` (N-14), a kernel constant `src/sys/` is to declare, and the size
++of `sockaddr_in`, `iovec` and `cmsghdr`, which the address and ancillary code is to write; 50 is `listen`'s number in
++K-1's table. Over a planted tree holding the three bounds, that reading refused a `src/sys/` declaring
++`SO_PASSCRED = 16` and `SYS_LISTEN = 50`, measured.
++
++*So:* `src/core/limits.npk` declares the three, each a `pub fixed int64` beside its rule; `NSOCK_POLLSET_MAX` joins it
++with its value in the cycle that writes `poll_set`, cycle 0.8, whose checklist names it; the other five are struck.
++`check_constants_named` reads each bound where a specification states it — the first whole number after its name in its
++sentence — and holds `limits.npk` to those statements both ways: a bound stated and not declared, declared and not
++stated, declared at another value, or stated with two values, is a finding. It refuses a bound's value as a literal
++elsewhere under `src/` only where no specification states the same number as a kernel constant, a syscall number or a
++structure size, and its line names the bounds it holds by name alone: at this subcycle `NSOCK_SCM_MAX_FDS` and
++`NSOCK_EMFILE_BACKOFF`, while `NSOCK_CMSG_MAX`'s 256 is held by value. This settles the planning guide's open point 13
++for the bounds.
++
++*Alternatives declined:* **a table of the bounds in a specification**, as `nitpick-parse`'s `SAFETY.md` §7 — each value
++is stated already, at the rule that decides it, and a table would be a second home for each number; **the first
++writing's nine** — five have no rule, and a bound with no rule is a number nobody can defend; **the fourth now, at a
++value of the plan's choosing** — a value no rule states is the check's own finding; **the value rule as written** — it
++refuses a kernel constant, a syscall number and three structure sizes, measured; **no value rule** — 256 is a number no
++kernel value shares, and a literal 256 under `src/` would be the bound written twice.
++
++*Reversal, for the author:* `NSOCK_POLLSET_MAX` joins the file at the value its consumer's cycle states; a struck bound
++returns with a rule that states its value, in the cycle that needs it; and a bound whose number a specification comes to
++state as a kernel value too moves to the by-name list, which every run's line prints.
+diff --git a/meta/specs/BUILD.md b/meta/specs/BUILD.md
+index 8a47033..8eabd30 100644
+--- a/meta/specs/BUILD.md
++++ b/meta/specs/BUILD.md
+@@ -246,6 +246,10 @@ reason B-11 gives: a library must not import a compiler's internals.
+   quadratic version of exactly that shape at 17 minutes of a 56-minute run.
+ - **`limits.npk`** — every named bound in one file.
+ 
++*(@@DATE@@, cycle 0.0.4 — @@PD-176@@: `limits.npk` declares each bound a specification states with its value,
++`NSOCK_<NAME>` = n, beside the rule that states it — three at this subcycle — and `check_constants_named` holds
++it to those rules both ways; a bound named with no value joins it in the cycle that states one.)*
++
+ **Rule B-14.** `nsockets` declares no other container. A collection of live
+ connections is an `arena<T>` with `Handle<T>` (`CONCURRENCY_MODEL.md` §4),
+ which is what the language provides for it.
+diff --git a/meta/specs/CONCURRENCY_MODEL.md b/meta/specs/CONCURRENCY_MODEL.md
+index 685c7c1..6cbdb2e 100644
+--- a/meta/specs/CONCURRENCY_MODEL.md
++++ b/meta/specs/CONCURRENCY_MODEL.md
+@@ -126,7 +126,7 @@ deployment's and a library that guessed would be wrong quietly.
+ **Rule C-11 — the `EMFILE` back-off is part of the loop.**
+ `SOCKET_MODEL.md` K-19.1: out of descriptors, `accept4` fails immediately with
+ the connection still pending, so a naive retry spins. `server_accept_bounded`
+-waits `NSOCK_EMFILE_BACKOFF` (a named constant, 50 ms) before retrying, which
++waits `NSOCK_EMFILE_BACKOFF` = 50 ms, a named constant, before retrying, which
+ turns a melt into a degradation. It also logs nothing, because a library does
+ not own an application's diagnostics — it returns the condition and the count.
+ 
+@@ -135,6 +135,10 @@ program can compare an error with (probes 13 and 13b), so the loop cannot tell
+ this condition from any other; the back-off waits, with `SOCKET_MODEL.md`
+ K-19.1, on the compiler's answer to O-N5.)*
+ 
++*(@@DATE@@, cycle 0.0.4 — @@PD-176@@: the value spelt `= 50 ms`, as N-4 and N-5 spell theirs — the form in which
++`check_constants_named` reads a bound's value — where it read "(a named constant, 50 ms)"; the value is unchanged,
++and `src/core/limits.npk` declares it.)*
++
+ ---
+ 
+ ## 4. When a collection of sockets is genuinely wanted
+diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
+index 297df6e..dbcf969 100644
+--- a/meta/specs/TESTING.md
++++ b/meta/specs/TESTING.md
+@@ -141,7 +141,7 @@ run on every full invocation.
+ | `check_msg_nosignal` | **every `sys` call in `src/` whose number is `sendto`'s or `sendmsg`'s by `SOCKET_MODEL.md` K-1's table names `MSG_NOSIGNAL` in its flags word** — the mechanical enforcement of S-1, and the most valuable check in this list |
+ | `check_no_floor_write` | no call of the floor's `write`, and no `ByteWriter`, anywhere in `src/` (S-2) — the source half; build step 2's call-edge scan (`BUILD.md` B-2a) is the other |
+ | `check_no_raw_setsockopt` | no `sys` call whose number is `setsockopt`'s or `getsockopt`'s outside `src/option/sockopt.npk` (P-1, @@PD-165@@) |
+-| `check_constants_named` | every `sys` call in `src/` names its number by a `SYS_<CALL>` constant `src/sys/` declares, its call in K-1's table and its value K-1's; no `SYS_` name and no kernel constant a specification states declared outside `src/sys/`, and each declared there at the value stated; no `NSOCK_` bound declared outside `src/core/limits.npk`, nor a value that file declares written as a literal elsewhere in `src/` |
++| `check_constants_named` | every `sys` call in `src/` names its number by a `SYS_<CALL>` constant `src/sys/` declares, its call in K-1's table and its value K-1's; no `SYS_` name and no kernel constant a specification states declared outside `src/sys/`, and each declared there at the value stated; no `NSOCK_` bound declared outside `src/core/limits.npk`, which holds every bound a specification states with its value, at that value, and no other; and no bound's value written as a literal elsewhere in `src/` — unless a specification states the same number as a kernel constant, a syscall number or a structure size, which a literal cannot be told apart from, so such a bound is held by its name alone and the run's line names it (@@PD-176@@) |
+ | `check_struct_sizes` | every structure size a specification states — a heading's, a declaration's comment's, N-13's `ucred` — asserted by a probe, by a comparison of `#size_of` or by its exit |
+ | `check_no_hardcoded_port` | no non-zero integer literal bound or initialised to a name whose word is `port` in `tests/` (V-3) |
+ | `check_specs_current` | **fails the run**: a `<SPEC>.md` rule or section a file under `src/`, `tests/` or `harness/` cites that this repository's specification does not define |
+@@ -155,6 +155,12 @@ included; `check_layering` reads each module's header line and B-19's cycles bes
+ `check_no_floor_write` is the source half of S-2's enforcement; and `check_specs_current` reported and never failed
+ — a citation that no longer resolves fails the run (the planning guide's G20).)*
+ 
++*(@@DATE@@, cycle 0.0.4 — @@PD-176@@: `check_constants_named`'s row read "nor a value that file declares written as a
++literal elsewhere under `src/`". It now holds `src/core/limits.npk` to the rules that state each bound's value, both
++ways, and refuses a bound's value as a literal only where no specification states the same number as a kernel
++value: `NSOCK_SCM_MAX_FDS`'s 16 is also `SO_PASSCRED` and the size of `sockaddr_in`, `iovec` and `cmsghdr`, and
++`NSOCK_EMFILE_BACKOFF`'s 50 is `listen`'s number, so the old reading refused `src/sys/`'s own constants.)*
++
+ **Rule V-11.** `check_msg_nosignal` is the one that matters most, because S-1
+ is a rule about **every call site** and a rule about every call site is a rule
+ that will be broken by the twentieth one. It is a grep with a whitelist of
+diff --git a/nitpick.toml b/nitpick.toml
+index f275784..56fed19 100644
+--- a/nitpick.toml
++++ b/nitpick.toml
+@@ -100,6 +100,15 @@ stage = "compile"
+ kind  = "negative"
+ path  = "tests/probe/refused"      # the probes refused on purpose, each with its exact code
+ 
++# Cycle 0.0.4's unit suite (@@PD-176@@): `src/core/`'s programs, each judged by its exit
++# at -O0 and through `opt -O2`. `tests/unit/` alone: its `net/` and `extern/` are the
++# `loopback` and `network` stages', each with an entry of its own when its first unit
++# lands, since `path` is swept only with `recursive = true`.
++[[test]]
++name  = "unit"
++stage = "program"
++path  = "tests/unit"
++
+ # The parse sweep (cycle 0.0.3, @@PD-173@@): every `.npk` in the tree compiled as a
+ # root by `npkc`, none with a LEX- or PARSE- code -- the files no suite judges
+ # among them. It comes last, so a file a suite judges is judged there first, by
+diff --git a/src/core/core.npk b/src/core/core.npk
+deleted file mode 100644
+index 1b4a75a..0000000
+--- a/src/core/core.npk
++++ /dev/null
+@@ -1,8 +0,0 @@
+-mod:core;
+-
+-// `src/core/` — storage primitives: `Vec<T>`, `Bytes`, and `limits.npk`, every named bound in the library.
+-// Specified by `meta/specs/BUILD.md` §5; built from cycle 0.0.4. A placeholder until then, by cycle 0.0.1's plan:
+-// it compiles, so the parse sweep has this directory to sweep, and it is replaced, not deleted.
+-//
+-// MAY IMPORT: nothing (`meta/specs/BUILD.md` B-18's table). Every import is a relative path (B-17) until the
+-// compiler resolves `[dependencies]` (`meta/OPEN_QUESTIONS.md` O-N2).
+diff --git a/src/core/limits.npk b/src/core/limits.npk
+new file mode 100644
+index 0000000..8c041ac
+--- /dev/null
++++ b/src/core/limits.npk
+@@ -0,0 +1,29 @@
++mod:limits;
++
++// `src/core/limits.npk` -- EVERY NAMED BOUND IN `nsockets`, AND NOWHERE ELSE (`meta/specs/BUILD.md` B-13).
++//
++// MAY IMPORT: nothing (`meta/specs/BUILD.md` B-18's table); `core` is the bottom layer, and this file has no `use` line.
++//
++// One constant for each bound a specification states with its value, beside the rule that states it. The rule is the
++// bound's one home, and `check_constants_named` holds this file to it both ways: a bound a specification states and
++// this file does not declare, one this file declares that no specification states, and a value other than the rule's
++// are each a finding (@@PD-176@@). A bound a specification names with no value -- `CONCURRENCY_MODEL.md` C-13's
++// `NSOCK_POLLSET_MAX` -- joins this file with its value, in the cycle that writes its consumer.
++//
++// `fixed`, because a module-level binding is `fixed` with an initialiser or it is refused (the compiler's D-211, and
++// `NITPICK-TYPE-055` since its landing 114); `int64`, because each bounds an `int64` count, a length or a duration's
++// milliseconds. Each value is the rule's number spelled out, never an expression, so the number a reviewer reads is
++// the number compared. Nothing here is a function, so importing this file costs a consumer no arm beyond the floor's.
++
++// `ANCILLARY_MODEL.md` N-4: the bytes of the ancillary control buffer, a constant-size stack array -- room for
++// `SCM_RIGHTS` with up to 60 descriptors, or `SCM_CREDENTIALS`, or both -- which takes no `wild` byte.
++pub fixed int64:NSOCK_CMSG_MAX = 256i64;
++
++// `ANCILLARY_MODEL.md` N-5: descriptors in one message, this library's own limit below the kernel's `SCM_MAX_FD`,
++// chosen so that N-4's buffer is comfortable rather than exact; a request for more is `ESockCapacity` before the
++// syscall.
++pub fixed int64:NSOCK_SCM_MAX_FDS = 16i64;
++
++// `CONCURRENCY_MODEL.md` C-11: the milliseconds `server_accept_bounded` waits after `EMFILE` before it retries, which
++// turns a melt into a degradation.
++pub fixed int64:NSOCK_EMFILE_BACKOFF = 50i64;
+diff --git a/tests/unit/limits_values.npk b/tests/unit/limits_values.npk
+new file mode 100644
+index 0000000..cb028f2
+--- /dev/null
++++ b/tests/unit/limits_values.npk
+@@ -0,0 +1,32 @@
++// expect-exit: 0
++//
++// `src/core/limits.npk` -- EACH BOUND HAS THE VALUE ITS RULE STATES.
++//
++// One assertion per bound, each its own exit: 10 `NSOCK_CMSG_MAX` is 256 (`ANCILLARY_MODEL.md` N-4), 11
++// `NSOCK_SCM_MAX_FDS` is 16 (`ANCILLARY_MODEL.md` N-5), 12 `NSOCK_EMFILE_BACKOFF` is 50 (`CONCURRENCY_MODEL.md` C-11).
++// The expected values are the rules' numbers spelled out here, apart from the file under test, so a constant edited
++// there and not in its rule is a red run beside `check_constants_named`'s finding. Importing the file costs only the
++// floor's six arms: it declares no function.
++mod:limits_values;
++
++use "../../src/core/limits.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    if (NSOCK_CMSG_MAX != 256i64)           { exit 10i32; }
++    if (NSOCK_SCM_MAX_FDS != 16i64)         { exit 11i32; }
++    if (NSOCK_EMFILE_BACKOFF != 50i64)      { exit 12i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};

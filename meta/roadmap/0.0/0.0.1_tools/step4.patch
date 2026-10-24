@@ -215,10 +215,10 @@ index b75727c..8f1c04d 100644
 +++ b/harness/README.md
 @@ -9,3 +9,7 @@ It carries no marker the compiler's grammar does not. *(2026-10-18: it was to
  carry `// expect-signal: N`, for the `SIGPIPE` test, which @@PD-159@@ retires —
- at compiler `c9baa9e` that test's send answers `EPIPE`, and nothing in the
+ at compiler `2e1cb4a` that test's send answers `EPIPE`, and nothing in the
  suite dies by a signal.)*
 +
-+*(2026-10-18, cycle 0.0.1, @@PD-167@@:)* until cycle 0.0.2, `run.py` is a stub that
++*(@@DATE@@, cycle 0.0.1, @@PD-167@@:)* until cycle 0.0.2, `run.py` is a stub that
 +builds and judges nothing and says so; CI runs it, so the workflow's step for it
 +exists before the runner does.
 diff --git a/harness/run.py b/harness/run.py
@@ -242,13 +242,13 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index e618144..4da12d4 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -740,3 +740,35 @@ links nor runs a program; **one probe entry** — one entry judges every file it
+@@ -754,3 +754,35 @@ links nor runs a program; **one probe entry** — one entry judges every file it
  0.0.0's nineteen probes are refusals.
  
  *Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
 +
 +### @@PD-167@@ — CI runs no third-party action; it pins the compiler by commit, LLVM by version and the runner image by name
-+**2026-10-18, cycle 0.0.1 step 4.**
++**@@DATE@@, cycle 0.0.1 step 4.**
 +
 +*What was read* — the early ecosystem audit's EK2, re-checked on 2026-10-15: the two libraries with a workflow,
 +`nitpick-regex` and `nitpick-time`, run `actions/checkout@v4` and `actions/cache@v4`, floating tags; and, read on

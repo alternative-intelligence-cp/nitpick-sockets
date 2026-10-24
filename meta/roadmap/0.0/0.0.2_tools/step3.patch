@@ -139,22 +139,22 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 9c18f5b..02f8b2d 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -747,6 +747,8 @@ links nor runs a program; **one probe entry** — one entry judges every file it
+@@ -761,6 +761,8 @@ links nor runs a program; **one probe entry** — one entry judges every file it
  *Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
  
  ### @@PD-167@@ — CI runs no third-party action; it pins the compiler by commit, LLVM by version and the runner image by name
-+> **SUPERSEDED IN PART by @@PD-172@@ (2026-10-21): LLVM's pin.** From cycle 0.0.2 the release tarball is pinned by
++> **SUPERSEDED IN PART by @@PD-172@@ (@@DATE@@): LLVM's pin.** From cycle 0.0.2 the release tarball is pinned by
 +> content too: its size and sha256, from a research digest, checked against every download before it is unpacked.
- **2026-10-18, cycle 0.0.1 step 4.**
+ **@@DATE@@, cycle 0.0.1 step 4.**
  
  *What was read* — the early ecosystem audit's EK2, re-checked on 2026-10-15: the two libraries with a workflow,
-@@ -914,3 +916,29 @@ retired; **unknown markers ignored** — an expectation nobody checks.
+@@ -930,3 +932,29 @@ retired; **unknown markers ignored** — an expectation nobody checks.
  
  *Reversal:* none for the rule; each marker the runner does not read yet joins the judged ones with the stage that
  needs it, and a pending marker comes by a decision the day a unit is correct and red on a pinned defect.
 +
 +### @@PD-172@@ — LLVM's release tarball is pinned by content: its size and sha256 from a research digest, checked before it is unpacked
-+**2026-10-21, cycle 0.0.2 step 3. Supersedes `@@PD-167@@` in part: LLVM's pin by version alone.**
++**@@DATE@@, cycle 0.0.2 step 3. Supersedes `@@PD-167@@` in part: LLVM's pin by version alone.**
 +
 +*What was read* — `@@PD-167@@`, which pinned LLVM by version and left the tarball's digest and size to a currency row for
 +this subcycle, as the content pin LLVM should have and an outside fact its plan neither downloaded nor researched;

@@ -102,7 +102,7 @@ index cb5c619..09da924 100644
  *Not a dependency violation:* zero-dependency governs the artifact, not the
  workbench — the compiler's `ORCHESTRATION.md` §6 says so in as many words.
  
-+*(2026-10-18, cycle 0.0.1: re-read at compiler `c9baa9e`, the measurement holds
++*(@@DATE@@, cycle 0.0.1: re-read at compiler `2e1cb4a`, the measurement holds
 +for every build — nothing that builds a program calls `rootlist_add`, though one
 +of the compiler's own tests does; `specs/BUILD.md` §1's note of that date says
 +where.)*
@@ -118,7 +118,7 @@ index a6ea21e..de626d3 100644
  
  ### O-N2 — `npkg` cannot build a library, and `[dependencies]` resolves to nothing
  Measured at the compiler's 1.5.0 and recorded in `specs/BUILD.md` §1.
-+*(Re-measured 2026-10-18 at compiler `c9baa9e`, cycle 0.0.1: it holds, but
++*(Re-measured @@DATE@@ at compiler `2e1cb4a`, cycle 0.0.1: it holds, but
 +`rootlist_add` is called by one of the compiler's own tests, though from
 +nothing that builds a program, as `specs/BUILD.md` §1's note of that date
 +says.)*
@@ -133,7 +133,7 @@ index c4d9cc2..0667737 100644
    `./` and `../` paths work.
  - **`npkg` has no `install` and no `update`.**
  
-+*(Re-read 2026-10-18 at compiler `c9baa9e`, cycle 0.0.1: the first point holds.
++*(Re-read @@DATE@@ at compiler `2e1cb4a`, cycle 0.0.1: the first point holds.
 +In the second, `rootlist_init` creates the list empty in
 +`src/driver/pipeline.npk`, and `rootlist_add` is called from no file under
 +`src/`, `npkg/` or `tools/` — only the compiler's own

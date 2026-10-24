@@ -1,0 +1,1774 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 76e3495..b5e8cde 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -85,7 +85,8 @@ Full statement in `meta/specs/SAFETY.md` §1. The ones that bite hardest here:
+   run. For sockets that is harmless (`SK-033`) — the kernel reclaims
+   descriptors — and it is why this library has no restore registry.
+ - Owning values are **move-only**; borrows are second class and never escape.
+-- Plain integer overflow **traps**; indexing traps; division by zero traps.
++- Plain integer overflow **traps**; a slice's, an array's and a `buffer`'s
++  index traps, and an index through a pointer does not; division by zero traps.
+ - Every blocking operation carries a **mandatory deadline**, and every wait is a
+   task suspension through the reactor.
+ - There is **no `select`** across channels — fan-in is `io_watch` plus one
+diff --git a/harness/build.py b/harness/build.py
+index 85797ca..953be84 100644
+--- a/harness/build.py
++++ b/harness/build.py
+@@ -28,7 +28,9 @@ import os
+ import re
+ import subprocess
+ 
++import irscan
+ from elf import Obj
++from lexical import blank, read
+ 
+ _DIAG = re.compile(r"^(NITPICK-[A-Z]+-[0-9]+) [^ ]+:([0-9]+):([0-9]+)", re.M)
+ _UNDEF_VALUE = re.compile(r"use of undefined value '([^']+)'")
+@@ -149,3 +151,51 @@ def npkc_failure(rc, codes):
+     if rc == 3:
+         return "npkc exit 3 -- the compiler's own failsafe trapped"
+     return f"npkc exit {rc}"
++
++
++# ---- the generic functions of `src/`, and the unit that instantiates them (@@PD-177@@) ----------------------------------
++
++INSTANCES = os.path.join("tests", "unit", "generic_instances.npk")
++_GENERIC = re.compile(r"\bfunc:([A-Za-z_]\w*)\s*<")
++_DEFINED = re.compile(r'^define\b[^\n]*?@"?([^"(\s]+)"?\(', re.M)
++
++
++def generics(root):
++    """[(module, name, file)] for every generic function a module under `src/` declares, read in its blanked code: a
++    `func:<name><` -- its module the file's basename (`BUILD.md` B-15)."""
++    out = []
++    for d, dirs, fs in os.walk(os.path.join(root, "src")):
++        dirs.sort()
++        for f in sorted(fs):
++            if f.endswith(".npk"):
++                path = os.path.join(d, f)
++                out += [(f[:-4], m.group(1), path) for m in _GENERIC.finditer(blank(read(path)))]
++    return out
++
++
++def instances(ctx, root, floor_edges, work):
++    """B-2a over the generic functions of `src/`: `INSTANCES` compiled as a root, every call edge of its emission read
++    as a module's are, and every generic function `src/` declares required to have an instance there,
++    `npk.<module>.<name><...>` -- since a generic no root instantiates is in no emission, and so in no scan.
++    Returns (what it read, findings)."""
++    gens = generics(root)
++    src = os.path.join(root, INSTANCES)
++    if not os.path.isfile(src):
++        return (f"{len(gens)} generic function(s) under src/, and no {INSTANCES}",
++                [f"{os.path.relpath(f, root)}: `{m}.{n}` is generic, and no {INSTANCES} instantiates it -- a generic no "
++                 "root instantiates is in no emission, so no call-edge scan sees it (B-2a)" for m, n, f in gens])
++    os.makedirs(work, exist_ok=True)
++    ll = os.path.join(work, "generic_instances.ll")
++    rc, codes, text = npkc(ctx, src, ll)
++    if rc != 0:
++        return f"{INSTANCES} not compiled", [f"{INSTANCES}: {npkc_failure(rc, codes)}"]
++    with open(ll, encoding="utf-8", errors="replace") as fh:
++        ir = fh.read()
++    defined = set(_DEFINED.findall(ir))
++    bad = [f"{os.path.relpath(f, root)}: `{m}.{n}` is generic, and {INSTANCES} instantiates it nowhere -- a generic no "
++           "root instantiates is in no emission, so no call-edge scan sees it (B-2a)"
++           for m, n, f in gens if not any(x.startswith(f"npk.{m}.{n}<") for x in defined)]
++    bad += irscan.findings(ir, floor_edges, INSTANCES)
++    return (f"the {len(gens)} generic function(s) its modules declare, each instantiated by {INSTANCES}, whose "
++            "emission is scanned"), bad
++
+diff --git a/harness/run.py b/harness/run.py
+index 14b013a..7bcc322 100644
+--- a/harness/run.py
++++ b/harness/run.py
+@@ -22,7 +22,9 @@ WHAT A RUN DOES, IN ORDER, and every step can fail it:
+    `sys` is the library's (K-1) -- and flag in the floor-writer's `main` -- the floor's
+    `write` is not (S-2) -- so a scan gone blind, or one that denies everything, reddens the
+    run; the library -- every module under `src/`, each compiled as a root on its own and
+-   scanned both ways, the entry's artefacts left at `[build] output`; and REPRO --
++   scanned both ways, the entry's artefacts left at `[build] output`, and every generic function
++   they declare instantiated by `tests/unit/generic_instances.npk`, whose emission the call-edge
++   scan reads too (@@PD-177@@); and REPRO --
+    `[build] entry` and every conformance root built from two copies of the tree, each
+    carrying its manifest, their IR compared byte for byte -- and between the first build step and
+    the second, THE SELF-CHECK (`selfcheck.py`, @@PD-174@@), which needs the floor program the first
+@@ -143,8 +145,10 @@ def library(ctx, man, irscan, floor_edges, failures):
+         bad += build.undefined_problems(ctx, obj, rel, library=True)
+         with open(ll, encoding="utf-8", errors="replace") as fh:
+             bad += irscan.findings(fh.read(), floor_edges, rel)
++    said, found = build.instances(ctx, ROOT, floor_edges, os.path.join(ctx.work, "instances"))
++    bad += found
+     out(f"{'ok  ' if not bad else 'FAIL'}  build step 2, the library: {len(mods)} module(s) under src/, "
+-        f"each compiled as a root and scanned{', no finding' if not bad else ': ' + '; '.join(bad)}")
++        f"each compiled as a root and scanned, and {said}{', no finding' if not bad else ': ' + '; '.join(bad)}")
+     failures += [f"build step 2: {b}" for b in bad]
+ 
+ 
+diff --git a/harness/selfcheck.py b/harness/selfcheck.py
+index e969036..9028249 100644
+--- a/harness/selfcheck.py
++++ b/harness/selfcheck.py
+@@ -162,6 +162,32 @@ class Cases:
+             hit = [f for f in (found or []) if f" -- {facet}" in f]
+             self.add(case, bool(hit), hit[0] if hit else (why or "no finding"), cpass, csaid)
+ 
++    def instances_case(self, case, gen, inst, want):
++        """`build.instances` over a planted tree: `src/core/x.npk` declaring `gen`, and the instantiating unit `inst`."""
++        root = os.path.join(self.w, case)
++        shutil.rmtree(root, ignore_errors=True)
++        _write(os.path.join(root, "src", "core", "x.npk"), "mod:x;\n\n" + gen)
++        if inst is not None:
++            _write(os.path.join(root, build.INSTANCES), "mod:generic_instances;\n\nuse \"../../src/core/x.npk\".*;\n\n"
++                   + inst + "\n" + FLOOR)
++        _, bad = build.instances(self.ctx, root, self.floor_edges, os.path.join(root, "build"))
++        return ([b for b in bad if want in b] if want else bad), bad
++
++    def instances_cases(self):
++        gen = "pub func:x_first<T: Copy> = T(T:a, T:b) never fails {\n    pass a;\n};\n"
++        call = ("func:main = int32(cstring[]:_~argv) {\n    int64:r = raw x_first::<int64>(1i64, 2i64);\n"
++                "    if (r != 1i64) { exit 10i32; }\n    exit 0i32;\n};\n")
++        hit, bad = self.instances_case("instances-generic-missing", gen, MAIN0, "instantiates it nowhere")
++        _, cbad = self.instances_case("instances-generic-missing-control", gen, call, None)
++        self.add("instances-generic-missing", bool(hit), (hit or bad or ["no finding"])[0], not cbad,
++                 "; ".join(cbad) or "no finding")
++        write = ("pub func:x_first<T: Copy> = T(T:a, T:b) never fails {\n    wild int8->:none = calloc(1i64, 8i64);\n"
++                 "    Result<int64>:r = write((1i32) =>! fd, none, 0i64);\n    dalloc(none);\n"
++                 "    if (r.is_error) { pass b; }\n    pass a;\n};\n")
++        hit, bad = self.instances_case("scan-generic-floor-write", write, call, " -- the floor's write")
++        self.add("scan-generic-floor-write", bool(hit), (hit or bad or ["no finding"])[0], not cbad,
++                 "the same unit over a generic that calls nothing denied: " + ("; ".join(cbad) or "no finding"))
++
+     def failsafe_case(self):
+         d = os.path.join(self.w, "failsafe-allowance")
+         src = _write(os.path.join(d, "waits.npk"), "mod:waits;\n\n" + LIB_SHAPES.split("\n\npub func:core_pid")[0] + "\n")
+@@ -409,6 +435,7 @@ def cases(ctx, root, floor_bin, floor_edges):
+     c.undefined_case()
+     c.failsafe_case()
+     c.scan_cases()
++    c.instances_cases()
+     p = lambda hdr, body=MAIN0: (hdr, body)
+     c.stage_case("program-exit-off-by-one", p("// expect-exit: 1\n"), "expected exit 1", p("// expect-exit: 0\n"))
+     c.stage_case("program-stress-three", p("// expect-exit: 1\n// stress: 3\n"), "x3", p("// expect-exit: 0\n// stress: 3\n"))
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index bdb9422..700ea5f 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -1117,3 +1117,51 @@ kernel value shares, and a literal 256 under `src/` would be the bound written t
+ *Reversal, for the author:* `NSOCK_POLLSET_MAX` joins the file at the value its consumer's cycle states; a struck bound
+ returns with a rule that states its value, in the cycle that needs it; and a bound whose number a specification comes to
+ state as a kernel value too moves to the by-name list, which every run's line prints.
++
++### @@PD-177@@ — the containers check their own indexes and trap the language's `OutOfBounds` on misuse; `Bytes` reaches every byte through its buffer's checked index and offers no view; `put_uint` divides by nothing; an obligation is a comment unless a decision accepts its arm; every generic function is instantiated where the call-edge scan reads it
++**@@DATE@@, cycle 0.0.4 step 2.** `specs/BUILD.md` B-2a, B-13; `VERIFICATION.md` Z-1, Z-1a; `SAFETY.md` §1.
++
++*What was read and measured* — at the pin `2e1cb4a`, at -O0 and through `opt -O2`. An index through a `wild` pointer does
++not trap: a read at index 9 of a block of four `int64`s answers. A slice's, a fixed array's and — since the compiler's
++landing 128, D-341 — a `buffer`'s index trap `OutOfBounds`, a buffer read and written through a field of a pointer
++parameter too; and a range of a `buffer` freezes it for the view's whole block, a write to it there being
++`NITPICK-BORROW-015` even after the view's last use. A live `requires`, `ensures` or `limit<…>` field charges every
++consumer `RequiresViolated`, `EnsuresViolated` or `LimitViolated` beside the floor's six, and a division, even by a
++literal, `DivByZero` and `DivOverflow` — to every program that imports the module, through another module too. `NULL`
++stored in a `wild` pointer compiles (D-355). A generic function's instance is defined in its root's emission as
++`npk.<module>.<name><T>`, and one no root instantiates is in no emission. The early ecosystem audit's EC2 — an index
++claimed to trap where a pointer's does not — and EK1 — `VERIFICATION.md` Z-1 against the ecosystem's answer on live
++contracts, `nitpick-regex`'s RX-164 and `nitpick-time`'s TM-197; the pin audit's SL-2, `Bytes`' view; and the planning
++guide's open points 3 and 10.
++
++*So:* `Vec<T: Copy>` keeps its block `wild` and checks every index, count and use after free in the function that uses
++it, before the pointer is touched; a misuse traps the language's `OutOfBounds` through one stop per module, which
++indexes a one-element fixed array out of range at every argument (`nitpick-regex`'s RX-143), since `core` imports
++nothing and declares no identity. `items` is `hidden`, `count` and `cap` are `sealed`, a zero-length `hidden string[0]`
++field makes a `Vec` move-only, and `vec_init(0)` gives a capacity of one, so `cap <= 0` marks only a freed `Vec`, whose
++`items` is `NULL`. `Bytes` is a managed `buffer` read and written only through the buffer's checked index, behind its
++own checks: no raw `.ptr[i]`, no `#ptr_add`, no `#wild_slice`, no view of the body held across a write, and none handed
++out — `.ptr` goes only to `string_from_bytes` in `bytes_take`, which copies at once; its growth is a fresh buffer and a
++copy by the checked index; and its `put_uint` finds each digit by subtraction, so that importing `bytes.npk` charges
++eight identities, where the same file dividing charges ten, and a thousand renderings into a sink with room allocate
++nothing but the sink. Every obligation is a comment in the syntax it would take, each measured to compile made live,
++with a unit standing in (`VERIFICATION.md` Z-1a). And every generic function `src/` declares is instantiated by
++`tests/unit/generic_instances.npk`, a unit whose emission build step 2 scans as it scans a module's, a generic it does
++not instantiate being a finding — so the call-edge scan reads `Vec<T>` beside `check_no_floor_write`'s source reading.
++
++*Alternatives declined:* **a `Result` or an identity of the library's on misuse** — `SAFETY.md` §3's four are none of
++`core`'s, and a misuse of an internal container is this library's bug, not its caller's; **`limit<ListLen>` on the
++counts** (`nitpick-regex`'s choice) — every consumer would owe `LimitViolated`; **live contracts** — every consumer would
++owe `RequiresViolated` and `EnsuresViolated` by no decision, and a live `requires` traps before the body's own check;
++**`Bytes` through `.ptr`**, as `nitpick-parse`'s plan writes it — its index is checked by the accessor alone, where the
++buffer's own index is checked too; **a view of `Bytes`**, a range or a `#wild_slice` — a range freezes the sink for its
++block, a `#wild_slice` over `.ptr` reads freed memory after a growth (D-341's own warning), and no consumer the
++specifications name needs one: the address formatter hands its text on through `bytes_take`'s owned copy
++(`ADDRESS_MODEL.md` A-23); **`put_uint` by division** — two identities more on every program that formats an address;
++**each module instantiating its own generics** — a function nobody calls, kept in the library for a scan's sake; **an
++uninstantiated generic left to the source checks** — `check_no_floor_write` reads only the floor's `write` and
++`ByteWriter`, so a generic reaching another denied facet would pass every check.
++
++*Reversal, for the author:* a decision accepting a clause's arm makes that clause live, its comment marker deleted per
++site (Z-1a); a consumer that needs a view of `Bytes` takes a frozen range by a decision that names it; and `put_uint` by
++division comes back with a decision that its consumers owe the two arms already.
+diff --git a/meta/specs/BUILD.md b/meta/specs/BUILD.md
+index 8eabd30..2deefd8 100644
+--- a/meta/specs/BUILD.md
++++ b/meta/specs/BUILD.md
+@@ -113,6 +113,10 @@ the scan must leave unflagged in the syscaller and flag in the floor-writer's
+ `main` — so a scan gone blind, or one that denies the library's own facets,
+ reddens the run rather than passing, or failing, everything.
+ 
++*(@@DATE@@, cycle 0.0.4 — @@PD-177@@: one test is read this way, `tests/unit/generic_instances.npk`, which instantiates
++every generic function a module under `src/` declares, so a generic function's calls are read in its instance's
++emission; and a generic it does not instantiate fails the build by name.)*
++
+ **Rule B-3.** The optimised leg runs on every program, every time: the same
+ program re-emitted through `opt -O2` + `llc -O2` must produce the **same exit
+ code**, and the zero-dependency scan is repeated on the optimised object
+@@ -240,6 +244,11 @@ reason B-11 gives: a library must not import a compiler's internals.
+ - **`Vec<T>`** — `{ wild T->:items; int64:count; int64:cap; }`, the compiler's
+   `List<T>` in shape because that shape is right and has been exercised across
+   twenty-two families.
++  *(@@DATE@@, cycle 0.0.4 — @@PD-177@@: `Vec<T>` is `Vec<T: Copy>`, with a fourth field, a hidden zero-length
++  `string[0]`, which costs no byte and makes a `Vec` move-only, a copy of its header — a second handle on its block —
++  being `NITPICK-TYPE-046`; `items` is `hidden` and `count` and `cap` `sealed`; every index and count is checked by
++  its own accessor, because an index through a `wild` block does not trap, and a misuse traps the language's
++  `OutOfBounds`; `vec_init(0)` gives a capacity of one, so that `cap <= 0` marks only a freed `Vec`.)*
+ - **`Bytes`** — an owning byte sink over `buffer`, with `push`, `extend`,
+   `put_uint`, `take`. Address formatting appends to one of these rather than
+   concatenating strings (`ADDRESS_MODEL.md` A-23); the compiler measured the
+diff --git a/meta/specs/SAFETY.md b/meta/specs/SAFETY.md
+index b4d7dfa..2aca038 100644
+--- a/meta/specs/SAFETY.md
++++ b/meta/specs/SAFETY.md
+@@ -25,7 +25,7 @@ costs a library that talks to the kernel over descriptors.
+ | Borrows are second class | D-004 | a byte view handed to `send` cannot be stored, returned, or held across an `await` |
+ | A successful `exit 0` with live `wild` allocations **traps** | D-151 | every `wild` byte an ancillary buffer takes is paired on every path. §6 |
+ | Plain integer `+ - *` **traps** on overflow | D-210 | a length arithmetic mistake is a crash, not a short read. §5 |
+-| Array, slice and buffer indexing is bounds-checked and traps | D-070 | an out-of-range read into a `sockaddr` is a *crash*, not a leak of adjacent memory |
++| Array, slice and buffer indexing is bounds-checked and traps; an index through a pointer is not | D-070, D-341 | an out-of-range read into a `sockaddr` is a *crash*, not a leak of adjacent memory; `Vec<T>`'s block is a pointer, so its accessors check their own (@@PD-177@@) |
+ | Every blocking operation carries a **mandatory deadline** | D-056, D-176 | there is no unbounded `accept`, `connect`, `recv` or `send`. §4 |
+ | Blocking is **task** suspension, never thread parking | D-071 | every wait goes through `io_ready` / `suspend_io`. `CONCURRENCY_MODEL.md` §1 |
+ | Inherited descriptors 0/1/2 stay **blocking** | D-071, D-185 | `nsockets` never touches them and never hands one out as a socket |
+@@ -203,6 +203,10 @@ raw bytes. This is what makes the layout one obligation to discharge in cycle
+ 1.5 rather than several hundred, and it is what makes an offset change a
+ one-line change.
+ 
++*(@@DATE@@, cycle 0.0.4 — @@PD-177@@, the pin audit's SL-5: "cycle 1.5" named the compiler's verification cycle, which
++closed on 2026-09-25; at the pin each accessor's obligation is a comment by `VERIFICATION.md` Z-1a, held by its own
++check and a unit, until a decision accepts its arm.)*
++
+ ---
+ 
+ ## 6. Resources
+diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
+index dbcf969..34b9ef2 100644
+--- a/meta/specs/TESTING.md
++++ b/meta/specs/TESTING.md
+@@ -139,7 +139,7 @@ run on every full invocation.
+ | `check_failsafe_arms` | the generated per-module arm list against a program that imports each module and compiles its `failsafe` — from cycle 0.2, its bill read from `NITPICK-REACH-003`'s own list |
+ | `check_layering` | every `use` edge between modules under `src/`, read where the code holds it, against the importer's row of `BUILD.md` B-18's table (@@PD-164@@); every module's `// MAY IMPORT:` header line against its row; and no cycle among the files' imports (B-19) |
+ | `check_msg_nosignal` | **every `sys` call in `src/` whose number is `sendto`'s or `sendmsg`'s by `SOCKET_MODEL.md` K-1's table names `MSG_NOSIGNAL` in its flags word** — the mechanical enforcement of S-1, and the most valuable check in this list |
+-| `check_no_floor_write` | no call of the floor's `write`, and no `ByteWriter`, anywhere in `src/` (S-2) — the source half; build step 2's call-edge scan (`BUILD.md` B-2a) is the other |
++| `check_no_floor_write` | no call of the floor's `write`, and no `ByteWriter`, anywhere in `src/` (S-2) — the source half; build step 2's call-edge scan (`BUILD.md` B-2a) is the other, and reads a generic function in the emission of `tests/unit/generic_instances.npk`, which instantiates it (@@PD-177@@) |
+ | `check_no_raw_setsockopt` | no `sys` call whose number is `setsockopt`'s or `getsockopt`'s outside `src/option/sockopt.npk` (P-1, @@PD-165@@) |
+ | `check_constants_named` | every `sys` call in `src/` names its number by a `SYS_<CALL>` constant `src/sys/` declares, its call in K-1's table and its value K-1's; no `SYS_` name and no kernel constant a specification states declared outside `src/sys/`, and each declared there at the value stated; no `NSOCK_` bound declared outside `src/core/limits.npk`, which holds every bound a specification states with its value, at that value, and no other; and no bound's value written as a literal elsewhere in `src/` — unless a specification states the same number as a kernel constant, a syscall number or a structure size, which a literal cannot be told apart from, so such a bound is held by its name alone and the run's line names it (@@PD-176@@) |
+ | `check_struct_sizes` | every structure size a specification states — a heading's, a declaration's comment's, N-13's `ucred` — asserted by a probe, by a comparison of `#size_of` or by its exit |
+diff --git a/meta/specs/VERIFICATION.md b/meta/specs/VERIFICATION.md
+index 6dce528..82ec902 100644
+--- a/meta/specs/VERIFICATION.md
++++ b/meta/specs/VERIFICATION.md
+@@ -31,6 +31,19 @@ a property test. The switch is then deleting a comment marker rather than
+ inventing the clause. The compiler's rungs refuse the constructs by name today,
+ so a premature `ensures` is a build failure and not a silent no-op.
+ 
++*(Superseded in part @@DATE@@, cycle 0.0.4 — @@PD-177@@, the early ecosystem audit's EK1 and the pin audit's SL-5: the
++compiler's cycle 1.5 closed on 2026-09-25, and the table's rungs for contracts and `limit<…>` are live at the pin
++`2e1cb4a` — a `requires`, an `ensures` and a `limit<…>` field each compile, are checked at run time, and each charges
++every consumer a `failsafe` arm, `RequiresViolated`, `EnsuresViolated` and `LimitViolated`, measured. So "until a
++construct is live" no longer describes the pin, nor "the rungs refuse the constructs by name today": Z-1a does.)*
++
++**Rule Z-1a (@@PD-177@@) — an obligation is a comment unless a decision accepts the arm its live clause costs.** Every
++obligation is written beside the code **as a comment in the exact syntax it would take** —
++`// obligation: never fails requires i >= 0i64 && i < v.count` — and is enforced by a test standing in, until a
++numbered decision accepts the `failsafe` arm the live clause would charge every consumer of the module. A comment is
++evidence of nothing; the test is the evidence. This is the ecosystem's answer on live contracts — `nitpick-regex`'s
++RX-164 and its P-1b, `nitpick-time`'s TM-197 — which binds this library by this rule.
++
+ ---
+ 
+ ## 2. What the language discharges for free
+@@ -41,6 +54,11 @@ Worth stating, because it is most of the list:
+   (D-070) — so a wrong offset into a `sockaddr` is a crash, not a read of
+   adjacent memory. That single fact removes the entire class of bug that CVEs
+   in C socket code are made of.
++  *(@@DATE@@, cycle 0.0.4 — @@PD-177@@, the early ecosystem audit's EC2: measured at the pin `2e1cb4a`, a slice's, a fixed
++  array's and — since the compiler's landing 128, D-341 — a `buffer`'s index trap `OutOfBounds`; an index through a
++  pointer does not, a `wild T->` or a `buffer`'s `.ptr`, since a pointer carries no length. `Vec<T>`'s block is such
++  a pointer, so its accessors check every index themselves, and `Bytes` reaches its bytes only through its buffer's
++  own index.)*
+ - **Every plain integer `+ - *` traps on overflow** (D-210) — so a length
+   arithmetic mistake in the ancillary walk is a crash, not a short read.
+ - **`OwnedFd`'s drop is the close** (D-185) — so a descriptor cannot be
+@@ -78,6 +96,9 @@ the runtime bound check, which is D-218.9's payoff.
+ | `Vec<T>` `at`/`set` | index `< count` |
+ | `Bytes` append | `len + n <= cap` after the reserve |
+ 
++*(@@DATE@@, cycle 0.0.4 — @@PD-177@@: the `Vec<T>` and `Bytes` rows are comments in `src/core/` by Z-1a, each held by the
++accessor's own check, which traps `OutOfBounds`, and by a unit at each boundary.)*
++
+ **Rule Z-3 — the `cmsghdr` walk is the obligation that matters most**, because
+ it is a loop over kernel-supplied lengths and it is the only place in this
+ library where attacker-adjacent binary data drives an offset:
+@@ -118,6 +139,11 @@ The last one is small and worth having: an involution is exactly the property a
+ byte-swap should have, it is trivially decidable, and getting it wrong is a
+ silent wrong-port bug.
+ 
++*(@@DATE@@, cycle 0.0.4 — @@PD-177@@, the pin audit's SL-5 and the planning guide's open point 3: contracts are live at the
++pin, so these three are comments by Z-1a until a decision accepts their arms. Measured at `2e1cb4a`: the first two
++shapes compile as written; the third, a plain function called in an `ensures`, is `NITPICK-TYPE-060`, and compiles
++with `ntoh16` declared `pure` and called `raw ntoh16(result)` — the spelling its comment takes.)*
++
+ ---
+ 
+ ## 5. `limit<Rules>`
+@@ -132,6 +158,11 @@ Rules:FdCount   = { $ >= 0i32; $ <= 16i32; };        // ANCILLARY_MODEL.md N-5
+ Rules:AddrLen   = { $ >= 2i64; $ <= 128i64; };
+ ```
+ 
++*(@@DATE@@, cycle 0.0.4 — @@PD-177@@, the pin audit's SL-5 and the planning guide's open point 3: `limit<…>` is live at the
++pin and charges every consumer `LimitViolated`, so these are comments by Z-1a until a decision accepts the arm.
++Measured at `2e1cb4a`, `Rules:Port = { $ >= 0u16; $ <= 65535u16; };` is `NITPICK-PARSE-001`; the spelling the pin
++accepts names the checked type and separates the clauses by commas, `Rules<uint16>:Port = { $ >= 0u16, $ <= 65535u16 };`.)*
++
+ `UnixLen` and `FdCount` are the two that carry weight: the first is what makes
+ `ADDRESS_MODEL.md` A-13's refusal structural, and the second is what makes the
+ ancillary control buffer's size provably sufficient.
+diff --git a/nitpick.toml b/nitpick.toml
+index 56fed19..ba10e6e 100644
+--- a/nitpick.toml
++++ b/nitpick.toml
+@@ -100,8 +100,9 @@ stage = "compile"
+ kind  = "negative"
+ path  = "tests/probe/refused"      # the probes refused on purpose, each with its exact code
+ 
+-# Cycle 0.0.4's unit suite (@@PD-176@@): `src/core/`'s programs, each judged by its exit
+-# at -O0 and through `opt -O2`. `tests/unit/` alone: its `net/` and `extern/` are the
++# Cycle 0.0.4's unit suite (@@PD-176@@, @@PD-177@@): `src/core/`'s programs, each judged by
++# its exit at -O0 and through `opt -O2`; a misuse traps `OutOfBounds` (94) by design,
++# and a forgotten free `WildLeak` (96). `tests/unit/` alone: its `net/` and `extern/` are the
+ # `loopback` and `network` stages', each with an entry of its own when its first unit
+ # lands, since `path` is swept only with `recursive = true`.
+ [[test]]
+diff --git a/src/core/vec.npk b/src/core/vec.npk
+new file mode 100644
+index 0000000..c1b02da
+--- /dev/null
++++ b/src/core/vec.npk
+@@ -0,0 +1,248 @@
++mod:vec;
++
++// `src/core/vec.npk` -- `Vec<T>`, `nsockets`' growable array (`meta/specs/BUILD.md` B-13, SK-005).
++//
++// MAY IMPORT: nothing (`meta/specs/BUILD.md` B-18's table); `core` is the bottom layer, and this file has no `use` line.
++//
++// The compiler's `List<T>` in shape -- a block, a count, a capacity, doubling -- and this library's own, because a
++// library must not import a compiler's internals. The block is `wild`: its lifetime is its owner's scope, so every
++// scope that makes a `Vec` calls `vec_free` on every path, or the program's `exit 0` traps `WildLeak` (D-151) -- which
++// is the enforcement wanted, and `tests/unit/vec_leak_forgotten_free.npk` keeps it measured.
++//
++// ---- AN INDEX THROUGH `items` IS NOT CHECKED, SO THIS FILE CHECKS EVERY ONE -----------------------------------------
++//
++// `items` is a `wild T->`, a bare pointer, and a pointer carries no length: an index through it reads or writes
++// whatever is there and answers (`meta/specs/SAFETY.md` §1's indexing row, @@PD-177@@). So every index and every count is
++// checked in the function that uses it, before the pointer is touched, and `items` is `hidden`, so no other module can
++// index it at all (NITPICK-TYPE-080). The sign is half of every check: `i < v.count` admits a negative `i`, so each
++// accessor checks `i >= 0` as well.
++//
++// ---- A MISUSE TRAPS THE LANGUAGE'S `OutOfBounds` --------------------------------------------------------------------
++//
++// An index out of range, a pop of an empty `Vec`, a negative capacity or count, a request whose byte size no `int64`
++// holds, and any use of a `Vec` after `vec_free` -- each is the caller's mistake, and each stops the program through
++// `vec_oob`, the language's own `OutOfBounds` (exit 94 in this repository's `failsafe` convention). Not a `Result`:
++// these functions are `never fails`, so a consumer's loop threads no error channel; and not an identity of this
++// library's, whose four are `meta/specs/SAFETY.md` §3's and none of them `core`'s. `vec_oob` indexes a one-element
++// fixed array, which carries its length, at -1 or -2 -- out of range for every argument -- so it cannot return:
++// `nitpick-regex`'s RX-143 found a stop that indexed at `i` returning for `i == 0`, the index every guard of an EMPTY
++// container passes.
++//
++// Every function's obligation is a COMMENT, in the exact syntax it would take (`meta/specs/VERIFICATION.md` Z-1a), with
++// a unit standing in: at the pin a live `requires` or `ensures` adds `RequiresViolated` or `EnsuresViolated` to every
++// consumer's bill, and a live `requires` would trap before the body's own check could, changing the identity a misuse
++// stops with. The comment is the clause; the checks in the body are what run.
++//
++// ---- A FREED `Vec` IS DEAD, AND EVERY VERB TRAPS ON ONE -------------------------------------------------------------
++//
++// `vec_free` leaves `cap == 0`, `count == 0` and `items == NULL` -- a `wild` pointer, where `NULL` stays legal (the
++// compiler's D-355). A `Vec` this file made otherwise always has `cap >= 1` (`vec_init` floors a request of 0 to 1),
++// so `cap <= 0` means freed, and every function here that is handed a `Vec` checks it FIRST: a push or a reserve would
++// otherwise grow a freed `Vec` from `ralloc(NULL, n)` -- a fresh block, and a use after free that succeeds in silence
++// -- and a second `vec_free` would reach `dalloc(NULL)`.
++//
++// ---- GROWTH DOUBLES, AND NO MULTIPLY CAN OVERFLOW -------------------------------------------------------------------
++//
++// Plain `int64` arithmetic traps on overflow (D-210), so every multiply is guarded BEFORE it runs. The doubling
++// (`vec_grown`) takes `want` itself when doubling would pass `int64`'s maximum; the byte count (`vec_bytes`) is
++// computed in `int128`, where two non-negative `int64`s cannot overflow a product, and is refused through `vec_oob`
++// when it does not fit an `int64`; and a reservation's `count + need` is refused before it is added. A byte count that
++// fits an `int64` but that no allocator can give is the allocator's own trap: `HeapBadRequest` past the runtime's 2^47
++// ceiling, `HeapOom` when memory runs out. Every loop here is a `for` over a range, never a `while`, so none needs a
++// `decreases` measure and none charges a consumer `DecreasesViolated`.
++//
++// ---- WHAT A `Vec` MAY HOLD, AND WHY IT IS MOVE-ONLY ----------------------------------------------------------------
++//
++// `T: Copy`, at the type and at every function (the compiler requires the bound repeated): an element owns nothing,
++// so every read is a copy, `vec_at` returns by value, and freeing the block is the whole free -- no element drop to
++// forget. An owning `T` is refused wherever it is written. The address types derive `Copy` (`meta/specs/
++// ADDRESS_MODEL.md` §1), so a `Vec<SocketAddr>` is one. The last field, `hidden string[0]:move_only`, holds nothing and
++// occupies nothing -- a zero-length array of an owning type -- and makes the `Vec` itself an owning type: a copy of a
++// `Vec`, which would be a second handle on one block, is NITPICK-TYPE-046, and a transfer is `move(v)`. So a reader
++// takes its `Vec` by value, which is a loan and read-only, and everything that changes one takes `Vec<T>->`.
++// `count` and `cap` are `sealed`: read anywhere, written only here (NITPICK-TYPE-079). No field carries a
++// `limit<...>`, which would charge every consumer `LimitViolated`.
++//
++// Every generic function here is instantiated by `tests/unit/generic_instances.npk`, whose emission build step 2's
++// call-edge scan reads: a generic function no root instantiates is in no emission, so no other scan sees it (@@PD-177@@).
++
++// ---- the type --------------------------------------------------------------------------------------------------
++
++pub struct:Vec<T: Copy> = {
++    hidden wild T->:items;         // the block: `cap` slots, the first `count` live. WILD.
++    sealed int64:count;            // elements in use
++    sealed int64:cap;              // elements the block holds; 0 once freed
++    hidden string[0]:move_only;    // zero bytes, holds nothing -- and makes a `Vec` move-only
++};
++
++// `int64`'s maximum, the bound every guard below is computed against. It is spelled: the MAXIMUM is inside the
++// literal envelope (the minimum is not, NITPICK-LEX-004).
++fixed int64:I64_MAX = 9223372036854775807i64;
++
++// ---- the stop ---------------------------------------------------------------------------------------------------
++
++// obligation: never fails ensures false
++//
++// THE ONE OUT-OF-RANGE STOP IN THIS FILE. `i` is the value that was out of range, kept so a call site says which; the
++// index is `-1 - (i & 1)`, -1 or -2, out of range for this array and for an array of any length, at every `i`.
++func:vec_oob = NIL(int64:i) never fails {
++    int64[1]:guard = [0i64];
++    int64:below = 0i64 - 1i64 - (i & 1i64);
++    discard(guard[below]);
++    pass NIL;
++};
++
++// ---- the guarded arithmetic -------------------------------------------------------------------------------------
++
++// obligation: never fails requires n >= 0i64 ensures result >= 0i64
++//
++// `n` ELEMENTS' BYTES, or a stop when they do not fit an `int64`. Both factors are `int64`s at least zero, so their
++// `int128` product is below 2^126 and the multiply cannot overflow; the comparison is the guard, and the narrowing
++// below it is exact.
++func:vec_bytes<T: Copy> = int64(int64:n) never fails {
++    int128:wide = (n => int128) * (#size_of<T>() => int128);
++    if (wide > (I64_MAX => int128)) { drop vec_oob(n); }
++    pass wide =>! int64;
++};
++
++// obligation: never fails requires want >= 1i64 ensures result >= want
++//
++// THE CAPACITY THAT HOLDS `want`: `from` doubled until it does, and `want` itself if the next doubling would pass
++// `int64`'s maximum. The guard `nc > I64_MAX - nc` runs before every `nc * 2i64` and cannot overflow (`nc >= 0`). From
++// `nc >= 1`, at most sixty-two doublings bring `nc` to 2^62 or past it, where the guard fires, so the sixty-third
++// turn at the latest ends the loop in a `break`; the line after the loop makes the postcondition hold whatever it did.
++func:vec_grown = int64(int64:from, int64:want) never fails {
++    int64:nc = from;
++    if (nc < 1i64) { nc = 1i64; }
++    for (int64:k in 0i64...63i64) {
++        if (nc >= want) { break; }
++        if (nc > I64_MAX - nc) {
++            nc = want;
++            break;
++        }
++        nc = nc * 2i64;
++    }
++    if (nc < want) { nc = want; }
++    pass nc;
++};
++
++// ---- construction and destruction -------------------------------------------------------------------------------
++
++// obligation: never fails requires cap >= 0i64
++//             ensures result.count == 0i64 && result.cap >= 1i64 && result.cap >= cap
++//
++// A NEGATIVE CAPACITY IS A MISUSE AND STOPS; ZERO IS FLOORED TO ONE. A request of 0 is the natural "no size hint", so
++// it builds a usable `Vec` rather than a trap; a negative one can only come from arithmetic gone wrong. The floor is
++// what keeps `cap >= 1` true of every live `Vec`, so that `cap <= 0` can mean freed.
++pub func:vec_init<T: Copy> = Vec<T>(int64:cap) never fails {
++    if (cap < 0i64) { drop vec_oob(cap); }
++    int64:n = cap;
++    if (n < 1i64) { n = 1i64; }
++    wild int8->:mem = alloc(raw vec_bytes::<T>(n));
++    pass Vec{ items: mem =>! wild T->, count: 0i64, cap: n, move_only: [] };
++};
++
++// obligation: never fails requires v.cap > 0i64
++//             ensures v.count == 0i64 && v.cap == 0i64 && v.items == NULL
++//
++// FREES THE BLOCK, WHICH IS THE WHOLE FREE: an element owns nothing (`T: Copy`). It leaves the `Vec` dead -- see the
++// header -- so a second `vec_free` stops here, before `dalloc`.
++pub func:vec_free<T: Copy> = NIL(Vec<T>->:v) never fails {
++    if (v.cap <= 0i64) { drop vec_oob(v.cap); }
++    dalloc(v.items =>! wild int8->);
++    v.items = NULL;
++    v.count = 0i64;
++    v.cap = 0i64;
++    pass NIL;
++};
++
++// ---- capacity ---------------------------------------------------------------------------------------------------
++
++// obligation: never fails requires v.cap > 0i64 && need >= 0i64
++//             ensures v.cap >= v.count + need && v.count == old(v.count)
++//
++// ROOM FOR `need` MORE elements beyond `count`, by doubling. The elements move with the block: `ralloc` copies the old
++// block's bytes and frees it.
++pub func:vec_reserve<T: Copy> = NIL(Vec<T>->:v, int64:need) never fails {
++    if (v.cap <= 0i64) { drop vec_oob(v.cap); }
++    if (need < 0i64) { drop vec_oob(need); }
++    if (need > I64_MAX - v.count) { drop vec_oob(need); }
++    int64:want = v.count + need;
++    if (want <= v.cap) { pass NIL; }
++    int64:nc = raw vec_grown(v.cap, want);
++    wild int8->:bigger = ralloc(v.items =>! wild int8->, raw vec_bytes::<T>(nc));
++    v.items = bigger =>! wild T->;
++    v.cap = nc;
++    pass NIL;
++};
++
++// ---- the checked accessor pair ----------------------------------------------------------------------------------
++
++// obligation: never fails requires v.cap > 0i64 && i >= 0i64 && i < v.count
++//
++// BY VALUE: `T: Copy`, so the read is a copy and the slot keeps its element. Its `Vec` is a loan -- read, never
++// changed -- so a consumer reads a `Vec` held in a field of its own struct without taking an address.
++pub func:vec_at<T: Copy> = T(Vec<T>:v, int64:i) never fails {
++    if (v.cap <= 0i64) { drop vec_oob(v.cap); }
++    if (i < 0i64) { drop vec_oob(i); }
++    if (i >= v.count) { drop vec_oob(i); }
++    pass v.items[i];
++};
++
++// obligation: never fails requires v.cap > 0i64 && i >= 0i64 && i < v.count
++//             ensures v.count == old(v.count)
++pub func:vec_set<T: Copy> = NIL(Vec<T>->:v, int64:i, T:x) never fails {
++    if (v.cap <= 0i64) { drop vec_oob(v.cap); }
++    if (i < 0i64) { drop vec_oob(i); }
++    if (i >= v.count) { drop vec_oob(i); }
++    v.items[i] = x;
++    pass NIL;
++};
++
++// ---- adding and removing ----------------------------------------------------------------------------------------
++
++// obligation: never fails requires v.cap > 0i64 ensures v.count == old(v.count) + 1i64
++pub func:vec_push<T: Copy> = NIL(Vec<T>->:v, T:x) never fails {
++    if (v.cap <= 0i64) { drop vec_oob(v.cap); }
++    if (v.count >= v.cap) {
++        drop vec_reserve(v, 1i64);
++        // `vec_reserve`'s postcondition, checked where the write below relies on it.
++        if (v.count >= v.cap) { drop vec_oob(v.count); }
++    }
++    v.items[v.count] = x;
++    v.count = v.count + 1i64;
++    pass NIL;
++};
++
++// obligation: never fails requires v.cap > 0i64 && v.count > 0i64
++//             ensures v.count == old(v.count) - 1i64
++//
++// THE LAST ELEMENT, by value. An empty `Vec` stops rather than answering a value nobody chose.
++pub func:vec_pop<T: Copy> = T(Vec<T>->:v) never fails {
++    if (v.cap <= 0i64) { drop vec_oob(v.cap); }
++    if (v.count <= 0i64) { drop vec_oob(v.count); }
++    v.count = v.count - 1i64;
++    pass v.items[v.count];
++};
++
++// ---- bulk operations --------------------------------------------------------------------------------------------
++
++// obligation: never fails requires v.cap > 0i64 && n >= 0i64
++//             ensures (n < old(v.count) && v.count == n) || (n >= old(v.count) && v.count == old(v.count))
++//
++// KEEP THE FIRST `n`: a truncation to `n >= count` changes nothing (it never grows). The capacity is kept.
++pub func:vec_truncate<T: Copy> = NIL(Vec<T>->:v, int64:n) never fails {
++    if (v.cap <= 0i64) { drop vec_oob(v.cap); }
++    if (n < 0i64) { drop vec_oob(n); }
++    if (n < v.count) { v.count = n; }
++    pass NIL;
++};
++
++// obligation: never fails requires v.cap > 0i64 ensures v.count == 0i64
++//
++// The capacity is kept, so a `Vec` reused clears rather than reallocates.
++pub func:vec_clear<T: Copy> = NIL(Vec<T>->:v) never fails {
++    if (v.cap <= 0i64) { drop vec_oob(v.cap); }
++    v.count = 0i64;
++    pass NIL;
++};
+diff --git a/tests/unit/generic_instances.npk b/tests/unit/generic_instances.npk
+new file mode 100644
+index 0000000..acb073d
+--- /dev/null
++++ b/tests/unit/generic_instances.npk
+@@ -0,0 +1,43 @@
++// expect-exit: 0
++//
++// EVERY GENERIC FUNCTION `src/` DECLARES, INSTANTIATED HERE -- the root whose emission build step 2's call-edge scan
++// reads for them (`meta/specs/BUILD.md` B-2a, @@PD-177@@).
++//
++// A generic function no root instantiates is in no emission, so the scan of each module under `src/`, compiled alone,
++// cannot see what it calls; this unit calls each one, so its emission defines each instance, `npk.<module>.<name><T>`,
++// and the build step reads that emission as it reads a module's, and finds a generic with no instance here a finding
++// of its own. The private generic `vec_bytes` is instantiated through `vec_init` and `vec_reserve`. `int64` is the type
++// each is called at: every bound here is `T: Copy`, and what an instance reaches through its type argument is that
++// argument's. As a unit it runs too, and exits 0.
++mod:generic_instances;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(2i64);
++    drop vec_reserve(@v, 3i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    drop vec_set(@v, 0i64, 3i64);
++    if ((raw vec_at(v, 0i64)) != 3i64)                      { exit 10i32; }
++    if ((raw vec_pop(@v)) != 2i64)                          { exit 11i32; }
++    drop vec_truncate(@v, 0i64);
++    drop vec_clear(@v);
++    drop vec_free(@v);
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_accessors.npk b/tests/unit/vec_accessors.npk
+new file mode 100644
+index 0000000..7dae608
+--- /dev/null
++++ b/tests/unit/vec_accessors.npk
+@@ -0,0 +1,58 @@
++// expect-exit: 0
++//
++// `Vec<int64>` -- EVERY ACCESSOR AT INDEX 0 AND AT `count - 1`, IN RANGE (`src/core/vec.npk`).
++//
++// The third boundary, `i == count`, is a TRAP and cannot be followed by an assertion, so each is a program of its own
++// (`vec_at_count_traps.npk`, `vec_set_count_traps.npk`, `vec_at_empty_traps.npk`, `vec_pop_empty_traps.npk`), beside the
++// sign's (`vec_*_negative_traps.npk`). Asserts, every element read back after every change so a write to the wrong slot
++// cannot pass: `vec_at` at 0, `count - 1` and between (10-12); `vec_set` at 0 and `count - 1`, the middle untouched
++// (13-16); `vec_push` through a growth from capacity 4 to 8 (17-19); `vec_pop` back down, by value and in order (20-24);
++// and a push after the `Vec` emptied (25). Then the free, and `exit 0`, which D-151 holds to no live block.
++mod:vec_accessors;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 10i64);
++    drop vec_push(@v, 20i64);
++    drop vec_push(@v, 30i64);
++    if ((raw vec_at(v, 0i64)) != 10i64)                     { exit 10i32; }
++    if ((raw vec_at(v, v.count - 1i64)) != 30i64)           { exit 11i32; }
++    if ((raw vec_at(v, 1i64)) != 20i64)                     { exit 12i32; }
++    drop vec_set(@v, 0i64, 11i64);
++    drop vec_set(@v, v.count - 1i64, 31i64);
++    if ((raw vec_at(v, 0i64)) != 11i64)                     { exit 13i32; }
++    if ((raw vec_at(v, 2i64)) != 31i64)                     { exit 14i32; }
++    if ((raw vec_at(v, 1i64)) != 20i64)                     { exit 15i32; }
++    if (v.count != 3i64)                                    { exit 16i32; }
++    drop vec_push(@v, 40i64);
++    drop vec_push(@v, 50i64);
++    if (v.count != 5i64)                                    { exit 17i32; }
++    if (v.cap != 8i64)                                      { exit 18i32; }
++    if ((raw vec_at(v, 4i64)) != 50i64)                     { exit 19i32; }
++    if ((raw vec_pop(@v)) != 50i64)                         { exit 20i32; }
++    if ((raw vec_pop(@v)) != 40i64)                         { exit 21i32; }
++    if ((raw vec_pop(@v)) != 31i64)                         { exit 22i32; }
++    if ((raw vec_pop(@v)) != 20i64)                         { exit 23i32; }
++    if ((raw vec_pop(@v)) != 11i64)                         { exit 24i32; }
++    drop vec_push(@v, 7i64);
++    if ((raw vec_at(v, 0i64)) != 7i64)                      { exit 25i32; }
++    drop vec_free(@v);
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_at_after_free_traps.npk b/tests/unit/vec_at_after_free_traps.npk
+new file mode 100644
+index 0000000..ecd16ee
+--- /dev/null
++++ b/tests/unit/vec_at_after_free_traps.npk
+@@ -0,0 +1,35 @@
++// expect-exit: 94
++//
++// `vec_at` ON A FREED `Vec` STOPS `OutOfBounds` -- A USE AFTER FREE IS A TRAP.
++//
++// Without the check a read would go through a pointer to a released block.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_at_after_free_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_free(@v);
++    discard(raw vec_at(v, 0i64));
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_at_count_traps.npk b/tests/unit/vec_at_count_traps.npk
+new file mode 100644
+index 0000000..ce9d141
+--- /dev/null
++++ b/tests/unit/vec_at_count_traps.npk
+@@ -0,0 +1,38 @@
++// expect-exit: 94
++//
++// `vec_at` AT `i == count`, ONE PAST THE LAST ELEMENT, STOPS `OutOfBounds`.
++//
++// A `Vec` of three in a block of four, read at 3: the index a caller most often gets wrong, and one an unchecked
++// `wild` index would answer with whatever the spare slot holds.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_at_count_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    drop vec_push(@v, 3i64);
++    discard(raw vec_at(v, v.count));
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_at_empty_traps.npk b/tests/unit/vec_at_empty_traps.npk
+new file mode 100644
+index 0000000..a5923fe
+--- /dev/null
++++ b/tests/unit/vec_at_empty_traps.npk
+@@ -0,0 +1,35 @@
++// expect-exit: 94
++//
++// `vec_at` AT 0 OF AN EMPTY `Vec` STOPS `OutOfBounds`.
++//
++// `i == count == 0`: the index every guard of an EMPTY container passes, and the one at which `nitpick-regex`'s first
++// stop returned instead of stopping (its RX-143).
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_at_empty_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    discard(raw vec_at(v, 0i64));
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_at_negative_traps.npk b/tests/unit/vec_at_negative_traps.npk
+new file mode 100644
+index 0000000..d518582
+--- /dev/null
++++ b/tests/unit/vec_at_negative_traps.npk
+@@ -0,0 +1,37 @@
++// expect-exit: 94
++//
++// `vec_at` AT -1 STOPS `OutOfBounds` -- THE SIGN IS HALF OF EVERY CHECK.
++//
++// `i < count` admits -1; through `items`, -1 reads the word before the block.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_at_negative_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    drop vec_push(@v, 3i64);
++    discard(raw vec_at(v, 0i64 - 1i64));
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_clear_after_free_traps.npk b/tests/unit/vec_clear_after_free_traps.npk
+new file mode 100644
+index 0000000..39a9fe4
+--- /dev/null
++++ b/tests/unit/vec_clear_after_free_traps.npk
+@@ -0,0 +1,35 @@
++// expect-exit: 94
++//
++// `vec_clear` ON A FREED `Vec` STOPS `OutOfBounds`.
++//
++// A clear writes only `count`, so without the check it would pass over a dead `Vec` in silence.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_clear_after_free_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_free(@v);
++    drop vec_clear(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_free_twice_traps.npk b/tests/unit/vec_free_twice_traps.npk
+new file mode 100644
+index 0000000..3b55ebe
+--- /dev/null
++++ b/tests/unit/vec_free_twice_traps.npk
+@@ -0,0 +1,35 @@
++// expect-exit: 94
++//
++// A SECOND `vec_free` STOPS `OutOfBounds` -- BEFORE `dalloc(NULL)`, THE ALLOCATOR'S OWN TRAP.
++//
++// `vec_free` leaves the `Vec` dead (`cap == 0`), and checks that first.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_free_twice_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_free(@v);
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_growth.npk b/tests/unit/vec_growth.npk
+new file mode 100644
+index 0000000..e278e74
+--- /dev/null
++++ b/tests/unit/vec_growth.npk
+@@ -0,0 +1,49 @@
++// expect-exit: 0
++//
++// `Vec<int64>` -- A HUNDRED THOUSAND PUSHES FROM CAPACITY 1, EACH GROWTH A DOUBLING (`src/core/vec.npk`).
++//
++// Asserts: the capacity, read after every push, changes only by exactly doubling (10) and only at the push that found
++// the block full (11) -- so each change is one reallocation, and counting the changes counts them; the count is the
++// push count (12); seventeen reallocations, 1 -> 2 -> ... -> 2^17, the first power of two past a hundred thousand (13,
++// 14); and every element survived every reallocation, read back in order (15). Then the free, and `exit 0`.
++mod:vec_growth;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(1i64);
++    int64:grown = 0i64;
++    int64:seen = 1i64;
++    for (int64:i in 0i64...100000i64) {
++        drop vec_push(@v, i);
++        if (v.cap != seen) {
++            if (v.cap != seen * 2i64)                       { exit 10i32; }
++            if (i != seen)                                  { exit 11i32; }
++            grown = grown + 1i64;
++            seen = v.cap;
++        }
++    }
++    if (v.count != 100000i64)                               { exit 12i32; }
++    if (grown != 17i64)                                     { exit 13i32; }
++    if (v.cap != 131072i64)                                 { exit 14i32; }
++    for (int64:j in 0i64...100000i64) {
++        if ((raw vec_at(v, j)) != j)                        { exit 15i32; }
++    }
++    drop vec_free(@v);
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_init_negative_traps.npk b/tests/unit/vec_init_negative_traps.npk
+new file mode 100644
+index 0000000..894c07e
+--- /dev/null
++++ b/tests/unit/vec_init_negative_traps.npk
+@@ -0,0 +1,34 @@
++// expect-exit: 94
++//
++// `vec_init` OF A NEGATIVE CAPACITY STOPS `OutOfBounds` (ZERO IS FLOORED TO ONE).
++//
++// A negative capacity can only come from arithmetic gone wrong; zero is the natural "no size hint" and builds a
++// `Vec` of capacity one (`vec_ops.npk`).
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_init_negative_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(0i64 - 1i64);
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_init_too_large_traps.npk b/tests/unit/vec_init_too_large_traps.npk
+new file mode 100644
+index 0000000..4d82696
+--- /dev/null
++++ b/tests/unit/vec_init_too_large_traps.npk
+@@ -0,0 +1,34 @@
++// expect-exit: 94
++//
++// `vec_init` OF 2^60 `int64`s STOPS `OutOfBounds` -- THEIR BYTES DO NOT FIT AN `int64`.
++//
++// 2^60 elements of eight bytes are 2^63 bytes, one past `int64`'s maximum: `vec_bytes` computes the product in
++// `int128` and stops before the narrowing, so no allocator is asked for a size that wrapped.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_init_too_large_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(1152921504606846976i64);
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_leak_forgotten_free.npk b/tests/unit/vec_leak_forgotten_free.npk
+new file mode 100644
+index 0000000..8c45819
+--- /dev/null
++++ b/tests/unit/vec_leak_forgotten_free.npk
+@@ -0,0 +1,34 @@
++// expect-exit: 96
++//
++// `Vec<int64>` -- A `Vec` NOT FREED BEFORE `exit 0` TRAPS `WildLeak`: A MISSING FREE IS A TRAP, NOT A PASS.
++//
++// The block is `wild`, and a program's `exit 0` with a live `wild` allocation traps (D-151): 96 is the failsafe's
++// `WildLeak` arm. This is `vec_leak_freed.npk` without its one `vec_free`, so the pair shows that the free, and nothing
++// else, decides the exit. D-151 sees `wild` blocks alone -- not a descriptor, and not a `buffer`, which its scope's end
++// releases, so a managed container's leak is held under a memory cap instead.
++mod:vec_leak_forgotten_free;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(8i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    if (v.count != 2i64)                                    { exit 10i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_leak_freed.npk b/tests/unit/vec_leak_freed.npk
+new file mode 100644
+index 0000000..d53a9da
+--- /dev/null
++++ b/tests/unit/vec_leak_freed.npk
+@@ -0,0 +1,34 @@
++// expect-exit: 0
++//
++// `Vec<int64>` -- THE LEAK TEST'S CONTROL: A `Vec` FREED ON THE ONE PATH OUT, AND `exit 0`.
++//
++// `vec_leak_forgotten_free.npk` is this program without its `vec_free`, and traps. Here every block the program made
++// is released before `exit 0`, so D-151's count of live `wild` allocations is zero and the exit is 0 -- the leak test
++// is red by the free alone, measured as a pair.
++mod:vec_leak_freed;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(8i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    if (v.count != 2i64)                                    { exit 10i32; }
++    drop vec_free(@v);
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_ops.npk b/tests/unit/vec_ops.npk
+new file mode 100644
+index 0000000..d75e2ca
+--- /dev/null
++++ b/tests/unit/vec_ops.npk
+@@ -0,0 +1,58 @@
++// expect-exit: 0
++//
++// `Vec<int64>` -- `vec_init`'s floor, `vec_reserve`, `vec_truncate` and `vec_clear` (`src/core/vec.npk`).
++//
++// Asserts: `vec_init(0)` gives an empty `Vec` of capacity one -- the floor that keeps `cap >= 1` true of every live
++// `Vec`, so that `cap <= 0` marks a freed one (10, 11); `vec_reserve` makes room for `count + need` by doubling and keeps
++// the count and every element (12-15), and a reserve already satisfied changes nothing (16); `vec_truncate` to more than
++// `count` changes nothing and never grows (17), to fewer keeps the first `n` (18, 19), and to 0 empties it (20);
++// `vec_clear` empties it and keeps the capacity (21, 22), and the next push lands at 0 (23).
++mod:vec_ops;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(0i64);
++    if (v.count != 0i64)                                    { exit 10i32; }
++    if (v.cap != 1i64)                                      { exit 11i32; }
++    drop vec_push(@v, 5i64);
++    drop vec_push(@v, 6i64);
++    drop vec_reserve(@v, 5i64);
++    if (v.cap != 8i64)                                      { exit 12i32; }
++    if (v.count != 2i64)                                    { exit 13i32; }
++    if ((raw vec_at(v, 0i64)) != 5i64)                      { exit 14i32; }
++    if ((raw vec_at(v, 1i64)) != 6i64)                      { exit 15i32; }
++    drop vec_reserve(@v, 6i64);
++    if (v.cap != 8i64)                                      { exit 16i32; }
++    drop vec_push(@v, 7i64);
++    drop vec_truncate(@v, 9i64);
++    if (v.count != 3i64)                                    { exit 17i32; }
++    drop vec_truncate(@v, 2i64);
++    if (v.count != 2i64)                                    { exit 18i32; }
++    if ((raw vec_at(v, 1i64)) != 6i64)                      { exit 19i32; }
++    drop vec_truncate(@v, 0i64);
++    if (v.count != 0i64)                                    { exit 20i32; }
++    drop vec_push(@v, 8i64);
++    drop vec_clear(@v);
++    if (v.count != 0i64)                                    { exit 21i32; }
++    if (v.cap != 8i64)                                      { exit 22i32; }
++    drop vec_push(@v, 9i64);
++    if ((raw vec_at(v, 0i64)) != 9i64)                      { exit 23i32; }
++    drop vec_free(@v);
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_pod_struct.npk b/tests/unit/vec_pod_struct.npk
+new file mode 100644
+index 0000000..693f19c
+--- /dev/null
++++ b/tests/unit/vec_pod_struct.npk
+@@ -0,0 +1,52 @@
++// expect-exit: 0
++//
++// `Vec<V4>` -- A `Copy` STRUCT OF AN ADDRESS'S SHAPE, AT EVERY ACCESSOR (`src/core/vec.npk`).
++//
++// The address types are plain data that derive `Copy` (`meta/specs/ADDRESS_MODEL.md` §1), so a `Vec` of addresses is a
++// `Vec<T: Copy>`; this unit's `V4` is `SocketAddrV4`'s shape -- four octets and a 16-bit field where the address keeps its port, six bytes -- declared here, since
++// `core` imports nothing and `src/addr/` declares no type yet. Asserts: pushed values read back whole (10, 11); `vec_set`
++// replaces one and leaves the other (12, 13); `vec_pop` hands the last back by value (14); and a value read out is a copy
++// the `Vec` does not see change (15).
++mod:vec_pod_struct;
++
++use "../../src/core/vec.npk".*;
++
++#[derive(Copy)]
++struct:V4 = { uint8[4]:octets; uint16:tag; };
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<V4>:v = raw vec_init::<V4>(2i64);
++    drop vec_push(@v, V4{ octets: [127u8, 0u8, 0u8, 1u8], tag: 80u16 });
++    drop vec_push(@v, V4{ octets: [10u8, 1u8, 2u8, 3u8], tag: 443u16 });
++    V4:a = raw vec_at(v, 0i64);
++    if (a.octets[0i64] != 127u8 || a.tag != 80u16)        { exit 10i32; }
++    V4:b = raw vec_at(v, 1i64);
++    if (b.octets[3i64] != 3u8 || b.tag != 443u16)          { exit 11i32; }
++    drop vec_set(@v, 0i64, V4{ octets: [192u8, 168u8, 0u8, 9u8], tag: 22u16 });
++    V4:c = raw vec_at(v, 0i64);
++    if (c.octets[1i64] != 168u8 || c.tag != 22u16)         { exit 12i32; }
++    V4:d = raw vec_at(v, 1i64);
++    if (d.tag != 443u16)                                   { exit 13i32; }
++    V4:e = raw vec_pop(@v);
++    if (e.octets[0i64] != 10u8)                             { exit 14i32; }
++    a.tag = 1u16;
++    V4:f = raw vec_at(v, 0i64);
++    if (f.tag != 22u16)                                    { exit 15i32; }
++    drop vec_free(@v);
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_pop_after_free_traps.npk b/tests/unit/vec_pop_after_free_traps.npk
+new file mode 100644
+index 0000000..d58834f
+--- /dev/null
++++ b/tests/unit/vec_pop_after_free_traps.npk
+@@ -0,0 +1,36 @@
++// expect-exit: 94
++//
++// `vec_pop` ON A FREED `Vec` STOPS `OutOfBounds`.
++//
++// `vec_free` leaves `count == 0` too, so the empty check would stop it as well; the freed check comes first, and this
++// file holds that it does.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_pop_after_free_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_free(@v);
++    discard(raw vec_pop(@v));
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_pop_empty_traps.npk b/tests/unit/vec_pop_empty_traps.npk
+new file mode 100644
+index 0000000..b34c3ff
+--- /dev/null
++++ b/tests/unit/vec_pop_empty_traps.npk
+@@ -0,0 +1,34 @@
++// expect-exit: 94
++//
++// `vec_pop` OF AN EMPTY `Vec` STOPS `OutOfBounds`.
++//
++// An empty `Vec` stops rather than answering a value nobody chose.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_pop_empty_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    discard(raw vec_pop(@v));
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_push_after_free_traps.npk b/tests/unit/vec_push_after_free_traps.npk
+new file mode 100644
+index 0000000..4afda3a
+--- /dev/null
++++ b/tests/unit/vec_push_after_free_traps.npk
+@@ -0,0 +1,35 @@
++// expect-exit: 94
++//
++// `vec_push` ON A FREED `Vec` STOPS `OutOfBounds`.
++//
++// Without the check the push would grow the freed `Vec` from `ralloc(NULL, n)` and succeed in silence.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_push_after_free_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_free(@v);
++    drop vec_push(@v, 9i64);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_reserve_after_free_traps.npk b/tests/unit/vec_reserve_after_free_traps.npk
+new file mode 100644
+index 0000000..17fc848
+--- /dev/null
++++ b/tests/unit/vec_reserve_after_free_traps.npk
+@@ -0,0 +1,36 @@
++// expect-exit: 94
++//
++// `vec_reserve` ON A FREED `Vec` STOPS `OutOfBounds`.
++//
++// Without the check it would grow the freed `Vec` from `ralloc(NULL, n)`: a fresh block, and a use after free that
++// succeeds in silence.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_reserve_after_free_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_free(@v);
++    drop vec_reserve(@v, 4i64);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_reserve_negative_traps.npk b/tests/unit/vec_reserve_negative_traps.npk
+new file mode 100644
+index 0000000..af09df2
+--- /dev/null
++++ b/tests/unit/vec_reserve_negative_traps.npk
+@@ -0,0 +1,37 @@
++// expect-exit: 94
++//
++// `vec_reserve` OF A NEGATIVE NEED STOPS `OutOfBounds`.
++//
++// A negative need can only come from arithmetic gone wrong.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_reserve_negative_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    drop vec_push(@v, 3i64);
++    drop vec_reserve(@v, 0i64 - 1i64);
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_reserve_overflow_traps.npk b/tests/unit/vec_reserve_overflow_traps.npk
+new file mode 100644
+index 0000000..402beb8
+--- /dev/null
++++ b/tests/unit/vec_reserve_overflow_traps.npk
+@@ -0,0 +1,36 @@
++// expect-exit: 94
++//
++// `vec_reserve` WHOSE `count + need` WOULD PASS `int64`'s MAXIMUM STOPS `OutOfBounds`.
++//
++// One element, and a need of `int64`'s maximum: the guard `need > I64_MAX - count` runs before the addition, so the
++// sum is never computed -- without it the addition would trap `IntOverflow`, 93, not this file's identity.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_reserve_overflow_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_reserve(@v, 9223372036854775807i64);
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_set_after_free_traps.npk b/tests/unit/vec_set_after_free_traps.npk
+new file mode 100644
+index 0000000..b8cb6a9
+--- /dev/null
++++ b/tests/unit/vec_set_after_free_traps.npk
+@@ -0,0 +1,35 @@
++// expect-exit: 94
++//
++// `vec_set` ON A FREED `Vec` STOPS `OutOfBounds`.
++//
++// Without the check the write would land in a released block.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_set_after_free_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_free(@v);
++    drop vec_set(@v, 0i64, 9i64);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_set_count_traps.npk b/tests/unit/vec_set_count_traps.npk
+new file mode 100644
+index 0000000..fcd25dd
+--- /dev/null
++++ b/tests/unit/vec_set_count_traps.npk
+@@ -0,0 +1,37 @@
++// expect-exit: 94
++//
++// `vec_set` AT `i == count` STOPS `OutOfBounds` -- A SET NEVER APPENDS.
++//
++// A `Vec` of three in a block of four, written at 3: the spare slot is not an element, and `vec_push` is the append.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_set_count_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    drop vec_push(@v, 3i64);
++    drop vec_set(@v, v.count, 9i64);
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_set_negative_traps.npk b/tests/unit/vec_set_negative_traps.npk
+new file mode 100644
+index 0000000..0641329
+--- /dev/null
++++ b/tests/unit/vec_set_negative_traps.npk
+@@ -0,0 +1,37 @@
++// expect-exit: 94
++//
++// `vec_set` AT -1 STOPS `OutOfBounds`.
++//
++// Through `items`, a write at -1 would overwrite the word before the block.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_set_negative_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    drop vec_push(@v, 3i64);
++    drop vec_set(@v, 0i64 - 1i64, 9i64);
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_truncate_after_free_traps.npk b/tests/unit/vec_truncate_after_free_traps.npk
+new file mode 100644
+index 0000000..82acd1f
+--- /dev/null
++++ b/tests/unit/vec_truncate_after_free_traps.npk
+@@ -0,0 +1,35 @@
++// expect-exit: 94
++//
++// `vec_truncate` ON A FREED `Vec` STOPS `OutOfBounds`.
++//
++// A truncation changes nothing past `count`, so without the check it would pass over a dead `Vec` in silence.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_truncate_after_free_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_free(@v);
++    drop vec_truncate(@v, 0i64);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/unit/vec_truncate_negative_traps.npk b/tests/unit/vec_truncate_negative_traps.npk
+new file mode 100644
+index 0000000..ba7865a
+--- /dev/null
++++ b/tests/unit/vec_truncate_negative_traps.npk
+@@ -0,0 +1,37 @@
++// expect-exit: 94
++//
++// `vec_truncate` TO A NEGATIVE COUNT STOPS `OutOfBounds`.
++//
++// Without the check `count` would go negative, and every later guard of the form `i < count` would read it.
++//
++// 94 is the failsafe's `OutOfBounds` arm, the language's own identity, which `vec_oob` raises: reaching it IS the
++// assertion. Were the call to return, `main` would end 50 -- never 94 -- so "the check fired" and "the check is gone"
++// cannot look alike. One case per file, because nothing runs after a trap.
++mod:vec_truncate_negative_traps;
++
++use "../../src/core/vec.npk".*;
++
++func:main = int32(cstring[]:_~argv) {
++    Vec<int64>:v = raw vec_init::<int64>(4i64);
++    drop vec_push(@v, 1i64);
++    drop vec_push(@v, 2i64);
++    drop vec_push(@v, 3i64);
++    drop vec_truncate(@v, 0i64 - 1i64);
++    drop vec_free(@v);
++    exit 50i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};

@@ -22,7 +22,7 @@ index 77f4198..f6f9b39 100644
  rule about every call site is a rule that will be broken by the twentieth one.
  
  ### SK-014 — connect's `EINPROGRESS` protocol, including the `SO_ERROR` read
-+> **SUPERSEDED IN PART by @@PD-162@@ (2026-10-18): its mechanism.** At compiler `c9baa9e` no program can name
++> **SUPERSEDED IN PART by @@PD-162@@ (@@DATE@@): its mechanism.** At compiler `2e1cb4a` no program can name
 +> `EINPROGRESS` or make an error of `SO_ERROR`'s number; a second `connect` after the wait answers the outcome (probe 08).
  **2026-09-03.** On a non-blocking socket, `connect` returning `EINPROGRESS`
  means the handshake is running; the socket becomes **writable** on both success
@@ -31,7 +31,7 @@ index 77f4198..f6f9b39 100644
  leaves the connection pending, so a naive retry spins at 100% CPU accepting
  nothing; a bounded back-off turns a melt into a degradation.
  
-+*(2026-10-18, cycle 0.0.0, @@PD-162@@: at compiler `c9baa9e` the `EINTR` and `EAGAIN` rows compare — they are the
++*(@@DATE@@, cycle 0.0.0, @@PD-162@@: at compiler `2e1cb4a` the `EINTR` and `EAGAIN` rows compare — they are the
 +prelude's `Interrupted` and `WouldBlock` — and the `ECONNABORTED` and `EMFILE`/`ENFILE` rows cannot: nothing names
 +them that an error can be compared with (probes 13, 13b). Those rows, and the back-off, wait on the compiler's answer
 +to O-N5; the table's design holds as written.)*
@@ -39,13 +39,13 @@ index 77f4198..f6f9b39 100644
  ### SK-032 — `SO_REUSEADDR` on by default for listeners; `SO_REUSEPORT` never
  **2026-09-03.** Without `SO_REUSEADDR`, a server restarted within the
  `TIME_WAIT` window fails `EADDRINUSE` — the most common surprise in socket
-@@ -609,3 +616,57 @@ edge** — a copy per call to undo a type the compiler hands out.
+@@ -615,3 +622,61 @@ edge** — a copy per call to undo a type the compiler hands out.
  *Reversal:* if a later compiler lets `string_bytes` fill a plain slot, nothing need move: a `fixed` parameter takes a
  plain view too (probe 14). If it removes the read-only view, the parameters return to `uint8[]` by a later decision,
  probe 14 reddening first.
 +
 +### @@PD-162@@ — an errno is compared only with the prelude's identities or another error; what needs more waits on O-N5
-+**2026-10-18, cycle 0.0.0 step 4, probes 08, 13 and 13b. Supersedes `SK-014` in part: its mechanism.**
++**@@DATE@@, cycle 0.0.0 step 4, probes 08, 13 and 13b. Supersedes `SK-014` in part: its mechanism.**
 +
 +*What was measured* at compiler `c9baa9e`: a program's `error:EInProgress = 115i32;` is `NITPICK-RESOLVE-010` at the
 +declaration — an explicit error code is the prelude's alone (D-179) — and `int32:code = r.err =>! int32;` is
@@ -55,6 +55,8 @@ index 77f4198..f6f9b39 100644
 +is closed or listening, so `EINPROGRESS` — and the socket turns writable either way; `SO_ERROR` then reads 111 as data
 +and 0 on a second read; and a second `connect` after the wait answers success once the connection is made, and
 +otherwise the pending error itself — unlike the first, and leaving `SO_ERROR` at 0 (probe 08, legs A, B and C).
++
++*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
 +
 +*So:* this library compares an errno only with an identity the prelude declares or with another error, and names
 +none. `SK-014`'s protocol keeps its reasoning — writability is not success — and changes its mechanism: after any
@@ -75,7 +77,7 @@ index 77f4198..f6f9b39 100644
 +name an errno with its code.
 +
 +### @@PD-163@@ — what a consumer of each module shape owes, measured; the tests' arm codes beyond the convention
-+**2026-10-18, cycle 0.0.0 step 4.**
++**@@DATE@@, cycle 0.0.0 step 4.**
 +
 +*What was measured* — `NITPICK-REACH-003`, a root importing one module and declaring no `failsafe`, the compiler as
 +the oracle (`PLAYBOOK.md` §6), at compiler `c9baa9e`, re-measured by block 0b: a `sys` wrapper forwarding the
@@ -83,6 +85,8 @@ index 77f4198..f6f9b39 100644
 +module, `m.ESockAddr`, and one raising a private identity owes it the same way, `m.ESockState`; a public identity
 +declared and never raised costs nothing; a decoder that indexes its view and shifts owes `IntOverflow` and
 +`OutOfBounds` beside the six; and a wait on the reactor owes `DeadlineExceeded` and `IntOverflow` beside them.
++
++*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
 +
 +*So:* `SAFETY.md` S-6 holds as written — a forwarded errno costs no arm. S-8's "owes exactly one arm" counted the
 +library's identities, not the bill, and now says both; `SAFETY.md` §1's REACH-002 row and `CONTRIBUTING.md`'s third
@@ -112,7 +116,7 @@ index 739b4ba..1243329 100644
 +**One cycle's items wait on the compiler:** two rows of cycle 0.3's accept loop
 +and cycle 0.8.2's back-off wait on O-N5 (@@PD-162@@). Everything else below is
 +open by design, and each entry says why — a measurement, a default that wants a
-+number rather than a taste, or the compiler's. *(2026-10-18: this said "No cycle
++number rather than a taste, or the compiler's. *(@@DATE@@: this said "No cycle
 +in this plan is blocked on a question", and counted the entries, which the
 +entries now do themselves.)*
  
@@ -131,8 +135,8 @@ index 739b4ba..1243329 100644
  Measured at the compiler's 1.5.0 and recorded in `specs/BUILD.md` §1.
 @@ -65,7 +69,8 @@ so explicitly. The code is right and the comment is loose.
  designing a server will look, and `SK-035` is built on the code's behaviour
- rather than the comment's. *(2026-10-18, cycle 0.0.0: the behaviour RUN at compiler
- `c9baa9e` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
+ rather than the comment's. *(@@DATE@@, cycle 0.0.0: the behaviour RUN at compiler
+ `2e1cb4a` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
 -so, `src/frontend/types.npk:1733`. The ask stands.)*
 +so, `src/frontend/types.npk:1733`. The ask stands.)* *(This id is this repository's
 +own; a workbench registry id for it is the orchestrator's to assign — ED2.)*
@@ -252,7 +256,7 @@ index 0dc5edd..d09fa23 100644
 +each entry saying why — a measurement taken in the cycle that can take it, a
 +default that wants a number rather than a taste, or the compiler's. **Two rows
 +of cycle 0.3's accept loop and cycle 0.8.2's back-off wait on the compiler**
-+(O-N5, @@PD-162@@); no other cycle waits on a decision. *(2026-10-18: this
++(O-N5, @@PD-162@@); no other cycle waits on a decision. *(@@DATE@@: this
 +paragraph counted the decisions, `SK-001` … `SK-037`, and the open entries,
 +which the files now do themselves — the early ecosystem audit's E2-10.)*
  
@@ -266,7 +270,7 @@ index 0ef2e21..1e96f55 100644
  turns a melt into a degradation. It also logs nothing, because a library does
  not own an application's diagnostics — it returns the condition and the count.
  
-+*(2026-10-18, @@PD-162@@: at compiler `c9baa9e` nothing names `EMFILE` that a
++*(@@DATE@@, @@PD-162@@: at compiler `2e1cb4a` nothing names `EMFILE` that a
 +program can compare an error with (probes 13 and 13b), so the loop cannot tell
 +this condition from any other; the back-off waits, with `SOCKET_MODEL.md`
 +K-19.1, on the compiler's answer to O-N5.)*
@@ -307,8 +311,8 @@ index 7b2724d..64ae2b0 100644
  | `EMFILE` / `ENFILE` | the process or system is out of descriptors | §7.1 |
  | anything else | the listener is broken | fail, forwarded verbatim |
  
-+*(2026-10-18, @@PD-162@@: `EAGAIN` and `EINTR` are the prelude's `WouldBlock` and `Interrupted`, and compare; at
-+compiler `c9baa9e` nothing names `ECONNABORTED`, `EMFILE` or `ENFILE` that a program can compare an error with
++*(@@DATE@@, @@PD-162@@: `EAGAIN` and `EINTR` are the prelude's `WouldBlock` and `Interrupted`, and compare; at
++compiler `2e1cb4a` nothing names `ECONNABORTED`, `EMFILE` or `ENFILE` that a program can compare an error with
 +(probes 13 and 13b), so the loop cannot tell their rows from "anything else". Those two rows, and K-19.1, wait on
 +the compiler's answer to O-N5.)*
 +
@@ -324,7 +328,7 @@ index f3d6112..6ea5841 100644
       `ECONNREFUSED` (`-111`), `ETIMEDOUT` (`-110`) or `EHOSTUNREACH` (`-113`)
       and can tell them apart.
 +
-+   *(2026-10-18, @@PD-162@@: at compiler `c9baa9e` no program can make an error
++   *(@@DATE@@, @@PD-162@@: at compiler `2e1cb4a` no program can make an error
 +   of `SO_ERROR`'s number, nor name `EINPROGRESS` to compare step 2's answer
 +   with (probes 13 and 13b). Probe 08 measures the spelling that needs neither:
 +   after the wait, a SECOND `connect` answers success once the connection is
@@ -338,8 +342,8 @@ index f3d6112..6ea5841 100644
      otherwise                -> fail r.err
  ```
  
-+*(2026-10-18, @@PD-162@@: the `Interrupted` and `WouldBlock` rows compare — they
-+are the prelude's; at compiler `c9baa9e` nothing names `ECONNABORTED`,
++*(@@DATE@@, @@PD-162@@: the `Interrupted` and `WouldBlock` rows compare — they
++are the prelude's; at compiler `2e1cb4a` nothing names `ECONNABORTED`,
 +`EMFILE` or `ENFILE` that a program can compare an error with (probes 13 and
 +13b), and `ConnAborted` is no identity the prelude declares, so the loop
 +cannot tell those two rows from `otherwise`. They, and T-13's retry, wait on

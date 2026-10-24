@@ -3,18 +3,18 @@ index 8f1c04d..34ceb50 100644
 --- a/harness/README.md
 +++ b/harness/README.md
 @@ -8,8 +8,54 @@ compiler repository. Built in cycles 0.0.2 and 0.0.3.
- It carries no marker the compiler's grammar does not. *(2026-10-18: it was to
+ It carries no marker the compiler's grammar does not. *(@@DATE@@: it was to
  carry `// expect-signal: N`, for the `SIGPIPE` test, which @@PD-159@@ retires —
- at compiler `c9baa9e` that test's send answers `EPIPE`, and nothing in the
+ at compiler `2e1cb4a` that test's send answers `EPIPE`, and nothing in the
 -suite dies by a signal.)*
-+suite dies by a signal.)* *(2026-10-21, cycle 0.0.2, @@PD-171@@: it has one
++suite dies by a signal.)* *(@@DATE@@, cycle 0.0.2, @@PD-171@@: it has one
 +marker of its own beside the compiler's, `// mem-cap-mib: N` — `BUILD.md`
 +B-6a — and a file carrying `// expect-signal:` fails by name.)*
  
- *(2026-10-18, cycle 0.0.1, @@PD-167@@:)* until cycle 0.0.2, `run.py` is a stub that
+ *(@@DATE@@, cycle 0.0.1, @@PD-167@@:)* until cycle 0.0.2, `run.py` is a stub that
  builds and judges nothing and says so; CI runs it, so the workflow's step for it
  exists before the runner does.
-+*(2026-10-21, cycle 0.0.2: the stub is replaced by the runner below; cycle 0.0.3
++*(@@DATE@@, cycle 0.0.2: the stub is replaced by the runner below; cycle 0.0.3
 +adds the `parse` sweep and the `check` stage, the `loopback` and `network`
 +stages, the self-check and the tree checks.)*
 +
@@ -1427,13 +1427,15 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 151ee71..9c18f5b 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -807,3 +807,110 @@ research skill read one.
+@@ -821,3 +821,112 @@ research skill read one.
  *Reversal:* to let cycle 0.0's probes run before the research, move the gate to cycle 0.1: cycle 0.0.0's gate item 7
  and block 0a's research lines go, the three rows wait for their digests, and `0.1/0.1.0.md`'s gate names them; to
  count the library routine, strike `CURRENCY.md`'s research section and its three rows, and the gate with them.
 +
 +### @@PD-169@@ — the build is one module per root, held to the target rows, scanned on both legs, and reproducible from two directories
-+**2026-10-21, cycle 0.0.2 step 1.** Measured at compiler `c9baa9e`, and each a rule of `specs/BUILD.md`:
++**@@DATE@@, cycle 0.0.2 step 1.** Measured at compiler `c9baa9e`, and each a rule of `specs/BUILD.md`:
++
++*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
 +
 +- **One module per root** (§2's drawing). `npkc` emits a root and every module it imports as one module — a
 +  function of an imported module is DEFINED in the root's emission — so a program links as its one object and
@@ -1463,7 +1465,7 @@ index 151ee71..9c18f5b 100644
 +other than the runtime's and `npk_failsafe`, B-2 names it, and a new allowance is a decision, never an edit.
 +
 +### @@PD-170@@ — the call-edge scan holds the library to the runtime facets its rules give it, from a table of the whole runtime
-+**2026-10-21, cycle 0.0.2 step 1.** `specs/BUILD.md` B-2a.
++**@@DATE@@, cycle 0.0.2 step 1.** `specs/BUILD.md` B-2a.
 +
 +*What was read and measured* — the workbench's `PLAYBOOK.md` §6: an undefined-symbol scan cannot see a syscall,
 +and a call-edge scan of the IR can; `nitpick-parse`'s plan for the same scan, whose first deny list read only part of
@@ -1511,7 +1513,7 @@ index 151ee71..9c18f5b 100644
 +the table moves with the adoption, each new function classed by these rules.
 +
 +### @@PD-171@@ — the runner judges `program`, `compile`/`positive` and `compile`/`negative`, and reads one marker of its own
-+**2026-10-21, cycle 0.0.2 step 1.** `specs/BUILD.md` B-6a.
++**@@DATE@@, cycle 0.0.2 step 1.** `specs/BUILD.md` B-6a.
 +
 +*What was read* — the manifest's three entries (`@@PD-166@@`): `conformance`, `compile`/`positive`; `probe`, `program`;
 +and `probe-refused`, `compile`/`negative`. The compiler's rule, which this runner keeps: an entry a runner cannot
@@ -1561,9 +1563,9 @@ index 0667737..00d602c 100644
 +and the check leg, every program: the same <root>.ll → opt → llc -O2 → the scan → ld.lld (B-3)
  ```
  
-+*(Corrected 2026-10-21, cycle 0.0.2 — @@PD-169@@: the drawing compiled `src/lib.npk` into
++*(Corrected @@DATE@@, cycle 0.0.2 — @@PD-169@@: the drawing compiled `src/lib.npk` into
 +`build/nsockets.ll` and `build/nsockets.o` and then linked "one program object + npkrt.o", as
-+if a library object sat between them. Measured at compiler `c9baa9e`, `npkc` emits a root and
++if a library object sat between them. Measured at compiler `2e1cb4a`, `npkc` emits a root and
 +everything it imports as one module — an imported module's function is DEFINED in the root's
 +emission — so a program links as its one object and the runtime, and each module under `src/`
 +is compiled on its own only to be scanned and compared.)*
@@ -1587,7 +1589,7 @@ index 0667737..00d602c 100644
  where somebody would reach for `htons` or `inet_pton` out of habit, and the
  scan is what makes "no libc, ever" a structural property rather than a
  convention.
-+*(Re-read 2026-10-21, cycle 0.0.2 — @@PD-169@@: the allowlist is the pinned
++*(Re-read @@DATE@@, cycle 0.0.2 — @@PD-169@@: the allowlist is the pinned
 +`npkrt.o`'s own defined symbols, the runtime the link uses, and the scan runs on
 +both legs' objects of every program and on the object of every module under
 +`src/`. Measured at the pin: the floor program's object has five undefined
@@ -1629,7 +1631,7 @@ index 0667737..00d602c 100644
  working directories produce byte-identical IR. `nsockets` inherits this from
  the compiler (D-078, D-204, D-236) and the harness has a `repro` stage that
  measures it.
-+*(Re-read 2026-10-21, cycle 0.0.2 — @@PD-169@@: each copy carries its manifest. The
++*(Re-read @@DATE@@, cycle 0.0.2 — @@PD-169@@: each copy carries its manifest. The
 +compiler records source paths relative to the manifest root (D-236), so a copy
 +made without one — inside this repository, under its manifest — renders its paths
 +by where it sits: measured at the pin, the conformance consumer copied twice
@@ -1676,10 +1678,10 @@ index 4e8f025..fe64540 100644
 +++ b/meta/specs/TESTING.md
 @@ -95,7 +95,9 @@ is death by signal, and the marker is `// expect-signal: 13` — one addition to
  the compiler's marker grammar, and the only one this library makes.~~ —
- **retired by @@PD-159@@** (2026-10-18): nothing in the suite is expected to die
+ **retired by @@PD-159@@** (@@DATE@@): nothing in the suite is expected to die
  by a signal at the pin, so the marker would have no consumer, and this library
 -adds none to the compiler's marker grammar.
-+adds none to the compiler's marker grammar. *(2026-10-21, cycle 0.0.2, @@PD-171@@:
++adds none to the compiler's marker grammar. *(@@DATE@@, cycle 0.0.2, @@PD-171@@:
 +the runner adds one marker of its own since, `// mem-cap-mib: N` — `BUILD.md`
 +B-6a — and fails a file carrying `// expect-signal:` by name.)*
  

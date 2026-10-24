@@ -6,7 +6,7 @@ index 4525d2b..77f4198 100644
  `close(release_fd(move s))` is the spelling for a caller that must observe
  close's verdict — the move defuses the drop, so no double close is spellable.
  
-+*(2026-10-18, cycle 0.0.0: RUN at compiler `c9baa9e` — `own_fd` on a socket closes it at the block's end; an owner
++*(@@DATE@@, cycle 0.0.0: RUN at compiler `2e1cb4a` — `own_fd` on a socket closes it at the block's end; an owner
 +handed to `release_fd(move(o))` is vacated, so its block's end closes nothing (the compiler's landing 105 drops an
 +address-taken owner unconditionally, and a moved-out slot's drop is a no-op); `close` on the bare number answers
 +success, and a second `close` the same error as a witness close of a number never opened (`tests/probe/probe05_ownedfd_drop.npk`).
@@ -19,7 +19,7 @@ index 4525d2b..77f4198 100644
  the wrong type twice over. `unix_addr_from_path(Path)` exists for callers who
  genuinely have an absolute path and want the check.
  
-+*(2026-10-18, cycle 0.0.0, @@PD-161@@: the byte slice `unix_addr_path` takes is the read-only view, `fixed uint8[]`,
++*(@@DATE@@, cycle 0.0.0, @@PD-161@@: the byte slice `unix_addr_path` takes is the read-only view, `fixed uint8[]`,
 +so a caller holding a `string` passes `string_bytes(s)` — `ADDRESS_MODEL.md` A-14 says so; this decision's choice of a
 +byte slice over `Path` holds as written.)*
 +
@@ -30,7 +30,7 @@ index 4525d2b..77f4198 100644
  with `MSG_NOSIGNAL` and **not** the floor's `write`, so it cannot share a body
  with the prelude's `ByteWriter` impl.
  
-+*(2026-10-18, cycle 0.0.0, @@PD-161@@: RUN at compiler `c9baa9e` — a struct holding an `OwnedFd` implements the
++*(@@DATE@@, cycle 0.0.0, @@PD-161@@: RUN at compiler `2e1cb4a` — a struct holding an `OwnedFd` implements the
 +prelude's `Reader` and `Writer` with their exact signatures, `fixed uint8[]:wsrc` and `Writer`'s `flush` among them, its
 +`write` a `sendto` with `MSG_NOSIGNAL` from the view's own `.ptr` and `.len`, and it runs through a generic bound and
 +through `dyn Writer` (`tests/probe/probe06_reader_writer.npk`); an implementation that drops the `fixed` is
@@ -39,13 +39,13 @@ index 4525d2b..77f4198 100644
  ### SK-028 — `IPV6_V6ONLY` is set explicitly, never left to the sysctl
  **2026-09-03.** Every IPv6 socket sets it to whatever the caller asked for.
  The builder's default is **v6only on**.
-@@ -566,3 +582,30 @@ the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, a
+@@ -570,3 +586,32 @@ the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, a
  *Reversal:* none for the sizes, which are measurements — a later pin that moves one reddens probe 02, 03 or 12 on its
  first run, and the specification follows. If a later compiler frees `pid`, `uid` or `gid` as names, the fields keep
  the names they have, since renaming a public field is a major version.
 +
 +### @@PD-161@@ — every slot a reader's bytes reach is the read-only view; a writer's is plain
-+**2026-10-18, cycle 0.0.0 step 3, probes 06, 06b, 14 and 14b. The pin audit's SL-1 and SL-4; SL-6 beside them.**
++**@@DATE@@, cycle 0.0.0 step 3, probes 06, 06b, 14 and 14b. The pin audit's SL-1 and SL-4; SL-6 beside them.**
 +
 +*What was measured* at compiler `c9baa9e`, at `-O0` and through `opt -O2`: a decoder over `fixed uint8[]:src` takes
 +`string_bytes` of a `string` (the read-only view since the compiler's landing 103, D-351), a plain view of a local
@@ -53,6 +53,8 @@ index 4525d2b..77f4198 100644
 +`NITPICK-TYPE-007` at the argument (probe 14b). An implementation of the prelude's `Writer` takes `fixed
 +uint8[]:wsrc` exactly as the trait does — dropping the `fixed` is `NITPICK-TYPE-014` (probe 06b) — and its `write`
 +hands the view's own `.ptr` and `.len` to `sendto` (probe 06). A `Reader`'s `dest` is a plain `uint8[]`: it writes.
++
++*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
 +
 +*So:* every parameter this library declares over bytes it only reads is `fixed uint8[]` — `addr_decode`,
 +`unix_decode`, `unix_addr_path`, every parser (A-5, A-14, A-22), every kernel-structure accessor (`VERIFICATION.md`

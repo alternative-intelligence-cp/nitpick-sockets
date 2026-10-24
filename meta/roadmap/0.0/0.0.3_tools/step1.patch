@@ -4,10 +4,10 @@ index 34ceb50..ff45e74 100644
 +++ b/harness/README.md
 @@ -17,10 +17,11 @@ builds and judges nothing and says so; CI runs it, so the workflow's step for it
  exists before the runner does.
- *(2026-10-21, cycle 0.0.2: the stub is replaced by the runner below; cycle 0.0.3
+ *(@@DATE@@, cycle 0.0.2: the stub is replaced by the runner below; cycle 0.0.3
  adds the `parse` sweep and the `check` stage, the `loopback` and `network`
 -stages, the self-check and the tree checks.)*
-+stages, the self-check and the tree checks.)* *(2026-10-22, cycle 0.0.3: they
++stages, the self-check and the tree checks.)* *(@@DATE@@, cycle 0.0.3: they
 +are added — @@PD-173@@, @@PD-174@@, @@PD-175@@.)*
  
  ```
@@ -1800,13 +1800,13 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 02f8b2d..5b6ee41 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -942,3 +942,121 @@ the first; **the version alone** — `@@PD-167@@`'s pin, which a re-uploaded asset p
+@@ -958,3 +958,124 @@ the first; **the version alone** — `@@PD-167@@`'s pin, which a re-uploaded asset p
  waits: the install step's check of the digest's line and the `LLVM_DIGEST` row go, CI fetches the tarball by its
  version as `@@PD-167@@` has it, and `CURRENCY.md`'s row says the pin waits. A new LLVM pin is a new digest, filed beside
  this one, and the row the workflow reads names it.
 +
 +### @@PD-173@@ — the `check` stage and the `parse` sweep are judged by `npkc`; `accept` is struck; `loopback` is never skipped, and `network` is skipped loudly
-+**2026-10-22, cycle 0.0.3 step 1.** `specs/BUILD.md` §3, B-5; `TESTING.md` §1, V-2.
++**@@DATE@@, cycle 0.0.3 step 1.** `specs/BUILD.md` §3, B-5; `TESTING.md` §1, V-2.
 +
 +*What was read and measured* — at compiler `c9baa9e` its `tools/parse_check` and `tools/check`, which its
 +`BUILD_REFERENCE.md` §7.1 names as the judges of the `parse`, `check` and `accept` stages, are `.npk` sources, each an
@@ -1817,6 +1817,9 @@ index 02f8b2d..5b6ee41 100644
 +was measured on, a TCP socket binds port 0 on `127.0.0.1` and on `::1`, and cannot bind `192.0.2.1`. `BUILD.md`
 +O-B2 recommends a `network` stage of two tests, one to a caller-supplied host and port. And `nitpick.toml`: an entry
 +naming a directory with nothing in it is a suite that reports green while checking nothing.
++
++*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same, but that `npkc`'s usage names `--dump-refs FILE` too, from the compiler's landing 140 —
++a file of the escape analysis's references written beside the IR, so still no mode that stops after the parser.)*
 +
 +*So:* the runner judges a `check` entry as it judges a `compile`/`negative` one — one function, the exact-code rule
 +(B-7, B-8). A `parse` entry over the whole tree is the sweep: every `.npk` but those under `.git`, `build` and
@@ -1841,7 +1844,7 @@ index 02f8b2d..5b6ee41 100644
 +and `check` can move to it by a decision, judged the same way.
 +
 +### @@PD-174@@ — the self-check catches every live case beside its control, before anything judges the library; a filtered run concludes nothing
-+**2026-10-22, cycle 0.0.3 step 1.** `specs/TESTING.md` V-14, V-15; `BUILD.md` B-9.
++**@@DATE@@, cycle 0.0.3 step 1.** `specs/TESTING.md` V-14, V-15; `BUILD.md` B-9.
 +
 +*What was read and measured* — `TESTING.md` V-14's list, two of whose cases cannot be written: the `expect-signal:`
 +case, retired with V-6 (`@@PD-159@@`), and a socket left open at exit, which `exit 0` cannot see — at the pin a program
@@ -1877,7 +1880,7 @@ index 02f8b2d..5b6ee41 100644
 +*Reversal:* none; a pending case goes live, by a line of `selfcheck.py`, in the cycle that brings its subject.
 +
 +### @@PD-175@@ — the tree checks read the specifications' tables and the source through one reader; an identity is a module and a name
-+**2026-10-22, cycle 0.0.3 step 1.** `specs/TESTING.md` §5, V-3, V-11; `SAFETY.md` S-4, S-8; `BUILD.md` B-18, B-19.
++**@@DATE@@, cycle 0.0.3 step 1.** `specs/TESTING.md` §5, V-3, V-11; `SAFETY.md` S-4, S-8; `BUILD.md` B-18, B-19.
 +
 +*What was read and measured* — at the pin, a consumer importing a module whose `fail` raises an identity another
 +module declares owes it once, as `socket.ESockState`; and when the raising module declares its own `ESockState`, the
@@ -1941,8 +1944,8 @@ index 00d602c..d3060cb 100644
  | `network` | `tests/unit/extern/` | as `program`, but needs an outside host; **skipped with a loud line** when unavailable, never silently |
  | `fixture` | `tests/fixtures/` | built and never run; its uppercased stem becomes an `// argv:` token |
  
-+*(2026-10-22, cycle 0.0.3 — @@PD-173@@: the `parse` and `check` rows named the compiler's `tools/parse_check` and
-+`tools/check`, which are `.npk` sources at compiler `c9baa9e` that a run would have to build from the compiler's tree,
++*(@@DATE@@, cycle 0.0.3 — @@PD-173@@: the `parse` and `check` rows named the compiler's `tools/parse_check` and
++`tools/check`, which are `.npk` sources at compiler `2e1cb4a` that a run would have to build from the compiler's tree,
 +and nothing here builds the compiler; `npkc` judges both, and having no parse-only mode, it compiles each file of the
 +sweep and the sweep judges the family of its codes. The `accept` row is struck: `tests/conformance/` is run. A
 +`loopback` entry binds `127.0.0.1` and `::1` at port 0 before its first unit and fails every unit when it cannot; a
@@ -1956,7 +1959,7 @@ index 00d602c..d3060cb 100644
  
  **Rule B-19 — a `use` cycle is legal** (D-086) and is still a decomposition
  mistake. The harness has a check.
-+*(2026-10-22, cycle 0.0.3 — @@PD-175@@: `check_layering`, which names every cycle among the imports of the files under
++*(@@DATE@@, cycle 0.0.3 — @@PD-175@@: `check_layering`, which names every cycle among the imports of the files under
 +`src/`; B-18's table already forbids one between modules.)*
  
  ---
@@ -1975,10 +1978,10 @@ index a9d5a3d..d5a3d88 100644
 +  them through its import of `src/socket/`, which `stream`'s, `datagram`'s,
 +  `ancillary`'s and `server`'s rows of `BUILD.md` B-18's table give them;
 +  `option`'s row does not, and `OPTION_MODEL.md` gives it none of the four.
-+  *(2026-10-22, cycle 0.0.3 — @@PD-175@@: this bullet said `src/socket/`,
++  *(@@DATE@@, cycle 0.0.3 — @@PD-175@@: this bullet said `src/socket/`,
 +  `src/stream/`, `src/datagram/`, `src/option/` and `src/server/` "declare"
 +  both. A declaration is an identity of its own, qualified by its module —
-+  measured at compiler `c9baa9e`, a consumer owes `socket.ESockState` once when
++  measured at compiler `2e1cb4a`, a consumer owes `socket.ESockState` once when
 +  another module raises it through its import, and `stream.ESockState` beside it
 +  when `stream` declares its own — so five declarations of two names would be
 +  ten identities against S-4's four. `check_error_budget` holds every
@@ -2003,7 +2006,7 @@ index fe64540..539727f 100644
  (`SOCKET_MODEL.md` K-14). A test with a hardcoded port fails when two runs
  overlap, which is exactly what `// stress: 40` and a parallel CI do. There is no
  hardcoded port anywhere in the suite and a tree check greps for one.
-+*(2026-10-22, cycle 0.0.3 — @@PD-175@@: `check_no_hardcoded_port` reads the suite's code, its comments and strings
++*(@@DATE@@, cycle 0.0.3 — @@PD-175@@: `check_no_hardcoded_port` reads the suite's code, its comments and strings
 +blanked, not its text: a non-zero integer literal bound or initialised to a name whose word is `port` is a finding.)*
  
  **Rule V-4 — every Unix-domain test uses the abstract namespace.** No
@@ -2033,7 +2036,7 @@ index fe64540..539727f 100644
 +| `check_no_hardcoded_port` | no non-zero integer literal bound or initialised to a name whose word is `port` in `tests/` (V-3) |
 +| `check_specs_current` | **fails the run**: a `<SPEC>.md` rule or section a file under `src/`, `tests/` or `harness/` cites that this repository's specification does not define |
 +
-+*(2026-10-22, cycle 0.0.3 — @@PD-175@@: each row now says what its check reads. Every check reads `.npk` source through
++*(@@DATE@@, cycle 0.0.3 — @@PD-175@@: each row now says what its check reads. Every check reads `.npk` source through
 +`harness/lexical.py`, as bytes — its code with every comment and literal blanked, and a comment's words only where the
 +check reads them, a module's header line or a citation — not as text. `check_error_budget` counted
 +"public `error:` declarations" (the early ecosystem audit's EC3) — an identity is a module and a name, a private one
@@ -2046,7 +2049,7 @@ index fe64540..539727f 100644
  is a rule about **every call site** and a rule about every call site is a rule
  that will be broken by the twentieth one. It is a grep with a whitelist of
  zero.
-+*(2026-10-22, cycle 0.0.3 — @@PD-175@@: not a grep: the check reads every `sys` call in the blanked code of `src/`, its
++*(@@DATE@@, cycle 0.0.3 — @@PD-175@@: not a grep: the check reads every `sys` call in the blanked code of `src/`, its
 +number named by `src/sys/` (`check_constants_named`), and requires `MSG_NOSIGNAL` in the flags word of each `sendto`
 +and `sendmsg`, with a whitelist of zero.)*
  
@@ -2064,7 +2067,7 @@ index fe64540..539727f 100644
  - a `parse` case that does not parse;
  - a tree check fed a deliberate violation — a `sendto` without `MSG_NOSIGNAL`.
  
-+*(2026-10-22, cycle 0.0.3 — @@PD-174@@: the cases are `harness/selfcheck.py`'s list, which every full run prints case by
++*(@@DATE@@, cycle 0.0.3 — @@PD-174@@: the cases are `harness/selfcheck.py`'s list, which every full run prints case by
 +case: these, and more — each marker misread, a cap below the loader, a refusal accepted, at the wrong site and missing
 +its expectation, a `loopback` unit with a wrong exit and an address that cannot be bound, a `network` unit with no
 +host, each facet the call-edge scan denies, the toolchain's and the manifest's pins, the reader, and every tree check
@@ -2073,7 +2076,7 @@ index fe64540..539727f 100644
 +
  **Rule V-15.** The self-check runs first in every full invocation. A harness
  that has not proven it can fail has not proven anything.
-+*(2026-10-22, cycle 0.0.3 — @@PD-174@@: first after the toolchain checks and the floor program its cases are built on,
++*(@@DATE@@, cycle 0.0.3 — @@PD-174@@: first after the toolchain checks and the floor program its cases are built on,
 +and before every step that judges the library; a case not caught, or a control not passed, stops the run, RED.)*
  
  ---

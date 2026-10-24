@@ -71,9 +71,9 @@ index f2853e6..64d626d 100644
  
 -It carries one marker the compiler's grammar does not: `// expect-signal: N`,
 -for the `SIGPIPE` test.
-+It carries no marker the compiler's grammar does not. *(2026-10-18: it was to
++It carries no marker the compiler's grammar does not. *(@@DATE@@: it was to
 +carry `// expect-signal: N`, for the `SIGPIPE` test, which @@PD-159@@ retires —
-+at compiler `c9baa9e` that test's send answers `EPIPE`, and nothing in the
++at compiler `2e1cb4a` that test's send answers `EPIPE`, and nothing in the
 +suite dies by a signal.)*
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 56f54e7..d902e7f 100644
@@ -83,7 +83,7 @@ index 56f54e7..d902e7f 100644
  descriptor arrived from outside and there is nothing atomic to do.
  
  ### SK-013 — every send carries `MSG_NOSIGNAL`, without exception
-+> **SUPERSEDED IN PART by @@PD-159@@ (2026-10-18): its stated fact.** At compiler `c9baa9e` the floor catches
++> **SUPERSEDED IN PART by @@PD-159@@ (@@DATE@@): its stated fact.** At compiler `2e1cb4a` the floor catches
 +> `SIGPIPE` with a handler that returns (probe 04); the rule stands, with its reason restated there.
  **2026-09-03. The library's headline safety rule.**
  
@@ -92,7 +92,7 @@ index 56f54e7..d902e7f 100644
  *The library builds the shape the language permits and documents why the other
  is absent*, so nobody spends a day trying to defeat the checker.
  
-+*(2026-10-18, cycle 0.0.0: both rules RUN at compiler `c9baa9e`, at `-O0` and through `opt -O2` — an `OwnedFd`,
++*(@@DATE@@, cycle 0.0.0: both rules RUN at compiler `2e1cb4a`, at `-O0` and through `opt -O2` — an `OwnedFd`,
 +and a struct holding one, are `NITPICK-TYPE-057` at the channel's annotation (`tests/probe/refused/probe09_ownedfd_channel.npk`,
 +`probe09b_holder_channel.npk`; the struct's diagnostic names the struct, not its field); a task handed one by
 +`move` sends on it and its drop closes it before the spawner's join (`tests/probe/probe10_ownedfd_spawn.npk`); and a
@@ -102,20 +102,20 @@ index 56f54e7..d902e7f 100644
  ### SK-036 — address parsing is strict, `inet_pton`-shaped and not `inet_aton`-shaped
  **2026-09-03.** `ipv4_parse` accepts exactly four decimal octets, 0–255, with
  **no leading zeros**, and refuses `127.1`, `0177.0.0.1`, `0x7f.0.0.1` and
-@@ -469,3 +478,49 @@ in this ecosystem has the same rule, and five libraries each phrasing it
+@@ -469,3 +478,51 @@ in this ecosystem has the same rule, and five libraries each phrasing it
  slightly differently would be five chances for one of them to phrase it wrong.
  
  Where a future library needs a different policy, it says so against this one.
 +
 +---
 +
-+# The third batch — cycle 0.0's probes, proposed 2026-10-18 at compiler `c9baa9e`
++# The third batch — cycle 0.0's probes, @@DATE@@ at compiler `2e1cb4a`
 +
 +Proposed by cycle 0.0's plan, each in the step whose measurement forces it, and numbered at the libraries' seat's
 +review. Each records the alternatives it declines and its reversal.
 +
 +### @@PD-159@@ — the floor catches `SIGPIPE`; every send still carries `MSG_NOSIGNAL`, and nothing dies by a signal
-+**2026-10-18, cycle 0.0.0 step 1, probe 04. Supersedes `SK-013` in part: its stated fact. The rule stands.**
++**@@DATE@@, cycle 0.0.0 step 1, probe 04. Supersedes `SK-013` in part: its stated fact. The rule stands.**
 +
 +*What was measured* (`tests/probe/probe04_sigpipe.npk`, at compiler `c9baa9e`, at `-O0` and through `opt -O2`): the
 +floor's runtime installs a handler for `SIGPIPE` at startup — `rt_sigaction(SIGPIPE, NULL, &prior)` reads a handler
@@ -129,6 +129,8 @@ index 56f54e7..d902e7f 100644
 +disposition, so `SIGPIPE`'s default is live — was true of the runtime it was read in and is false here: `npkrt.ll`
 +has no `rt_sigaction` at the compiler's `3d15ac9`, and its `SIGPIPE` handler came with the compiler's `b7244d2f`
 +(1.5.8 step 3, DEF-68's fix), whose parent has none; it is there at `c3bdae2` and at the pin.
++
++*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
 +
 +*So:* every send `nsockets` issues still carries `MSG_NOSIGNAL`, and the reason is the default disposition rather
 +than the runtime: on the floor's runtime a send to a dead peer answers `EPIPE` either way, but a process's
@@ -161,8 +163,8 @@ index 292c1c5..d130a64 100644
  **Ask:** a one-word amendment, because that comment is exactly where somebody
  designing a server will look, and `SK-035` is built on the code's behaviour
 -rather than the comment's.
-+rather than the comment's. *(2026-10-18, cycle 0.0.0: the behaviour RUN at compiler
-+`c9baa9e` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
++rather than the comment's. *(@@DATE@@, cycle 0.0.0: the behaviour RUN at compiler
++`2e1cb4a` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
 +so, `src/frontend/types.npk:1733`. The ask stands.)*
  
  ### O-N4 — no `sigaction` and no signal-mask primitive in the language
@@ -171,7 +173,7 @@ index 292c1c5..d130a64 100644
  `nitpick-tui` reaches the signal machinery through `signalfd` over raw `sys`
  calls. Recorded so that a future language-level signal facility is known to
 -have one library that wants it and one that does not.
-+have one library that wants it and one that does not. *(2026-10-18, cycle
++have one library that wants it and one that does not. *(@@DATE@@, cycle
 +0.0.0: the floor's runtime itself installs handlers — `SIGPIPE`'s returns,
 +measured by probe 04 through a raw `rt_sigaction` read — so the language's
 +programs have a disposition that is not the default; `nsockets` still needs no
@@ -244,7 +246,7 @@ index fcd4de8..0ef2e21 100644
  
  Two language rules, measured in the compiler's own source, and they point in
 -opposite directions. Both matter.
-+opposite directions. Both matter. *(2026-10-18: and run, at compiler `c9baa9e`,
++opposite directions. Both matter. *(@@DATE@@: and run, at compiler `2e1cb4a`,
 +by cycle 0.0.0's probes 09, 09b, 10 and 10b — an `OwnedFd`, and a struct
 +holding one, are `NITPICK-TYPE-057` as channel elements; a move into a spawned
 +task compiles and runs; a borrow across the spawn is `NITPICK-BORROW-004`.)*
@@ -302,13 +304,13 @@ index edaf3dc..21628ab 100644
 +default disposition, set by the probe itself, the `MSG_NOSIGNAL` send still
 +answers `EPIPE`, and with no flags it **dies by signal 13** (its mutant, cycle 0.0.0's block 0b).
 +
-+*(Corrected 2026-10-18 by @@PD-159@@. This paragraph said the runtime installs
++*(Corrected @@DATE@@ by @@PD-159@@. This paragraph said the runtime installs
 +no signal disposition for anything — a search of `npkrt.ll` found no
 +`rt_sigaction` call — which was true of the runtime it was read in: there is
 +none at the compiler's `3d15ac9`, and the handler came with its `b7244d2f`. It
 +quoted the compiler's Bridge, `lib/nbridge.npk`: "a plain write to a socketpair
 +whose peer died raises SIGPIPE, which terminates the runtime by default" — a
-+comment that predates the handler and still reads so at `c9baa9e` — and "the
++comment that predates the handler and still reads so at `2e1cb4a` — and "the
 +first EPIPE schedule proved it by taking the whole process down", which that
 +file says of `?!`, an unwrap that traps on an `EPIPE` result, not of the
 +signal.)*
@@ -390,15 +392,15 @@ index 66cc96a..c462328 100644
 +does not. If a future runtime stops installing the handler, step 1 fails, and
 +the library learns that its central rule has become essential again rather
 +than belt-and-braces — which is worth knowing either way. *(Rewritten
-+2026-10-18 by @@PD-159@@: step 3 was a send without `MSG_NOSIGNAL`, in a child,
-+asserted to die of signal 13; at compiler `c9baa9e` that send answers `EPIPE`.)*
++@@DATE@@ by @@PD-159@@: step 3 was a send without `MSG_NOSIGNAL`, in a child,
++asserted to die of signal 13; at compiler `2e1cb4a` that send answers `EPIPE`.)*
 +
 +~~**Rule V-6.** Step 3 needs a subprocess, because the whole point is that the
  process dies. The harness runs it as a separate program whose expected outcome
  is death by signal, and the marker is `// expect-signal: 13` — one addition to
 -the compiler's marker grammar, and the only one this library makes.
 +the compiler's marker grammar, and the only one this library makes.~~ —
-+**retired by @@PD-159@@** (2026-10-18): nothing in the suite is expected to die
++**retired by @@PD-159@@** (@@DATE@@): nothing in the suite is expected to die
 +by a signal at the pin, so the marker would have no consumer, and this library
 +adds none to the compiler's marker grammar.
  

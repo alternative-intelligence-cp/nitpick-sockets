@@ -13,7 +13,8 @@ landing 118's commit, by the author's word on the workbench's question 32 (2026-
 workbench's `4540f20`; this cycle was planned at it from the start. **The pin is now `2e1cb4a`**, landing 140's commit,
 the libraries' next re-pin, by the author's word of 2026-10-22 03:49:41, taken on 2026-10-22 and committed at the
 workbench's `4db3f92`; **T7a adopted it here on 2026-10-23, before any subcycle started**, by the landing table below,
-row by row, every block of 0.0.0 … 0.0.3 run again at the new pin. No subcycle has started.
+row by row, every block of 0.0.0 … 0.0.3 run again at the new pin. **T7c4, 2026-10-24**, gave every dated line
+those four files' patches add the landing run's date (below), and cut 0.0.4's three patches. No subcycle has started.
 
 | File | At `2e1cb4a` |
 |---|---|
@@ -21,7 +22,7 @@ row by row, every block of 0.0.0 … 0.0.3 run again at the new pin. No subcycle
 | [0.0.1](0.0.1.md) | **yes**, adopted — the layout, the skeleton, the manifest, CI and the currency table; six patches, blocks with filled Expects |
 | [0.0.2](0.0.2.md) | **yes**, adopted — the harness, part 1: the runner, its two scans and their controls, `repro`, three stages, the probes as suites, CI's summary and LLVM by content; three patches, the mutants, blocks with filled Expects |
 | [0.0.3](0.0.3.md) | **yes**, adopted — the harness, part 2: the `check` stage and the `parse` sweep, `loopback` and `network`, the self-check beside its controls, nine tree checks and `--only`; two patches, the mutants, blocks with filled Expects |
-| [0.0.4](0.0.4.md) | **not yet** — the setup-era text; the pass's continuation re-derives it, at `2e1cb4a` |
+| [0.0.4](0.0.4.md) | **not yet** — its three patches are cut, `0.0.4_tools/step1.patch` … `step3.patch`, from T7c4's design chain at `2e1cb4a`, where the harness ran GREEN at each step, with @@PD-176@@ and @@PD-177@@; the file itself — its facts, mutants, loop sweep, stale-claim sweep and blocks — is the continuation's, and where the setup-era text disagrees with the patches, the patches govern |
 | [0.0.5](0.0.5.md) | **not yet** — as 0.0.4; its execution, the close, is the libraries' seat's |
 
 A file marked *not yet* is a target, not a plan: its steps are re-derived at the pin before anything is dispatched from
@@ -68,7 +69,9 @@ Each is settled with a recommendation and states its reversal; **none is left op
 | @@PD-173@@ | 0.0.3 | the `check` stage and the `parse` sweep are judged by `npkc`; `accept` is struck; `loopback` is never skipped, and `network` is skipped loudly |
 | @@PD-174@@ | 0.0.3 | the self-check catches every live case beside its control, before anything judges the library; a filtered run concludes nothing |
 | @@PD-175@@ | 0.0.3 | the tree checks read the specifications' tables and the source through one reader; an identity is a module and a name |
-| PD-176 … PD-178 | 0.0.4 … 0.0.5 | the continuation's, as each file reaches the pin |
+| @@PD-176@@ | 0.0.4 | `limits.npk` holds every bound a specification states with its value; `check_constants_named` holds it to them both ways, and refuses a bound's value as a literal only where no kernel value shares it |
+| @@PD-177@@ | 0.0.4 | the containers check their own indexes and trap `OutOfBounds`; `Bytes` through its buffer's checked index, with no view; `put_uint` divides by nothing; an obligation is a comment unless a decision accepts its arm; every generic instantiated where the call-edge scan reads it |
+| PD-178 | 0.0.5 | the continuation's, if 0.0.5 needs one |
 
 ## The pin, and what each landing would move
 
@@ -134,9 +137,10 @@ compiler's census reads the libraries' trees, where this plan's programs are not
 | 139 `a3c873c` (DEF-265, DEF-271) | after a failed expression a struct literal's braces are the expression's; a block without its `{` reads nothing | **nothing moved**: 0.0.3's `parse-not-parsing` fixture, a statement missing its `;`, is `NITPICK-PARSE-001` at 5:1 at both pins (`0.0.3.md` §1.3); no probe holds a parse error |
 | 140 `2e1cb4a` (DEF-275) | a pointer local's value handed to a callee is checked against the views through it, as `@place` always was | **the pin**: CI's three rows take its notice's (0.0.1); no program is refused anew; its reading tool, `--dump-refs FILE`, joins `npkc`'s usage — `0.0.3.md` §1.2's line |
 
-**Not carried** — landed on the compiler's `main` after the pin, up to `9eaf3b6`, landing 151, by the adoption's
-dispatch's `ls-remote` (03:03:02 on 2026-10-23) and the Workspace compiler clone's ref; each read in its commit and at
-its own sha in the compiler's `meta/NOTICES.md`, and where each would move this plan. The shapes are counted over the
+**Not carried** — landed on the compiler's `main` after the pin, up to `a5693a6`, landing 156: 141 … 151 by the
+adoption's dispatch's `ls-remote` (03:03:02 on 2026-10-23), 152 … 156 by T7c4's (03:00:48 on 2026-10-24), each with the
+Workspace compiler clone's ref; each read in its commit and at its own sha in the compiler's `meta/NOTICES.md`, and where
+each would move this plan. The shapes are counted over the
 cycle's 138 programs — the patched tree's 33 and the self-check's 105 fixtures — read as `tools/shapes.py` reads them:
 
 | Landing | What it does | Where it would move this plan |
@@ -149,6 +153,11 @@ cycle's 138 programs — the patched tree's 33 and the self-check's 105 fixtures
 | 146 `915f427` (DEF-274, S-134's R4) | an atomic's methods lower through a pointer; `npkc FILE --reach OUT` writes the identities a `failsafe` must name | **re-read**: no atomic written; `npkc`'s usage gains `[--reach FILE]` — 0.0.3's block 0b, §1.2, and its sentence — another file written beside the IR, so still no mode that stops after the parser (@@PD-173@@'s reading) |
 | 147 `d422c1e` (DEF-270, DEF-280) | a generic `comptime func:` names its type parameter in a type under evaluation; `move` folds in a comptime body | **nothing**: no `comptime` (`tools/rulings.py`) |
 | 151 `9eaf3b6` (D-363 R1) | a `pick` arm names several values with one body; a value repeated in a `pick` is `PICK-004`; a path over a selector that is no enum is `TYPE-007` | **nothing written**: 59 `pick`s, none with a list and none repeating a value; every program compiles at the pin, so none holds the shape the emitter died on |
+| 152 `538c596` (DEF-278, DEF-281) | a body nested in a body is walked once per level; a `give` below an arm's top level, of another type than the `pick`'s, is `TYPE-007`, and a value-`pick` arm that can reach its end without `give` is `FLOW-001` | **nothing written**: no `give` in the plan's programs or in 0.0.4's `src/core/` |
+| 153 `ea1307c` (DEF-282, DEF-285) | the `?.` and `#ptr_add` chains' stack; a repeated arm's `PICK-004` stands at the alternative, with a note | **nothing**: no `pick` repeats a value, and the emission of `#ptr_add` is the same in effect |
+| 154 `5136096` (DEF-287) | a field of a binding the frame owns is that binding's storage; a view of a pointer parameter's pointee stored into a local's field, an element or a by-value parameter's field freezes the pointee, `BORROW-015` at its write | **nothing written**: no view is stored anywhere — 0.0.4's `Bytes` holds none, and `bytes_take`'s `string_from_bytes` view goes straight to `string_concat` |
+| 155 `02856cf` (DEF-288, DEF-290) | a `for` binding is a block-scoped local to the escape and aliasing analyses; `t.p = @t.a; pass t;` is `BORROW-001` | **nothing written**: every `for` binding in 0.0.4's `src/core/` and units is an `int64` counter, none of whose views or addresses is taken |
+| 156 `a5693a6` (DEF-296, DEF-289's first face) | a store through an indirection lands where the indirection points: a pointee written while a view stored that way lives is `BORROW-015` | **nothing written**: no view is stored through a pointer local, a pointer field, a slice's element or a callee |
 
 **At the adoption that carries any landing past the pin, 0.0.1's CI moves**: its three rows that pin the compiler —
 `NITPICK_COMMIT`, `NPKC_LL_SHA256`, `NPKC_LL_BYTES` — take the new notice's, and `LLVM_VERSION`, with the manifest's
@@ -166,6 +175,17 @@ compile to the same codes and sites at both pins. Every block of 0.0.0 … 0.0.3
 commit line, 0.0.0's §1.2 lines (their label, and O-N3's comment at line 1756), 0.0.1's §1.5 and §1.11 (the pin's own
 rows and subject) and 0.0.3's §1.2 (`npkc`'s usage, with `--dump-refs`), each retaken from a run. No verdict moved,
 and no compiler defect was found.
+
+**The dated-lines round, 2026-10-24 (T7c4)**, by the workbench `PLAYBOOK.md` §7, the libraries' seat's convention of
+2026-10-23: every dated line 0.0.0 … 0.0.3's patches add — 50 dated notes, 23 of them naming the pin, 4 markers, the
+openings of the 17 decisions and the decision log's third heading — writes `@@DATE@@`, which `apply.py` replaces with
+the landing run's one date, kept in `.internal/w00/<subcycle>.date` from the subcycle's first step to its record; a pin
+named beside such a date moves with it, `c9baa9e` to `2e1cb4a` on 27 lines. The nine decisions whose evidence names
+`c9baa9e` keep it, each with a dated note beneath recording the adoption's re-measurement of 2026-10-23 — for
+@@PD-173@@, that `npkc`'s usage names `--dump-refs` too. The records of where a measurement was made keep their dates
+and pins: eleven lines naming `c9baa9e`, nine dated ones and the two quotations of `nitpick-regex`'s RX-245. And
+`apply.py` reads a dated line in a later step's or subcycle's context, and in a removed line, against the tree, so a
+patch cut today applies over an earlier run of any day.
 
 ## The shapes this cycle does not write
 
@@ -237,17 +257,17 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 |---|---|---|
 | 1 | which compiler | `2e1cb4a`, adopted on 2026-10-23 before any subcycle started; planned at `c9baa9e`, the one re-pin of 2026-10-16, from the start |
 | 2 | `SK-013` after the handler | settled by 0.0.0: the rule kept, its fact superseded, V-5 rewritten around probe 04, the marker retired (@@PD-159@@); 0.0.2's runner fails a file carrying it by name (@@PD-171@@), and 0.0.3's self-check proves it (@@PD-174@@) |
-| 3 | verification clauses (Z-1, Z-4, Z-5) | handed to 0.0.4, with EK1 |
+| 3 | verification clauses (Z-1, Z-4, Z-5) | settled by 0.0.4's step 2 (@@PD-177@@): Z-1a — an obligation is a comment unless a decision accepts its arm, the live clauses' three arms measured — and Z-4's and Z-5's spellings measured at the pin, each with a dated note; with EK1 |
 | 4 | how error detail reaches a caller | not this cycle's (NH-9) |
 | 5 | how errno names are declared | settled by 0.0.0: none can be, nor compared but against the prelude's or another error (@@PD-162@@); `check_error_budget` keys every identity a `fail` site raises by (module, name), and a forwarded errno is none (0.0.3, @@PD-175@@) |
 | 6 | driving `async` from a probe | settled: `async func:main`, probes 06, 07, 08, 10 |
 | 7 | a `fixed uint8[]`'s pointer and length into `sendto` | settled: `wsrc.ptr` and `wsrc.len`, probe 06 |
 | 8 | `fd` and `int32` at the reactor | settled: `(o.value) =>! int32`, probes 06 and 07 |
 | 9 | `cstring` paths (NH-14) | not this cycle's |
-| 10 | `view()` and what `Bytes` is over | handed to 0.0.4, designed to D-341 |
+| 10 | `view()` and what `Bytes` is over | settled by 0.0.4's step 2 (@@PD-177@@): `Bytes` over a managed `buffer`, every byte through its checked index (D-341), and no view |
 | 11 | is sockets security-sensitive | settled: yes; its three research items gate cycle 0.0's first work dispatch (0.0.0 gate item 7, §13); recorded by 0.0.1 (@@PD-168@@) |
 | 12 | where CI sits | settled by 0.0.1 (@@PD-167@@): GitHub's `ubuntu-24.04`, whose loopback CI's first step binds, a currency row its first run checks; no test needs a user namespace; and the `loopback` stage binds it before its first unit, never skipped (0.0.3, @@PD-173@@) |
-| 13 | names | settled for 0.0.0 … 0.0.3 (`names.py`, `BUILD.md` §7; 0.0.3's self-check fixtures read too); `NSOCK_*`'s two lists handed to 0.0.4 |
+| 13 | names | settled for 0.0.0 … 0.0.3 (`names.py`, `BUILD.md` §7; 0.0.3's self-check fixtures read too); `NSOCK_*`'s two lists settled by 0.0.4's step 1 (@@PD-176@@): the three bounds a specification states with a value, a fourth with its consumer, five struck |
 | 14 | the compiler's stale comments | the orchestrator's to raise (W-27): 0.0.0 §10, §12 |
 | 15 | nothing has been run | every block of each file at the pin ran, in plan order, in a stand-in |
 | 16 | landing 105 and probe 05 | settled: a released owner's drop closes nothing, probe 05 |

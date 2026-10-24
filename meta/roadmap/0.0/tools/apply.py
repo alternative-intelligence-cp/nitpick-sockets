@@ -29,7 +29,20 @@ added lines hold any of these is a STOP, by name, and nothing is written:
   * a placeholder CITED BEFORE THE STEP THAT DECLARES IT -- its `### @@PD-n@@` heading is added by a later patch,
     in plan order (every `<subcycle>_tools/step<k>.patch` beside this plan, subcycle by subcycle, step by step),
     so at this step's commit it would name a decision the log does not hold yet; or one that no step declares.
+
+THE RUN'S DATE (the workbench `PLAYBOOK.md` §7: a dated line says when the tree began to say it, so it carries the day
+it lands, not the day the plan drafted it; `nitpick-parse`'s mechanism, from its cycle 0.0.2). In an ADDED line, every
+`@@DATE@@` becomes ONE date for the whole run of its subcycle: the day the run's first step that carries the placeholder
+applied, which that step records in `.internal/w00/<subcycle>.date` of the tree it applies to. Every later step of the
+run reads it there, so a run that crosses midnight, or spans days, writes one date everywhere. The file is the hand-off
+from one step's worker to the next, kept between steps; the subcycle's record removes it. A re-run reports ALREADY on
+any day while the file holds the run's date. In a CONTEXT or REMOVED line, `@@DATE@@` is the date the tree already holds
+on that line -- the run's own, written by an earlier step, or an earlier subcycle's, written by its run on a day this plan
+cannot know: each such line is found in the file it belongs to, the placeholder read as any date, and the one date the
+tree holds there is written in; a line found with no date, or with two different dates, is a STOP. A file the patches
+touch must not hold `@@DATE@@` itself before they are applied, and no added line names a date the run did not write.
 """
+import datetime
 import glob
 import os
 import re
@@ -39,6 +52,55 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLACEHOLDER = re.compile(r"@@(PD-\d+)@@")
 DECLARES = re.compile(r"^\+### @@(PD-\d+)@@")
+DATE_PLACEHOLDER = "@@DATE@@"
+
+
+def date_file(root, sub):
+    """The run's one date for a subcycle whose patches carry `@@DATE@@`: the file its first applying step writes."""
+    return os.path.join(root, ".internal", "w00", sub + ".date")
+
+
+def run_date(root, sub):
+    """(the run's date, whether a step has recorded it): the recorded day, or today's when none has yet."""
+    p = date_file(root, sub)
+    if not os.path.isfile(p):
+        return datetime.date.today().isoformat(), False
+    with open(p, encoding="utf-8") as fh:
+        day = fh.read().strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
+        raise SystemExit("STOP %s: .internal/w00/%s.date holds %r, not a date" % (sub, sub, day))
+    return day, True
+
+
+def tree_dates(root, sub, step, text, strict=True):
+    """The patch with every `@@DATE@@` of a context or removed line replaced by the date the tree holds there --
+    or, not `strict` (the check whether the step is already in the tree, where a removed line is gone), left as it
+    is where the tree holds no such line."""
+    out, cur, cache = [], None, {}
+    for line in text.split("\n"):
+        if line.startswith("+++ "):
+            cur = line[6:] if line.startswith("+++ b/") else None
+        elif cur and DATE_PLACEHOLDER in line and line[:1] in (" ", "-") and not line.startswith("---"):
+            if cur not in cache:
+                path = os.path.join(root, cur)
+                if os.path.isfile(path):
+                    with open(path, encoding="utf-8", newline="") as fh:
+                        cache[cur] = fh.read().split("\n")
+                else:
+                    cache[cur] = []
+            parts = [re.escape(p) for p in line[1:].split(DATE_PLACEHOLDER)]
+            rx = re.compile("^" + r"(\d{4}-\d{2}-\d{2})".join(parts) + "$")
+            found = {m.groups() for m in (rx.match(t) for t in cache[cur]) if m}
+            if not strict and len(found) != 1:
+                out.append(line)
+                continue
+            if len(found) != 1 or len(set(found.pop())) != 1:
+                raise SystemExit("STOP %s step%s: %s holds the dated context line %r %s" % (
+                    sub, step, cur, line[1:80], "nowhere" if not found else "with more than one date"))
+            day = next(m.group(1) for m in (rx.match(t) for t in cache[cur]) if m)
+            line = line.replace(DATE_PLACEHOLDER, day)
+        out.append(line)
+    return "\n".join(out)
 
 
 def numbers():
@@ -138,21 +200,33 @@ def main(argv):
         print(__doc__)
         return 2
     root, sub, step = os.path.realpath(argv[1]), argv[2], argv[3]
-    text = text_of(sub, step)
+    raw = text_of(sub, step)
+    day, recorded = None, False
+    if DATE_PLACEHOLDER in "\n".join(added(raw)):
+        day, recorded = run_date(root, sub)
 
-    def git(*args):
+    def dated(strict):
+        t = tree_dates(root, sub, step, raw, strict) if DATE_PLACEHOLDER in raw else raw
+        return t.replace(DATE_PLACEHOLDER, day) if day else t
+
+    def git(text, *args):
         return subprocess.run(["git", "-C", root, "apply", "--index", *args, "-"],
                               input=text, text=True, capture_output=True)
 
-    if git("--reverse", "--check").returncode == 0:
+    if git(dated(False), "--reverse", "--check").returncode == 0:
         print("ALREADY %s step%s" % (sub, step))
         return 0
-    r = git("--check")
+    text = dated(True)
+    r = git(text, "--check")
     if r.returncode == 0:
-        r = git()
+        r = git(text)
     if r.returncode != 0:
         print("STOP %s step%s: %s" % (sub, step, " | ".join(r.stderr.strip().splitlines()[:6])))
         return 1
+    if day and not recorded:
+        os.makedirs(os.path.dirname(date_file(root, sub)), exist_ok=True)
+        with open(date_file(root, sub), "w", encoding="utf-8") as fh:
+            fh.write(day + "\n")
     files = len(re.findall(r"^diff --git ", text, re.M))
     print("APPLY %s step%s: %d file(s)" % (sub, step, files))
     return 0
