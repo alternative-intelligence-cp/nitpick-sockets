@@ -189,10 +189,10 @@ index 92743d3..fe3da07 100644
      asserted = {}
      for f in probes:
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index cc5a5ba..bdb9422 100644
+index 1c58fed..0c7f7a4 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -1079,3 +1079,41 @@ report nobody reads is the backlog cycle 0.10's checklist would have to drain.
+@@ -1079,3 +1079,42 @@ report nobody reads is the backlog cycle 0.10's checklist would have to drain.
  
  *Reversal:* none for the key; a new identity, or a declaring module the table does not name, is a change to
  `SAFETY.md` §3 by a decision, which the check then reads.
@@ -212,13 +212,14 @@ index cc5a5ba..bdb9422 100644
 +equal to a bound's value. 16 is also `SO_PASSCRED` (N-14), a kernel constant `src/sys/` is to declare, and the size
 +of `sockaddr_in`, `iovec` and `cmsghdr`, which the address and ancillary code is to write; 50 is `listen`'s number in
 +K-1's table. Over a planted tree holding the three bounds, that reading refused a `src/sys/` declaring
-+`SO_PASSCRED = 16` and `SYS_LISTEN = 50`, measured.
++`SO_PASSCRED = 16` and `SYS_LISTEN = 50`, and a function under `src/addr/` passing `sockaddr_in`'s size as the literal
++16, measured.
 +
 +*So:* `src/core/limits.npk` declares the three, each a `pub fixed int64` beside its rule; `NSOCK_POLLSET_MAX` joins it
 +with its value in the cycle that writes `poll_set`, cycle 0.8, whose checklist names it; the other five are struck.
-+`check_constants_named` reads each bound where a specification states it — the first whole number after its name in its
-+sentence — and holds `limits.npk` to those statements both ways: a bound stated and not declared, declared and not
-+stated, declared at another value, or stated with two values, is a finding. It refuses a bound's value as a literal
++`check_constants_named` reads each bound where a specification states it in the form `NSOCK_<NAME>` = n, the form N-4,
++N-5 and C-11 use, and holds `limits.npk` to those statements both ways: a bound stated and not declared, declared and
++not stated, declared at another value, or stated with two values, is a finding. It refuses a bound's value as a literal
 +elsewhere under `src/` only where no specification states the same number as a kernel constant, a syscall number or a
 +structure size, and its line names the bounds it holds by name alone: at this subcycle `NSOCK_SCM_MAX_FDS` and
 +`NSOCK_EMFILE_BACKOFF`, while `NSOCK_CMSG_MAX`'s 256 is held by value. This settles the planning guide's open point 13
@@ -228,8 +229,8 @@ index cc5a5ba..bdb9422 100644
 +is stated already, at the rule that decides it, and a table would be a second home for each number; **the first
 +writing's nine** — five have no rule, and a bound with no rule is a number nobody can defend; **the fourth now, at a
 +value of the plan's choosing** — a value no rule states is the check's own finding; **the value rule as written** — it
-+refuses a kernel constant, a syscall number and three structure sizes, measured; **no value rule** — 256 is a number no
-+kernel value shares, and a literal 256 under `src/` would be the bound written twice.
++refuses a kernel constant, a syscall number and a structure's size, each written as a bound's value, measured; **no
++value rule** — 256 is a number no kernel value shares, and a literal 256 under `src/` would be the bound written twice.
 +
 +*Reversal, for the author:* `NSOCK_POLLSET_MAX` joins the file at the value its consumer's cycle states; a struck bound
 +returns with a rule that states its value, in the cycle that needs it; and a bound whose number a specification comes to
@@ -274,7 +275,7 @@ index 685c7c1..6cbdb2e 100644
  
  ## 4. When a collection of sockets is genuinely wanted
 diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
-index 297df6e..dbcf969 100644
+index ceff822..227ac74 100644
 --- a/meta/specs/TESTING.md
 +++ b/meta/specs/TESTING.md
 @@ -141,7 +141,7 @@ run on every full invocation.
@@ -291,7 +292,7 @@ index 297df6e..dbcf969 100644
  — a citation that no longer resolves fails the run (the planning guide's G20).)*
  
 +*(@@DATE@@, cycle 0.0.4 — @@PD-176@@: `check_constants_named`'s row read "nor a value that file declares written as a
-+literal elsewhere under `src/`". It now holds `src/core/limits.npk` to the rules that state each bound's value, both
++literal elsewhere in `src/`". It now holds `src/core/limits.npk` to the rules that state each bound's value, both
 +ways, and refuses a bound's value as a literal only where no specification states the same number as a kernel
 +value: `NSOCK_SCM_MAX_FDS`'s 16 is also `SO_PASSCRED` and the size of `sockaddr_in`, `iovec` and `cmsghdr`, and
 +`NSOCK_EMFILE_BACKOFF`'s 50 is `listen`'s number, so the old reading refused `src/sys/`'s own constants.)*

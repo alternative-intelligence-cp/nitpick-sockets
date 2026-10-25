@@ -13,7 +13,7 @@ index 76e3495..b5e8cde 100644
    task suspension through the reactor.
  - There is **no `select`** across channels — fan-in is `io_watch` plus one
 diff --git a/harness/build.py b/harness/build.py
-index 85797ca..953be84 100644
+index 993d7dd..7e7d254 100644
 --- a/harness/build.py
 +++ b/harness/build.py
 @@ -28,7 +28,9 @@ import os
@@ -26,7 +26,7 @@ index 85797ca..953be84 100644
  
  _DIAG = re.compile(r"^(NITPICK-[A-Z]+-[0-9]+) [^ ]+:([0-9]+):([0-9]+)", re.M)
  _UNDEF_VALUE = re.compile(r"use of undefined value '([^']+)'")
-@@ -149,3 +151,51 @@ def npkc_failure(rc, codes):
+@@ -149,3 +151,50 @@ def npkc_failure(rc, codes):
      if rc == 3:
          return "npkc exit 3 -- the compiler's own failsafe trapped"
      return f"npkc exit {rc}"
@@ -77,7 +77,6 @@ index 85797ca..953be84 100644
 +    bad += irscan.findings(ir, floor_edges, INSTANCES)
 +    return (f"the {len(gens)} generic function(s) its modules declare, each instantiated by {INSTANCES}, whose "
 +            "emission is scanned"), bad
-+
 diff --git a/harness/run.py b/harness/run.py
 index 14b013a..7bcc322 100644
 --- a/harness/run.py
@@ -151,10 +150,10 @@ index e969036..9028249 100644
      c.stage_case("program-exit-off-by-one", p("// expect-exit: 1\n"), "expected exit 1", p("// expect-exit: 0\n"))
      c.stage_case("program-stress-three", p("// expect-exit: 1\n// stress: 3\n"), "x3", p("// expect-exit: 0\n// stress: 3\n"))
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index bdb9422..700ea5f 100644
+index 0c7f7a4..034c3b0 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -1117,3 +1117,51 @@ kernel value shares, and a literal 256 under `src/` would be the bound written t
+@@ -1118,3 +1118,51 @@ value rule** — 256 is a number no kernel value shares, and a literal 256 under
  *Reversal, for the author:* `NSOCK_POLLSET_MAX` joins the file at the value its consumer's cycle states; a struck bound
  returns with a rule that states its value, in the cycle that needs it; and a bound whose number a specification comes to
  state as a kernel value too moves to the by-name list, which every run's line prints.
@@ -192,16 +191,16 @@ index bdb9422..700ea5f 100644
 +
 +*Alternatives declined:* **a `Result` or an identity of the library's on misuse** — `SAFETY.md` §3's four are none of
 +`core`'s, and a misuse of an internal container is this library's bug, not its caller's; **`limit<ListLen>` on the
-+counts** (`nitpick-regex`'s choice) — every consumer would owe `LimitViolated`; **live contracts** — every consumer would
-+owe `RequiresViolated` and `EnsuresViolated` by no decision, and a live `requires` traps before the body's own check;
-+**`Bytes` through `.ptr`**, as `nitpick-parse`'s plan writes it — its index is checked by the accessor alone, where the
-+buffer's own index is checked too; **a view of `Bytes`**, a range or a `#wild_slice` — a range freezes the sink for its
-+block, a `#wild_slice` over `.ptr` reads freed memory after a growth (D-341's own warning), and no consumer the
-+specifications name needs one: the address formatter hands its text on through `bytes_take`'s owned copy
-+(`ADDRESS_MODEL.md` A-23); **`put_uint` by division** — two identities more on every program that formats an address;
-+**each module instantiating its own generics** — a function nobody calls, kept in the library for a scan's sake; **an
-+uninstantiated generic left to the source checks** — `check_no_floor_write` reads only the floor's `write` and
-+`ByteWriter`, so a generic reaching another denied facet would pass every check.
++counts** (`nitpick-regex`'s choice) — every consumer would owe `LimitViolated`; **live contracts** — every consumer
++would owe `RequiresViolated` and `EnsuresViolated` by no decision, and a live `requires` traps before the body's own
++check; **`Bytes` through `.ptr`**, as `nitpick-parse`'s plan writes it — its index is checked by the accessor alone,
++where the buffer's own index is checked too; **a view of `Bytes`**, a range or a `#wild_slice` — a range freezes the
++sink for its block, a `#wild_slice` over `.ptr` reads freed memory after a growth (D-341's own warning), and no
++specification names a consumer that needs one: `ADDRESS_MODEL.md` A-23's formatter appends to a `Bytes`, and a `string`
++leaves one as `bytes_take`'s owned copy; **`put_uint` by division** — two identities more on every program that formats
++an address; **each module instantiating its own generics** — a function nobody calls, kept in the library for a scan's
++sake; **an uninstantiated generic left to the source checks** — `check_no_floor_write` reads only the floor's `write`
++and `ByteWriter`, so a generic reaching another denied facet would pass every check.
 +
 +*Reversal, for the author:* a decision accepting a clause's arm makes that clause live, its comment marker deleted per
 +site (Z-1a); a consumer that needs a view of `Bytes` takes a frozen range by a decision that names it; and `put_uint` by
@@ -271,7 +270,7 @@ index dbcf969..34b9ef2 100644
  | `check_constants_named` | every `sys` call in `src/` names its number by a `SYS_<CALL>` constant `src/sys/` declares, its call in K-1's table and its value K-1's; no `SYS_` name and no kernel constant a specification states declared outside `src/sys/`, and each declared there at the value stated; no `NSOCK_` bound declared outside `src/core/limits.npk`, which holds every bound a specification states with its value, at that value, and no other; and no bound's value written as a literal elsewhere in `src/` — unless a specification states the same number as a kernel constant, a syscall number or a structure size, which a literal cannot be told apart from, so such a bound is held by its name alone and the run's line names it (@@PD-176@@) |
  | `check_struct_sizes` | every structure size a specification states — a heading's, a declaration's comment's, N-13's `ucred` — asserted by a probe, by a comparison of `#size_of` or by its exit |
 diff --git a/meta/specs/VERIFICATION.md b/meta/specs/VERIFICATION.md
-index 6dce528..82ec902 100644
+index 6dce528..26db894 100644
 --- a/meta/specs/VERIFICATION.md
 +++ b/meta/specs/VERIFICATION.md
 @@ -31,6 +31,19 @@ a property test. The switch is then deleting a comment marker rather than
@@ -316,19 +315,22 @@ index 6dce528..82ec902 100644
  **Rule Z-3 — the `cmsghdr` walk is the obligation that matters most**, because
  it is a loop over kernel-supplied lengths and it is the only place in this
  library where attacker-adjacent binary data drives an offset:
-@@ -118,6 +139,11 @@ The last one is small and worth having: an involution is exactly the property a
+@@ -118,6 +139,14 @@ The last one is small and worth having: an involution is exactly the property a
  byte-swap should have, it is trivially decidable, and getting it wrong is a
  silent wrong-port bug.
  
 +*(@@DATE@@, cycle 0.0.4 — @@PD-177@@, the pin audit's SL-5 and the planning guide's open point 3: contracts are live at the
-+pin, so these three are comments by Z-1a until a decision accepts their arms. Measured at `2e1cb4a`: the first two
-+shapes compile as written; the third, a plain function called in an `ensures`, is `NITPICK-TYPE-060`, and compiles
-+with `ntoh16` declared `pure` and called `raw ntoh16(result)` — the spelling its comment takes.)*
++pin, so these three are comments by Z-1a until a decision accepts their arms. Measured at `2e1cb4a`: the block as
++written is `NITPICK-RESOLVE-002` at `ntoh16`, which is declared nowhere yet; the first two shapes without the third are
++`NITPICK-TYPE-001`, since `SocketAddr` and `UnixAddr` are declared nowhere yet either, and compile as written, without
++a body, once those two types are declared. The third, with `ntoh16` declared, is `NITPICK-TYPE-060` whether `ntoh16`
++is plain or `pure` — a call in a contract is spelled `raw f(…)`, of a `pure` function — and compiles with `ntoh16`
++declared `pure never fails` and called `raw ntoh16(result)`, the spelling its comment takes.)*
 +
  ---
  
  ## 5. `limit<Rules>`
-@@ -132,6 +158,11 @@ Rules:FdCount   = { $ >= 0i32; $ <= 16i32; };        // ANCILLARY_MODEL.md N-5
+@@ -132,6 +161,11 @@ Rules:FdCount   = { $ >= 0i32; $ <= 16i32; };        // ANCILLARY_MODEL.md N-5
  Rules:AddrLen   = { $ >= 2i64; $ <= 128i64; };
  ```
  
