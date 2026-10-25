@@ -1,0 +1,41 @@
+diff --git a/harness/selfcheck.py b/harness/selfcheck.py
+index b37e6e6..6b61edb 100644
+--- a/harness/selfcheck.py
++++ b/harness/selfcheck.py
+@@ -51,7 +51,7 @@ PENDING = [("check_failsafe_arms-planted", "cycle 0.2, the first module that rai
+             "input exists")]
+ 
+ # The library's own facets, which the call-edge scan must leave unflagged (`BUILD.md` B-2a), and one module per denied
+-# facet, each a construct the scan must flag -- the shapes cycle 0.0.2's mutants measured at the pin.
++# facet, each a construct the scan must flag (@@PD-170@@, @@PD-174@@).
+ LIB_SHAPES = ("pub async func:core_wait = NIL(int32:descr) {\n    Result<NIL>:w = await io_ready(descr, 1i32, "
+               "raw duration_ms(1000i64));\n    if (w.is_error) { fail w.err; }\n    pass NIL;\n};\n\n"
+               "pub func:core_pid = int64() {\n    Result<int64>:r = sys(39i64);\n    if (r.is_error) { pass 0i64; }\n"
+diff --git a/meta/research/CURRENCY.md b/meta/research/CURRENCY.md
+index b372a96..06c4c81 100644
+--- a/meta/research/CURRENCY.md
++++ b/meta/research/CURRENCY.md
+@@ -33,7 +33,7 @@ N-9 … N-11, and `VERIFICATION.md` Z-3: "the only place in this library where a
+ offset"), passes descriptors between processes (N-2) and reads a peer's credentials (N-13 … N-17). So the workbench
+ research skill's §8 applies, and its three requests are owed, each in its §3 shape and `sensitivity: security` — two
+ independent primaries, stale after ninety days — each filed here as a digest its row cites. Each request, with what
+-would change the plan if it came true, is written out in full in cycle 0.0.0's plan, §13:
++would change the plan if it came true:
+ 
+ 1. **Known defects** in the prior art and the reference implementations of the five surfaces the library parses or
+    decodes: IPv4 and IPv6 text addresses, `sockaddr_un` paths, `cmsghdr` walks, `SCM_RIGHTS`, and
+diff --git a/meta/roadmap/0.1/README.md b/meta/roadmap/0.1/README.md
+index d4f380c..097bbb3 100644
+--- a/meta/roadmap/0.1/README.md
++++ b/meta/roadmap/0.1/README.md
+@@ -5,8 +5,8 @@ and the formatters.** The layer with no descriptors in it — pure computation
+ over values, fully testable with no kernel, and the only module besides
+ `src/sys/` a program can import without owning a socket.
+ 
+-> **`0.1.0.md` is written execution-grade at cycle 0.0's close** (0.0.5, step
+-> 4). That is the convention for every cycle: the opening subcycle file is
++> **`0.1.0.md` is written execution-grade at cycle 0.0's close** (0.0.5). That
++> is the convention for every cycle: the opening subcycle file is
+ > written by the cycle before it, by the session that just learned what that
+ > cycle taught.
+ 

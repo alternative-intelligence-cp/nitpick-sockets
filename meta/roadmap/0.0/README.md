@@ -16,7 +16,9 @@ workbench's `4db3f92`; **T7a adopted it here on 2026-10-23, before any subcycle 
 row by row, every block of 0.0.0 … 0.0.3 run again at the new pin. **T7c4, 2026-10-24**, gave every dated line
 those four files' patches add the landing run's date (below), and cut 0.0.4's three patches; **T7c4b, 2026-10-25**,
 measured the claims T7c4 had written unrun, re-cut those patches where a claim was false or a twin stale, and planned and
-rehearsed 0.0.4 at `2e1cb4a`. No subcycle has started.
+rehearsed 0.0.4 at `2e1cb4a`; **T7c5, 2026-10-25**, the pass's last planner, planned and rehearsed 0.0.5 at `2e1cb4a`,
+brought the landing table below to every file, and retook the earlier files' `check_refs` lines from a run in plan
+order (`0.0.5.md` §13). No subcycle has started.
 
 | File | At `2e1cb4a` |
 |---|---|
@@ -25,7 +27,7 @@ rehearsed 0.0.4 at `2e1cb4a`. No subcycle has started.
 | [0.0.2](0.0.2.md) | **yes**, adopted — the harness, part 1: the runner, its two scans and their controls, `repro`, three stages, the probes as suites, CI's summary and LLVM by content; three patches, the mutants, blocks with filled Expects |
 | [0.0.3](0.0.3.md) | **yes**, adopted — the harness, part 2: the `check` stage and the `parse` sweep, `loopback` and `network`, the self-check beside its controls, nine tree checks and `--only`; two patches, the mutants, blocks with filled Expects |
 | [0.0.4](0.0.4.md) | **yes**, planned at `2e1cb4a` — `src/core/`: `limits.npk` held to the bounds the specifications state, `Vec<T: Copy>` checking its own indexes with every generic instantiated where the call-edge scan reads it, `Bytes` through its buffer's checked index with no view; three patches, the mutants, the loop sweep, blocks with filled Expects |
-| [0.0.5](0.0.5.md) | **not yet** — as 0.0.4; its execution, the close, is the libraries' seat's |
+| [0.0.5](0.0.5.md) | **yes**, planned at `2e1cb4a` — the close, in two dispatches: every verdict reconciled by reading, three permanent files' citations of a cycle file's section replaced, the sweep and the citations, the findings, a full run and the census of every program, `READY-TO-CLOSE`; then the close audit triaged, `0.1/0.1.0.md` and the archive; two patches, blocks with filled Expects; its execution is the libraries' seat's |
 
 A file marked *not yet* is a target, not a plan: its steps are re-derived at the pin before anything is dispatched from
 it, and where it disagrees with the files re-derived before it, those files and the tables below govern.
@@ -73,7 +75,7 @@ Each is settled with a recommendation and states its reversal; **none is left op
 | @@PD-175@@ | 0.0.3 | the tree checks read the specifications' tables and the source through one reader; an identity is a module and a name |
 | @@PD-176@@ | 0.0.4 | `limits.npk` holds every bound a specification states with its value; `check_constants_named` holds it to them both ways, and refuses a bound's value as a literal only where no kernel value shares it |
 | @@PD-177@@ | 0.0.4 | the containers check their own indexes and trap `OutOfBounds`; `Bytes` through its buffer's checked index, with no view; `put_uint` divides by nothing; an obligation is a comment unless a decision accepts its arm; every generic instantiated where the call-edge scan reads it |
-| PD-178 | 0.0.5 | the continuation's, if 0.0.5 needs one |
+| PD-178 | 0.0.5 | **unused**: 0.0.5 proposes no decision |
 
 ## The pin, and what each landing would move
 
@@ -141,30 +143,34 @@ compiler's census reads the libraries' trees, where this plan's programs are not
 
 **Not carried** — landed on the compiler's `main` after the pin, up to `249eae9`, landing 161: 141 … 151 by the
 adoption's dispatch's `ls-remote` (03:03:02 on 2026-10-23), 152 … 156 by T7c4's (03:00:48 on 2026-10-24), 157 … 161 by
-T7c4b's (03:00:15 on 2026-10-25), each with the Workspace compiler clone's ref; each read in its commit and at its own sha in the compiler's `meta/NOTICES.md`, and where
-each would move this plan. The shapes are counted over the
-cycle's 138 programs — the patched tree's 33 and the self-check's 105 fixtures — read as `tools/shapes.py` reads them:
+T7c4b's (03:00:15 on 2026-10-25), each with the Workspace compiler clone's ref, and 161 the compiler's `main` still at
+T7c5's dispatch (12:51:03 on 2026-10-25); each read in its commit and at its own sha in the compiler's `meta/NOTICES.md`,
+and where each would move this plan. **The rows are for every file**: 0.0.5 writes no program, so the shapes are counted
+over every program the cycle compiles at 0.0.4's record — 190, the tree's 71 `.npk` and the self-check's 119 fixtures,
+read with comments and strings blanked as `tools/shapes.py` reads them — by `0.0.5_tools/census.py`, which 0.0.5's
+block 3 runs after the close's full run; the adoption's counts over 0.0.0 … 0.0.3's 138 programs stand beside them where
+a row gives both:
 
 | Landing | What it does | Where it would move this plan |
 |---|---|---|
-| 141 `6370cae` (DEF-268) | a function declared inside a body is one report, `PARSE-001` at `func` naming D-018 | **nowhere written**: the five `func:` within braces are methods of `impl` blocks (probes 06 and 06b), none inside a body |
+| 141 `6370cae` (DEF-268) | a function declared inside a body is one report, `PARSE-001` at `func` naming D-018 | **nowhere written**: the five `func:` within braces of the 190 programs are methods of `impl` blocks (probes 06 and 06b), none inside a body (the census's `func-in-body`, 0 of 5) |
 | 142 `79cd363` (DEF-176), 150 `ea571d5` (DEF-276) | a non-folding chain at the depth bound compiles; the emitter holds every chain at the bound | **nothing**: no chain near the bound; 150's notice reads every emission byte-identical |
-| 143 `753e783` (DEF-184, DEF-177) | a type nested past 256 levels is `PARSE-012`; after a `.`, anything but a member's name is `PARSE-001` | **nothing**: 218 member dots, each followed by a name — one by `acquire`, the `scan-lock` fixture's mutex call, one of the four keywords the parser takes after a dot (D-056) |
-| 144 `6451911` (DEF-185, DEF-186, DEF-188, DEF-240) | a macro body declares only what an expansion emits; a macro takes no type arguments; `npkg`'s stage list is one list | **re-read**: no macro written; `npkg/manifest.npk`'s read of the `target` key moves from its line 96 to 119 — 0.0.1's block 0b, §1.11 — and its `schema_allows` is unchanged (0.0.2's §1.2, 0.0.3's §1.9) |
+| 143 `753e783` (DEF-184, DEF-177) | a type nested past 256 levels is `PARSE-012`; after a `.`, anything but a member's name is `PARSE-001` | **nothing**: 218 member dots over the 138 programs, by the adoption's count, and 359 over the 190, by the census's, each followed by a name — one by `acquire`, the `scan-lock` fixture's mutex call, one of the four keywords the parser takes after a dot (D-056), and the census's only dot before a word of the pin's keyword table |
+| 144 `6451911` (DEF-185, DEF-186, DEF-188, DEF-240) | a macro body declares only what an expansion emits; a macro takes no type arguments; `npkg`'s stage list is one list | **re-read**: no macro written (the census's `macro`, 0); `npkg/manifest.npk`'s read of the `target` key moves from its line 96 to 119 — 0.0.1's block 0b, §1.11 — and its `schema_allows` is unchanged (0.0.2's §1.2, 0.0.3's §1.9) |
 | 145 `9c08ccc`, 148 `aba4a69`, 149 `50ebf7d` (DEF-269, DEF-279, DEF-277) | the verified build's encoder and statement walk hold at their bounds | **nothing**: nothing here runs `--obligations` or `--elide` |
-| 146 `915f427` (DEF-274, S-134's R4) | an atomic's methods lower through a pointer; `npkc FILE --reach OUT` writes the identities a `failsafe` must name | **re-read**: no atomic written; `npkc`'s usage gains `[--reach FILE]` — 0.0.3's block 0b, §1.2, and its sentence — another file written beside the IR, so still no mode that stops after the parser (@@PD-173@@'s reading) |
-| 147 `d422c1e` (DEF-270, DEF-280) | a generic `comptime func:` names its type parameter in a type under evaluation; `move` folds in a comptime body | **nothing**: no `comptime` (`tools/rulings.py`) |
-| 151 `9eaf3b6` (D-363 R1) | a `pick` arm names several values with one body; a value repeated in a `pick` is `PICK-004`; a path over a selector that is no enum is `TYPE-007` | **nothing written**: 59 `pick`s, none with a list and none repeating a value; every program compiles at the pin, so none holds the shape the emitter died on |
-| 152 `538c596` (DEF-278, DEF-281) | a body nested in a body is walked once per level; a `give` below an arm's top level, of another type than the `pick`'s, is `TYPE-007`, and a value-`pick` arm that can reach its end without `give` is `FLOW-001` | **nothing written**: no `give` in the plan's programs or in 0.0.4's `src/core/` |
-| 153 `ea1307c` (DEF-282, DEF-285) | the `?.` and `#ptr_add` chains' stack; a repeated arm's `PICK-004` stands at the alternative, with a note | **nothing**: no `pick` repeats a value, and the emission of `#ptr_add` is the same in effect |
-| 154 `5136096` (DEF-287) | a field of a binding the frame owns is that binding's storage; a view of a pointer parameter's pointee stored into a local's field, an element or a by-value parameter's field freezes the pointee, `BORROW-015` at its write | **nothing written**: no view is stored anywhere — 0.0.4's `Bytes` holds none, and `bytes_take`'s `string_from_bytes` view goes straight to `string_concat` |
-| 155 `02856cf` (DEF-288, DEF-290) | a `for` binding is a block-scoped local to the escape and aliasing analyses; `t.p = @t.a; pass t;` is `BORROW-001` | **nothing written**: every `for` binding in 0.0.4's `src/core/` and units is an `int64` counter, none of whose views or addresses is taken |
-| 156 `a5693a6` (DEF-296, DEF-289's first face) | a store through an indirection lands where the indirection points: a pointee written while a view stored that way lives is `BORROW-015` | **nothing written**: no view is stored through a pointer local, a pointer field, a slice's element or a callee |
-| 157 `5cc1fb9` (DEF-289's second face) | a store through a slice parameter's element lands in the caller's storage: `BORROW-015`, and a frame view stored through a slice the call cannot name `BORROW-009` | **nothing written**: 0.0.4's one slice parameter, `bytes_extend`'s `fixed uint8[]:src`, is only read |
-| 158 `8e33737` (DEF-300) | a store through a range of named storage is a store into that storage | **nothing written**: 0.0.4's code takes no range |
-| 159 `51b6d82` (DEF-297, DEF-301, DEF-303) | a write through a slice local, a slice field, a range, a call's result or a ternary is checked at each storage the slice views; a range's element is its storage's | **nothing written**: no such write; `bytes_extend_str` hands `bytes_extend` `string_bytes(s)`, a call's result `bytes_extend` only reads |
-| 160 `954c21a` (DEF-302) | a write through a pointer is a write to its target, checked both ways against a view of it by another name | **nothing written**: `bytes_take`'s view of `b`'s pointee is consumed by `string_concat` before its write `b.len = 0i64`, through the same name, and no view is live across a write through a pointer (`0.0.4.md` §12) |
-| 161 `249eae9` (DEF-305) | a call-result pointer is resolved by its return provenance; a slice reached through a pointer, by the pointee's chain | **nothing written**: no pointer is a call's result, and no slice is reached through a pointer |
+| 146 `915f427` (DEF-274, S-134's R4) | an atomic's methods lower through a pointer; `npkc FILE --reach OUT` writes the identities a `failsafe` must name | **re-read**: no atomic written (the census's `atomic`, 0); `npkc`'s usage gains `[--reach FILE]` — 0.0.3's block 0b, §1.2, and its sentence — another file written beside the IR, so still no mode that stops after the parser (@@PD-173@@'s reading) |
+| 147 `d422c1e` (DEF-270, DEF-280) | a generic `comptime func:` names its type parameter in a type under evaluation; `move` folds in a comptime body | **nothing**: no `comptime` (`tools/rulings.py`; the census's `comptime`, 0) |
+| 151 `9eaf3b6` (D-363 R1) | a `pick` arm names several values with one body; a value repeated in a `pick` is `PICK-004`; a path over a selector that is no enum is `TYPE-007` | **nothing written**: 59 `pick`s over the 138 programs, by the adoption's count, and 98 over the 190, by the census's, none with a list and none repeating a value (`pick-list` and `pick-repeat`, 0 each); every program compiles at the pin, so none holds the shape the emitter died on |
+| 152 `538c596` (DEF-278, DEF-281) | a body nested in a body is walked once per level; a `give` below an arm's top level, of another type than the `pick`'s, is `TYPE-007`, and a value-`pick` arm that can reach its end without `give` is `FLOW-001` | **nothing written**: no `give` in any of the 190 programs (the census's `give`, 0) |
+| 153 `ea1307c` (DEF-282, DEF-285) | the `?.` and `#ptr_add` chains' stack; a repeated arm's `PICK-004` stands at the alternative, with a note | **nothing**: no `pick` repeats a value (the census's `pick-repeat`, 0), and the emission of `#ptr_add` is the same in effect |
+| 154 `5136096` (DEF-287) | a field of a binding the frame owns is that binding's storage; a view of a pointer parameter's pointee stored into a local's field, an element or a by-value parameter's field freezes the pointee, `BORROW-015` at its write | **nothing written**: no view is stored into a field or an element in any of the 190 programs (the census's `view-stored`, 0); its 11 views are bare locals — probe 06's two, probe 14's, the baseline floor-writer's and two refusal fixtures' — and call arguments: `bytes_extend`'s from `bytes_extend_str` and two units, probe 14b's refused one, and `bytes_take`'s `string_from_bytes`, which goes straight to `string_concat` |
+| 155 `02856cf` (DEF-288, DEF-290) | a `for` binding is a block-scoped local to the escape and aliasing analyses; `t.p = @t.a; pass t;` is `BORROW-001` | **nothing written**: the 190 programs' 18 `for` headers — six in `src/core/`, five in 0.0.4's units, four in probe 02 and three in probe 12 — each bind an `int64` counter over a range, none of whose views or addresses is taken; and no field is assigned an address, `t.p = @t.a` |
+| 156 `a5693a6` (DEF-296, DEF-289's first face) | a store through an indirection lands where the indirection points: a pointee written while a view stored that way lives is `BORROW-015` | **nothing written**: no view is stored through a pointer local, a pointer field, a slice's element or a callee in any of the 190 programs (`view-stored`, 0) |
+| 157 `5cc1fb9` (DEF-289's second face) | a store through a slice parameter's element lands in the caller's storage: `BORROW-015`, and a frame view stored through a slice the call cannot name `BORROW-009` | **nothing written that its notice names**: none of the 190 programs' 11 slice parameters is written through an element — seven are `fixed`; probe 06's two plain `uint8[]:dest`s are `pull`'s, handed on to `read`, and `read`'s, which reaches the kernel only as `dest.ptr` and `dest.len` in a `sys` call; and the other two plain ones are the refused probes 06b's and 14b's. Probe 06's `await pull(@rd, dest)` hands a frame address beside a `uint8[]`, whose elements can hold no pointer; the libraries' seat's census of F99 found none of 157's shapes in these patches (at `128a03c`). **At the adoption that carries 157, probe 06 is compiled first** |
+| 158 `8e33737` (DEF-300) | a store through a range of named storage is a store into that storage | **nothing written**: the 190 programs' four ranges — probe 06's `space[0i64...8i64]` and probe 14's three — are each held as a slice local or handed to a `fixed` parameter, and the language writes through none |
+| 159 `51b6d82` (DEF-297, DEF-301, DEF-303) | a write through a slice local, a slice field, a range, a call's result or a ternary is checked at each storage the slice views; a range's element is its storage's | **nothing written**: no write through a slice local, a slice field, a range, a call's result or a ternary in the 190 programs; their five slice locals not `fixed` — probe 06's `dest`, probe 14's `plain`, two refusal fixtures' and the `scan-environment` fixture's `cstring[]` — are read or handed on, and `bytes_extend_str` hands `bytes_extend` `string_bytes(s)`, a call's result `bytes_extend` only reads. Probe 06's kernel write through `dest.ptr` is no write of the language's |
+| 160 `954c21a` (DEF-302) | a write through a pointer is a write to its target, checked both ways against a view of it by another name | **nothing written**: the 190 programs' 20 writes through `<-` are the probes' 02, 03, 04, 07, 08, 10, 11 and 12, each into `wild` storage no view reads; `bytes_take`'s view of `b`'s pointee is consumed by `string_concat` before its write `b.len = 0i64`, through the same name, and no view is live across a write through a pointer (`0.0.4.md` §12) |
+| 161 `249eae9` (DEF-305) | a call-result pointer is resolved by its return provenance; a slice reached through a pointer, by the pointee's chain | **nothing written**: the one function whose result is a pointer, probe 08's `loopback`, returns a `wild` block it allocates itself from a `uint16`, so its three call results borrow no argument; and no slice is reached through a pointer |
 
 **At the adoption that carries any landing past the pin, 0.0.1's CI moves**: its three rows that pin the compiler —
 `NITPICK_COMMIT`, `NPKC_LL_SHA256`, `NPKC_LL_BYTES` — take the new notice's, and `LLVM_VERSION`, with the manifest's
@@ -211,7 +217,7 @@ planted and clean controls (`tools/shapes.py`, `rulings.py`, `names.py`).
 | a generic value parameter; a trait default calling a sibling on `self` | none written (`shapes.py`) |
 | a qualified trait call through a bound (DEF-255, open at `c9baa9e`; fixed by landing 131, which the pin carries) | every trait method called with the dotted form |
 | a `buffer` read or written through an untied view (D-341, carried from landing 128: a `#wild_slice` over `.ptr` is a view of its owner, `BORROW-015` across a write) | no `#wild_slice`; every byte of `Bytes` through its buffer's checked index, and `.ptr` once, in `bytes_take`'s copy (Addition 1; `0.0.4.md` §1.14) |
-| the nine safety rules of `PLAYBOOK.md` §2's notes of 2026-10-23 and 2026-10-24: a `for` binding's view or address, a collection written inside a `for` over it, `@` of a pointer parameter, a pointer carried out of a `for`, a pointee's view stored, viewed storage written through another name, a range's element written, a pointer into a `List`, `Vec` or `Bytes` held across a growth, a value lent to a spawn | none written: each read against 0.0.4's code (`0.0.4.md` §1.15) |
+| the nine safety rules of `PLAYBOOK.md` §2's notes of 2026-10-23 and 2026-10-24: a `for` binding's view or address, a collection written inside a `for` over it, `@` of a pointer parameter, a pointer carried out of a `for`, a pointee's view stored, viewed storage written through another name, a range's element written, a pointer into a `List`, `Vec` or `Bytes` held across a growth, a value lent to a spawn | none written: each read against 0.0.4's code (`0.0.4.md` §1.15); and over every program the cycle compiles, 0.0.5's census (its block 3) finds three spawns — probe 10's, which moves its descriptor in, probe 10b's refused borrow (`BORROW-004`) and the `scan-thread` fixture's, which hands an `int32` — and no `shared_arena` and no `List<` |
 | `PLAYBOOK.md` §2's open rows | the read-only view in every reader slot (@@PD-161@@); no part of a `fixed` binding written; every path leaving explicitly; `main` exactly `int32(cstring[]:_~argv)`; each `Result` tested alone; `#size_of` measured, never summed |
 
 ## What the audits found owed, and where each is carried
@@ -253,7 +259,7 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 | G10, transcripts and status | 0.0.0; 0.0.2 | every verdict an Expect from a run; status never through a pipe (0.0.0 §2); the harness prints each exit and code itself, and CI reads its status on its own line (0.0.2) |
 | G11, the self-check | 0.0.3 step 1 | **FIXED**: 54 live cases, each beside a control, 1 pending printed as pending (@@PD-174@@) |
 | G12, the managed-memory gate | 0.0.0 §1.3; 0.0.2 step 1; 0.0.4 | D-151 sees only `wild`; **FIXED** in 0.0.2: `mem-cap-mib`, after the floor program under the same cap (B-6a, @@PD-171@@); **FIXED** in 0.0.4: `Vec`'s leak pair under D-151, and `Bytes`' buffer under a 64 MiB cap |
-| G15, the close | 0.0.5 | the audit before it (W-22), the REPORT, a verifier |
+| G15, the close | 0.0.5 | **planned**: the first dispatch reports `READY-TO-CLOSE`; the close audit (W-22) runs, and the second dispatch triages it, writes `0.1/0.1.0.md` and archives; each REPORT block committed (W-20) and never edited (W-28), and a verifier before the board moves (W-21); the gate names the audit |
 | G16, every command run | this pass | every block of each file at the pin run in a stand-in; denominators printed |
 | G17, reproducibility | 0.0.2 step 1 | **FIXED**: the `repro` step's copies each carry the manifest (B-4's re-read, @@PD-169@@), and its mutant without one is red |
 | G18, numbers by command | 0.0.0 gate item 3 | the decision number read by `PLAYBOOK.md` §7's command; no `O-N` id assigned to the registry by a worker |
@@ -278,7 +284,7 @@ each defined in `ecosystem-early-2026-10-09.md`; re-derived by searching it for 
 | 12 | where CI sits | settled by 0.0.1 (@@PD-167@@): GitHub's `ubuntu-24.04`, whose loopback CI's first step binds, a currency row its first run checks; no test needs a user namespace; and the `loopback` stage binds it before its first unit, never skipped (0.0.3, @@PD-173@@) |
 | 13 | names | settled for 0.0.0 … 0.0.3 (`names.py`, `BUILD.md` §7; 0.0.3's self-check fixtures read too); `NSOCK_*`'s two lists settled by 0.0.4's step 1 (@@PD-176@@): the three bounds a specification states with a value, a fourth with its consumer, five struck |
 | 14 | the compiler's stale comments | the orchestrator's to raise (W-27): 0.0.0 §10, §12 |
-| 15 | nothing has been run | every block of each file at the pin ran, in plan order, in a stand-in |
+| 15 | nothing has been run | every block of each file at the pin ran, in plan order, in a stand-in (each file's account of how it was written; `0.0.5.md` §13) |
 | 16 | landing 105 and probe 05 | settled: a released owner's drop closes nothing, probe 05 |
 
 ## The places the first writing disagreed with itself
@@ -374,17 +380,22 @@ states its own acceptance when it reaches the pin, and where the two differ, the
 - [ ] every obligation a comment in the syntax it would take, compiling live, with a unit standing in (`VERIFICATION.md` Z-1a); each mutant red by what guards its facet; every loop of `src/` reached by a unit (G8)
 
 ### 0.0.5 — close
-- [ ] every probe verdict reconciled against the specifications **by reading them**, 04, 09 and 10 by name
-- [ ] the cycle's findings written as a numbered list; the close audit run and triaged (W-22); a full green run, its output quoted
+- [ ] every probe verdict of `0.0.0.md` §6 reconciled against the specifications **by reading them**, probe 04 and the set 09, 09b, 10 and 10b by name
+- [ ] three permanent files cite a decision or nothing where they cited a cycle file's section (T7v2's F5); the sweep's candidates and the citations read
+- [ ] the cycle's findings written as a numbered list; a full green run, its output quoted, and the census of every program; `READY-TO-CLOSE`
+- [ ] the close audit run (W-22) and triaged, every finding fixed or declined with its reason
 - [ ] `0.1/0.1.0.md` written execution-grade before the cycle closes, its gate naming the three research digests with their dates
-- [ ] cycle moved to `done/0.0/`, `ROADMAP.md` updated
+- [ ] cycle moved to `done/0.0/`, `ROADMAP.md`, `README.md` and `CLAUDE.md` updated, `check_refs` clean, the record checked
 
 ## Gate
 
 **The cycle is complete when**: every probe has a recorded verdict, its consequences written into the specifications —
 **with probes 04, 09, 09b, 10 and 10b recorded against `SK-013` and `SK-035`**; a full `harness/run.py` is green; the
 self-check proves the harness fails in every live way it names and reports the pending ones as pending; and
-`src/core/` has its suites.
+`src/core/` has its suites. **And a close audit (W-22) that has seen the tree it accepts**: the close's worker triages
+every finding it reports, the close's REPORT block is committed (W-20) and never edited (W-28), and a verifier re-runs
+it before the board moves (W-21). A gate written as a list of green things is one a green run meets: `nitpick-regex`'s
+cycle 0.0 met every other clause of its gate at a close its audit refused (its `meta/roadmap/done/0.0/README.md`).
 
 ## Watch for
 

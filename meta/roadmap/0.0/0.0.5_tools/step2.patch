@@ -1,0 +1,49 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index cacdb8e..fb720f0 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -5,7 +5,7 @@ Guidance for Claude Code sessions working in this repository.
+ ## What this is
+ 
+ `nsockets` — a BSD sockets library for **Nitpick**, the safety-critical systems
+-language at `../../nitpick`. **Status: cycle 0.0** — the language probes are in
++language at `../../nitpick`. **Status: cycle 0.0 closed, cycle 0.1 next** — the language probes are in
+ `tests/probe/`; `src/core/` holds the first library code, the storage
+ primitives with their unit suite, and the rest of `src/` placeholders that
+ compile. The specifications and the plan are in `meta/`.
+diff --git a/README.md b/README.md
+index 87b0411..0325841 100644
+--- a/README.md
++++ b/README.md
+@@ -4,7 +4,7 @@ BSD sockets for **[Nitpick](https://github.com/alternative-intelligence-cp/nitpi
+ the safety-critical systems language. The package is `nsockets` (`SK-001`). AF_UNIX, TCP and UDP over IPv4 and IPv6,
+ straight to the kernel. No libc, no C, no dependency of any kind.
+ 
+-> **Status: cycle 0.0, foundations.** The first library code is
++> **Status: cycle 0.0, foundations, closed; cycle 0.1, addresses, next.** The first library code is
+ > [`src/core/`](src/core/)'s storage primitives, with their unit suite; the
+ > language probes are in [`tests/probe/`](tests/probe/), and the rest of the
+ > module skeleton in [`src/`](src/) is placeholders that compile. The
+diff --git a/meta/roadmap/ROADMAP.md b/meta/roadmap/ROADMAP.md
+index afba0b7..75916f0 100644
+--- a/meta/roadmap/ROADMAP.md
++++ b/meta/roadmap/ROADMAP.md
+@@ -65,7 +65,7 @@ free to follow the dependencies rather than the risk.
+ 
+ | Cycle | Topic | Gated on |
+ |---|---|---|
+-| **0.0** | **Foundations** — the language probes, the harness, `src/core/` | — |
++| **0.0** | **Foundations** — the language probes, the harness, `src/core/` — **closed @@DATE@@, archived in [`done/0.0/`](done/0.0/README.md)** | — |
+ | **0.1** | **Addresses** — `Ipv4Addr` … `UnixAddr`, the kernel layouts, parsing, formatting, byte order | 0.0 |
+ | **0.2** | **The socket primitive** — `src/sys/`, `Sock`, the builder, the headless double | 0.0, 0.1 |
+ | **0.3** | **Streams** — connect with `EINPROGRESS`, listen, accept, `Reader`/`Writer`, half-close | 0.2 |
+@@ -97,6 +97,9 @@ manifest's test table, CI, and `src/core/`.
+ self-check proves it can fail in every live way it names (cycle 0.0.3 counts
+ them).
+ 
++**Closed @@DATE@@, after its close audit**: the cycle is archived in
++[`done/0.0/`](done/0.0/README.md), and [`done/0.0/0.0.5.md`](done/0.0/0.0.5.md) is its close.
++
+ ### 0.1 — Addresses
+ `src/addr/`: the five types, the kernel encoders and decoders with every offset
+ asserted, `hton`/`ntoh` in one module, the strict parsers, the RFC 5952
