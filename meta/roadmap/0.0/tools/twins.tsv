@@ -1,0 +1,76 @@
+# meta/roadmap/0.0/tools/twins.tsv -- the twin sweep's table (`twins.py`): one row per correction, its old
+# string exactly as the correction removed it, the new, the commit that made it, and what it corrected.
+# A commit is a sha of this branch; `step:<sub>/<n>` a correction a step patch makes in the tree; `-` a
+# correction no commit's tree holds, said in its note; `fd47ba3..` fix round 2's own. A fifth column `raw`
+# matches the old string as written, on one line, case kept, where the transform would strip its marks.
+owes exactly one arm	the bill as one arm	60d1e03	T7fix1: S-8's bill, T7v1's EC3 -- the sweep subject's old words
+SL-6's eight	SL-6: eleven lines in nine places	60d1e03	T7fix1: the pin audit's SL-6 sites, counted
+probe 04's first assertion fails (exit 11)	probe 04 exits 11 in its first leg	60d1e03	T7fix1: @@PD-159@@'s reversal
+handler from `c3bdae2`	came with its `b7244d2f`	60d1e03	T7fix1: where the runtime's SIGPIPE handler came from, with the commit it named
+is there from `c3bdae2`	came with its `b7244d2f`	60d1e03	T7fix1: the same, SAFETY.md's wording
+(PD below)	`nitpick-regex`'s RX-230 names	60d1e03	T7fix1: a pointer to a decision by no label
+answers `EPIPE`, and the same send with no flags **dies by signal 13**	answers `EPIPE`, and with no flags it **dies by signal 13** (its mutant, cycle 0.0.0's block 0b)	60d1e03	T7fix1: probe 04 sends with no flags only in its mutant (the sentence it corrected; its other sentences kept these words beside the mutant)
+terminates the process (probe 04)	terminates the process (a mutant of probe 04)	60d1e03	T7fix1: the same, CONTRIBUTING.md's wording
+default disposition (probe 04)	default disposition (its mutant)	60d1e03	T7fix1: the same, the specifications' wording
+every input it uses is pinned	it pins the compiler by commit, LLVM by version and the runner image by name	ae76724	T7fix1: @@PD-167@@'s title
+pinned by content and asserted	LLVM by version and the runner image by name	ae76724	T7fix1: @@PD-167@@'s title, its second half
+EVERY INPUT IS PINNED	WHAT IS PINNED, AND HOW	ae76724	T7fix1: ci.yml's header
+the one input pinned by name alone	pinned by name, `ubuntu-24.04`	ae76724	T7fix1: the runner image in ci.yml and @@PD-167@@
+image that rolls forward is an unpinned input	The runner image, by name (@@PD-167@@)	ae76724	T7fix1: ci.yml's runner comment
+the only inputs those workflows do not pin	fetch LLVM's release tarball by its version	ae76724	T7fix1: @@PD-167@@'s account of regex's and time's workflows
+seven sites go to 0.0.4	the lines §8 names go to 0.0.4	ae76724	T7fix1: SL-5's sites handed on, counted
+DEF-256 and DEF-239	DEF-255 and DEF-256	ae76724	T7fix1: DEF-239 is a shape a file here writes
+`VERIFICATION.md`'s six sites	`VERIFICATION.md` 7, 22 … 26, 102 and 125	19c02e1	T7fix1: SL-5's sites in the README, counted
+**FIXED** at its eight sites	**FIXED**: eleven lines in nine places	19c02e1	T7fix1: SL-6 in the README
+"seven ways"	"seven cases"	19c02e1	T7fix1: the self-check's count, its noun
+LLVM 20.1.2	LLVM 20.1.8	19c02e1	T7fix1: the LLVM the pin's toolchain is built with (the old version, swept with its name)
+PIN=c9baa9e	PIN=2e1cb4a	2e0ab72	T7a: env.sh's pin
+PIN_FULL=c9baa9e91c553d8db2a2a62f09c36b30a984b07f	PIN_FULL=2e1cb4adef795488c0530be297e441f923bbe090	2e0ab72	T7a: env.sh's full pin
+types.npk:1733	types.npk:1756	2e0ab72	T7a: O-N3's comment in the compiler, the line number swept with its file
+'1733p'	'1756p'	2e0ab72	T7a: facts.sh's read of that line
+Verdict at `c9baa9e`	Verdict at `2e1cb4a`	2e0ab72	T7a: 0.0.0's verdict table
+The toolchain is `c9baa9e`	The toolchain is `2e1cb4a`	2e0ab72	T7a: each subcycle's first precondition
+every Expect here is `c9baa9e`'s	every Expect here is `2e1cb4a`'s	2e0ab72	T7a: 0.0.0's re-pin rule
+the pin is `c9baa9e`	the pin is `2e1cb4a`	2e0ab72	T7a: 0.0.0's account of a re-pin
+git show c9baa9e:runtime/npkrt.ll	git show 2e1cb4a:runtime/npkrt.ll	2e0ab72	T7a: 0.0.2's read of the runtime
+`c9baa9e` is the libraries' one re-pin	`c9baa9e` was the libraries' one re-pin of 2026-10-16	2e0ab72	T7a: the README's pin line
+c9baa9e91c553d8db2a2a62f09c36b30a984b07f	2e1cb4adef795488c0530be297e441f923bbe090	b4289f5	T7a: CI's NITPICK_COMMIT, the full sha
+c9baa9e91c55…	2e1cb4adef79…	b4289f5	T7a: the same, abbreviated in a CI log line
+1f48a31a5c9b5b78053444c404b7b2dd7c8c470c354dd3b14d47b3e75585ee2a	0073060250f0e56329ab77a01de45b0f499c0441db66215b7b762c9fe911b27c	b4289f5	T7a: CI's NPKC_LL_SHA256 (T7v3's (12) names an old digest 74c24a70..., which no commit of the plan holds)
+1f48a31a…	00730602…	b4289f5	T7a: the same, abbreviated
+31731079	32569732	b4289f5	T7a: CI's NPKC_LL_BYTES -- eight digits, swept alone
+notice 118	notice 140	b4289f5	T7a: PIN.md's row CI asserts npkc.ll against
+landings 124, 127 and 128 added lines above it	landings 127 and 128 added 21 lines and 2 above it	b5999c8	T7a: the first of its three sentences
+125, 129 and 151 `MODULE_REFERENCE.md` §2.1, §5.3 and §1.1	landings 125 and 129 `MODULE_REFERENCE.md` §2.1, 125 its §5.3 too, and 151 its §1.1	b5999c8	T7a: the second
+O-N3's comment at line 1756	line 1733 of `types.npk` empty at the new pin, O-N3's comment moved to 1756	b5999c8	T7a: the third, in 0.0.0 §11
+neither of which it reads	neither of which it mirrors	b5999c8	T7a: the third, in 0.0.3 §11
+*(2026-10-18,	*(@@DATE@@,	128a03c	T7c4: a dated note's opening in an added line	raw
+*(2026-10-18:	*(@@DATE@@:	128a03c	T7c4: the same, with a colon	raw
+*(2026-10-21,	*(@@DATE@@,	128a03c	T7c4: the same	raw
+*(2026-10-22,	*(@@DATE@@,	128a03c	T7c4: the same	raw
+**2026-10-18,	**@@DATE@@,	128a03c	T7c4: a decision's opening	raw
+**2026-10-21,	**@@DATE@@,	128a03c	T7c4: the same	raw
+**2026-10-22,	**@@DATE@@,	128a03c	T7c4: the same	raw
+proposed 2026-10-18	proposed @@DATE@@	128a03c	T7c4: the same, in a header	raw
+the first whole number after its name	the form `NSOCK_<NAME>` = n	9ffff40	T7c4b: @@PD-176@@'s bound reader
+three structure sizes	a structure's size	9ffff40	T7c4b: what the value rule exempts
+literal elsewhere under `src/`"	literal elsewhere in `src/`"	9ffff40	T7c4b: TESTING.md's dated note, which misquoted the value rule's row (the closing quotation mark is the identifier: the rule's own text elsewhere says "under")
+formatter hands its text on through	formatter appends to a `Bytes`	9ffff40	T7c4b: @@PD-177@@'s A-23 clause
+compile as written; the	compile as written, without	9ffff40	T7c4b: Z-4's note, its first clause
+function called in an `ensures`, is `NITPICK-TYPE-060`	a call in a contract is spelled `raw f(…)`	9ffff40	T7c4b: Z-4's note, its third shape
+a write to one of its bytes through the checked index is not refused	a write at an index the compiler cannot place outside the range is refused	d7f44e1	T7c4b: e861387's @@PD-177@@ freeze clause
+not against a byte written through its index	and against a write at any	d7f44e1	T7c4b: the same, 0.0.4.md's wording
+freezes it against its growth for the range's block	freezes it for the range's block	d7f44e1	T7c4b: the same, §9
+is that frozen range	stops the sink's appends as well	d7f44e1	T7c4b: the same, §9's last clause
+a byte written through its index is not refused	a write at an index the compiler cannot place outside the range is refused	-	T7c4b: e861387's commit message; no file holds it, so no provenance -- the sweep's 0 is the check
+[0.0.4](0.0.4.md) | **not yet**	[0.0.4](0.0.4.md) | **yes**	e861387	T7v3's (12): the README's file table
+[0.0.5](0.0.5.md) | **not yet**	[0.0.5](0.0.5.md) | **yes**	fd47ba3	T7v3's (12): the README's file table
+To cycle 0.5, the address formatter	To cycle 0.1, the address formatter	fd47ba3	T7c5: 0.0.4 §10's hand-on, "cycle 0.5"
+audit before it (W-22)	the close audit (W-22) runs	fd47ba3	T7c5: G15's row, the close's order
+19 writes through	20 writes through	-	T7c5: README row 160, a count fixed in its own draft before its commit; no commit holds it -- the sweep's 0 is the check
+the shapes cycle 0.0.2's mutants measured at the pin	the shapes @@PD-174@@ records	step:0.0.5/1	T7c5: harness/selfcheck.py's citation of a cycle file's section, replaced by 0.0.5's step 2
+written out in full in cycle 0.0.0's plan, §13	written out in full in its request	step:0.0.5/1	T7c5: CURRENCY.md's, the same
+(0.0.5, step 4)	(at cycle 0.0's close)	step:0.0.5/1	T7c5: the 0.1 roadmap's, the same
+`--obligations`, `--elide` and `--extra-picky`	`--obligations`, `--elide`, `--dump-refs`	2e0ab72	T7v3's (12): npkc's usage line, without --dump-refs
+No library code exists yet	Status: cycle 0.0	step:0.0.1/6	T7v3's (12): CLAUDE.md's status, replaced by 0.0.1's step6.patch
+which cycle 0.0.4's `Vec<T>` will be	(kept, with its dated note: it describes the tree before cycle 0.0.4)	-	T7v3's (12): @@PD-175@@'s forecast, kept by the log's rule with a dated note -- every hit is LOG

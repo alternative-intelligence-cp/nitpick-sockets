@@ -1,0 +1,67 @@
+# meta/roadmap/0.0/tools/twins_classes.txt -- the classes of the twin sweep's hits (`twins.py`), one per line:
+# `<CLASS> | <surface>[@<subcycles>]:<path glob> | <fragment>`, the fragment read through sweep.py's transform,
+# case ignored, or `re:` and a regular expression over that text. STALE: a twin fix round 2 fixes at its source,
+# so found only before the fix. EARLIER: a statement about an earlier cut, a pin, a date or a run, said as such,
+# or a tree before the step that corrects it. LOG: a record the decision log keeps by its rule.
+
+# STALE -- fixed at its source in fix round 2 (2026-10-25)
+STALE | patch:0.0.0_tools/step1.patch | and the comment still reads so, src/frontend/types.npk:1733
+STALE | patch:0.0.0_tools/step4.patch | and the comment still reads so, src/frontend/types.npk:1733
+STALE | tree:meta/OPEN_QUESTIONS.md | and the comment still reads so, src/frontend/types.npk:1733
+STALE | tip:meta/roadmap/0.0/README.md | 0.0.0's §1.2 lines (their label, and o-n3's comment at line 1756)
+
+# EARLIER -- the LLVM the manifest pinned before 0.0.1, and the tree before 0.0.1 corrects it
+EARLIER | tip:meta/roadmap/0.0/0.0.1.md | and pinned llvm 20.1.2, which the compiler's runners refuse from its landing 99
+EARLIER | tip:meta/roadmap/0.0/0.0.1.md | hunks each pattern matches: llvm 20.1.2: 3
+EARLIER | tip:meta/roadmap/0.0/0.0.1.md | llvm 20.1.2: 2 candidate(s) in 2 file(s)
+EARLIER | tip:meta/roadmap/0.0/0.0.1.md | ---|---|---| llvm 20.1.2
+EARLIER | tip:meta/roadmap/0.0/0.0.1_tools/sweep_patterns.txt | llvm 20.1.2
+EARLIER | tip:meta/roadmap/0.0/README.md | against the compiler's cycle 1.5 and llvm 20.1.2
+EARLIER | tree@0.0.0:CLAUDE.md | llvm 20.1.2 exactly, pinned
+EARLIER | tree@0.0.0:README.md | and llvm 20.1.2 — the same toolchain the compiler pins
+
+# EARLIER -- the old pin's PIN.md row, until the adoption
+EARLIER | tip:meta/roadmap/0.0/0.0.1.md | (c9baa9e's and notice 118's until the adoption)
+
+# EARLIER -- the three section citations 0.0.5's step 2 replaces: its own plan's words, the trees before it, and the
+# citation scanner's planted form
+EARLIER | tip:meta/roadmap/0.0/0.0.5.md | harness/selfcheck.py line 54, "the shapes cycle 0.0.2's mutants measured at the pin"
+EARLIER | tip:meta/roadmap/0.0/0.0.5.md | step 2 — three permanent files cite a decision, not a cycle file's section
+EARLIER | patch:0.0.3_tools/step1.patch | check_failsafe_arms-planted
+EARLIER | tree@0.0.3,0.0.4:harness/selfcheck.py | check_failsafe_arms-planted
+EARLIER | tip:meta/roadmap/0.0/0.0.5.md | currency.md's sentence before its three research requests, which said each was "written out in full in cycle 0.0.0's plan, §13"
+EARLIER | tip:meta/roadmap/0.0/0.0.5_tools/citations.py | ("a plan's section", ["written out in full in cycle 0.0.0's plan, §13:"], "place")
+EARLIER | patch:0.0.1_tools/step5.patch | is written out in full in cycle 0.0.0's plan, §13
+EARLIER | tree@0.0.1,0.0.2,0.0.3,0.0.4:meta/research/CURRENCY.md | is written out in full in cycle 0.0.0's plan, §13
+EARLIER | tip:meta/roadmap/0.0/0.0.5.md | and the 0.1 roadmap's line 8, "(0.0.5, step 4)", a step this plan numbers 6
+EARLIER | tip:meta/roadmap/0.0/0.0.5.md | "(0.0.5, step 4)" made "(0.0.5)"
+EARLIER | tree@0.0.0,0.0.1,0.0.2,0.0.3,0.0.4:meta/roadmap/0.1/README.md | written execution-grade at cycle 0.0's close (0.0.5, step 4)
+
+# EARLIER -- npkc's usage at c9baa9e, in @@PD-173@@'s text, which its dated note re-measures at 2e1cb4a
+EARLIER | patch:0.0.3_tools/step1.patch | npkc has no parse-only mode — its usage is a root, -o, --obligations, --elide and --extra-picky
+EARLIER | tree:meta/DECISIONS.md | npkc has no parse-only mode — its usage is a root, -o, --obligations, --elide and --extra-picky
+
+# EARLIER -- CLAUDE.md's status before 0.0.1's step 6, and the pattern that sweeps it
+EARLIER | tip:meta/roadmap/0.0/0.0.1_tools/sweep_patterns.txt | no library code exists yet
+EARLIER | tree@0.0.0:CLAUDE.md | no library code exists yet
+
+# LOG -- @@PD-163@@'s account of what it corrected in S-8
+LOG | patch:0.0.0_tools/step4.patch | s-8's "owes exactly one arm" counted the library's identities, not the bill
+LOG | tree:meta/DECISIONS.md | s-8's "owes exactly one arm" counted the library's identities, not the bill
+
+# LOG -- @@PD-175@@'s forecast, kept with the dated note @@PD-177@@ writes beneath it, and 0.0.4's account of it
+LOG | patch:0.0.3_tools/step1.patch | the scan cannot see a generic function no root instantiates, which cycle 0.0.4's vec<t> will be
+LOG | patch:0.0.4_tools/step2.patch | "which cycle 0.0.4's vec<t> will be" describes the tree before cycle 0.0.4
+LOG | tree:meta/DECISIONS.md | the scan cannot see a generic function no root instantiates, which cycle 0.0.4's vec<t> will be
+LOG | tree:meta/DECISIONS.md | "which cycle 0.0.4's vec<t> will be" describes the tree before cycle 0.0.4
+LOG | tip:meta/roadmap/0.0/0.0.4.md | "which cycle 0.0.4's vec<t> will be", with step 2's dated note beneath
+
+# LOG -- the decision log's lines that cite a cycle file's section (0.0.5's sweep subject): each decision's opening,
+# which names the step that declares it, and the settled text that names where a fact was read (0.0.5.md §14's
+# author item, with its reversal)
+LOG | log:meta/DECISIONS.md | re:\d{4}-\d{2}-\d{2}, cycle 0\.0\.\d step \d
+LOG | log:meta/DECISIONS.md | each placeholder module states its row in its header (cycle 0.0.1's plan)
+LOG | log:meta/DECISIONS.md | a keyword declared as a name of any kind is refused (cycle 0.0.0's block 0b
+LOG | log:meta/DECISIONS.md | a module named sockopt compiles there (cycle 0.0.1's block 0b)
+LOG | log:meta/DECISIONS.md | cycle 0.0.0's plan applied the rule at its gate item 7
+LOG | log:meta/DECISIONS.md | cycle 0.0.1's plan left the refusal entry's stage to 0.0.3
