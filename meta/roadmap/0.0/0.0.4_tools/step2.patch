@@ -150,7 +150,7 @@ index e969036..9028249 100644
      c.stage_case("program-exit-off-by-one", p("// expect-exit: 1\n"), "expected exit 1", p("// expect-exit: 0\n"))
      c.stage_case("program-stress-three", p("// expect-exit: 1\n// stress: 3\n"), "x3", p("// expect-exit: 0\n// stress: 3\n"))
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index 0c7f7a4..8785d7e 100644
+index 0c7f7a4..1f9e62f 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
 @@ -1077,6 +1077,11 @@ call-edge scan alone** — the scan cannot see a generic function no root instan
@@ -165,7 +165,7 @@ index 0c7f7a4..8785d7e 100644
  *Reversal:* none for the key; a new identity, or a declaring module the table does not name, is a change to
  `SAFETY.md` §3 by a decision, which the check then reads.
  
-@@ -1118,3 +1123,52 @@ value rule** — 256 is a number no kernel value shares, and a literal 256 under
+@@ -1118,3 +1123,53 @@ value rule** — 256 is a number no kernel value shares, and a literal 256 under
  *Reversal, for the author:* `NSOCK_POLLSET_MAX` joins the file at the value its consumer's cycle states; a struck bound
  returns with a rule that states its value, in the cycle that needs it; and a bound whose number a specification comes to
  state as a kernel value too moves to the by-name list, which every run's line prints.
@@ -177,15 +177,16 @@ index 0c7f7a4..8785d7e 100644
 +does not trap: a read at index 9 of a block of four `int64`s answers. A slice's, a fixed array's and — since the
 +compiler's landing 128, D-341 — a `buffer`'s index trap `OutOfBounds`, a buffer read and written through a field of a
 +pointer parameter too; and a range of a `buffer` freezes it for the view's whole block against an overwrite — a new
-+buffer in its place, as a growth makes — which is `NITPICK-BORROW-015` even after the view's last use, through a callee
-+too, while a write to one of its bytes through the checked index is not refused. A live `requires`, `ensures` or
-+`limit<…>` field charges every consumer `RequiresViolated`, `EnsuresViolated` or `LimitViolated` beside the floor's six,
-+and a division, even by a literal, `DivByZero` and `DivOverflow` — to every program that imports the module, through
-+another module too. `NULL` stored in a `wild` pointer compiles (D-355). A generic function's instance is defined in its
-+root's emission as `npk.<module>.<name><T>`, and one no root instantiates is in no emission. The early ecosystem audit's
-+EC2 — an index claimed to trap where a pointer's does not — and EK1 — `VERIFICATION.md` Z-1 against the ecosystem's
-+answer on live contracts, `nitpick-regex`'s RX-164 and `nitpick-time`'s TM-197; the pin audit's SL-2, `Bytes`' view; and
-+the planning guide's open points 3 and 10.
++buffer in its place, as a growth makes — and against a write through its index at any place the compiler cannot set
++outside the range, each `NITPICK-BORROW-015` even after the view's last use, the overwrite through a callee too; a byte
++at a constant index outside the range is not refused. A live `requires`, `ensures` or `limit<…>` field charges every
++consumer `RequiresViolated`, `EnsuresViolated` or `LimitViolated` beside the floor's six, and a division, even by a
++literal, `DivByZero` and `DivOverflow` — to every program that imports the module, through another module too. `NULL`
++stored in a `wild` pointer compiles (D-355). A generic function's instance is defined in its root's emission as
++`npk.<module>.<name><T>`, and one no root instantiates is in no emission. The early ecosystem audit's EC2 — an index
++claimed to trap where a pointer's does not — and EK1 — `VERIFICATION.md` Z-1 against the ecosystem's answer on live
++contracts, `nitpick-regex`'s RX-164 and `nitpick-time`'s TM-197; the pin audit's SL-2, `Bytes`' view; and the planning
++guide's open points 3 and 10.
 +
 +*So:* `Vec<T: Copy>` keeps its block `wild` and checks every index, count and use after free in the function that uses
 +it, before the pointer is touched; a misuse traps the language's `OutOfBounds` through one stop per module, which
@@ -208,12 +209,12 @@ index 0c7f7a4..8785d7e 100644
 +would owe `RequiresViolated` and `EnsuresViolated` by no decision, and a live `requires` traps before the body's own
 +check; **`Bytes` through `.ptr`**, as `nitpick-parse`'s plan writes it — its index is checked by the accessor alone,
 +where the buffer's own index is checked too; **a view of `Bytes`**, a range or a `#wild_slice` — a range freezes the
-+sink against its growth for the range's block, a `#wild_slice` over `.ptr` reads freed memory after a growth (D-341's
-+own warning), and no specification names a consumer that needs one: `ADDRESS_MODEL.md` A-23's formatter appends to a
-+`Bytes`, and a `string` leaves one as `bytes_take`'s owned copy; **`put_uint` by division** — two identities more on
-+every program that formats an address; **each module instantiating its own generics** — a function nobody calls, kept in
-+the library for a scan's sake; **an uninstantiated generic left to the source checks** — `check_no_floor_write` reads
-+only the floor's `write` and `ByteWriter`, so a generic reaching another denied facet would pass every check.
++sink for its block, a `#wild_slice` over `.ptr` reads freed memory after a growth (D-341's own warning), and no
++specification names a consumer that needs one: `ADDRESS_MODEL.md` A-23's formatter appends to a `Bytes`, and a `string`
++leaves one as `bytes_take`'s owned copy; **`put_uint` by division** — two identities more on every program that formats
++an address; **each module instantiating its own generics** — a function nobody calls, kept in the library for a scan's
++sake; **an uninstantiated generic left to the source checks** — `check_no_floor_write` reads only the floor's `write`
++and `ByteWriter`, so a generic reaching another denied facet would pass every check.
 +
 +*Reversal, for the author:* a decision accepting a clause's arm makes that clause live, its comment marker deleted per
 +site (Z-1a); a consumer that needs a view of `Bytes` takes a frozen range by a decision that names it; and `put_uint` by

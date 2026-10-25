@@ -133,18 +133,20 @@ func:peek = uint8(S->:s, int64:i) never fails {
 " "    S:s = S{ buf: buffer_new(4i64) };
     discard(raw peek(@s, 4i64));"
 for f in wild_index ptr_index slice_index array_index buffer_read buffer_param_write buffer_param_read; do echo "§1.4 $(run4 "$X/$f.npk")"; done
-prog "$X" range_byte_live "" "" "    buffer:b = buffer_new(8i64);
+rng() { prog "$X" "$1" "" "${3:-}" "    buffer:b = buffer_new(8i64);
+    int64:i = 5i64;
     {
         fixed uint8[]:v = b[0i64...4i64];
-        b[5i64] = 1u8;
-        discard(v[0i64]);
-    }"
-prog "$X" range_overwrite_after "" "" "    buffer:b = buffer_new(8i64);
-    {
-        fixed uint8[]:v = b[0i64...4i64];
-        discard(v[0i64]);
-        b = buffer_new(16i64);
-    }"
+$2
+    }"; }
+rng range_out_const_live "        b[5i64] = 1u8;
+        discard(v[0i64]);"
+rng range_in_const_after "        discard(v[0i64]);
+        b[1i64] = 7u8;"
+rng range_variable_after "        discard(v[0i64]);
+        b[i] = 7u8;"
+rng range_overwrite_after "        discard(v[0i64]);
+        b = buffer_new(16i64);"
 prog "$X" range_callee_after "" "struct:S = { buffer:buf; int64:len; };
 
 func:grow = NIL(S->:s) never fails {
@@ -157,9 +159,12 @@ func:grow = NIL(S->:s) never fails {
         discard(v[0i64]);
         drop grow(@s);
     }"
-echo "§1.4 a range of a buffer, a byte of it written while the view lives: $(codes "$X/range_byte_live.npk")"
-echo "§1.4 the buffer overwritten in the view's block, after its last use: $(codes "$X/range_overwrite_after.npk")"
-echo "§1.4 the same through a callee handed the holder's address: $(codes "$X/range_callee_after.npk")"
+echo "§1.4 a range of a buffer, b[0i64...4i64], held by v in a block, and in that block:"
+echo "§1.4   b[5i64] written, a constant index outside the range, while v lives: $(codes "$X/range_out_const_live.npk")"
+echo "§1.4   b[1i64] written, inside the range, after v's last use: $(codes "$X/range_in_const_after.npk")"
+echo "§1.4   b[i] written, i a local holding 5, after v's last use: $(codes "$X/range_variable_after.npk")"
+echo "§1.4   b overwritten after v's last use: $(codes "$X/range_overwrite_after.npk")"
+echo "§1.4   the same overwrite by a callee handed the holder's address: $(codes "$X/range_callee_after.npk")"
 
 # §1.5 -- what a live clause and a division cost every consumer, and what each traps at run time
 C5=$F/clauses; mkdir -p "$C5"
