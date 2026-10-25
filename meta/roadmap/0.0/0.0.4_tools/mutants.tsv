@@ -1,0 +1,17 @@
+# 0.0.4's mutants of `src/core/` and what guards it -- each one facet broken alone, by the edits of one name;
+# `mutants.py` makes each edit exactly once in a copy of the tree's HEAD, and runs the harness there. Every
+# mutant must be red, by the instrument its row in `0.0.4.md` §5 names. TAB-separated: name, file, the text
+# replaced, its replacement; `\n` is a newline, `\t` a tab.
+vec-at-upper	src/core/vec.npk	    if (i >= v.count) { drop vec_oob(i); }\n    pass v.items[i];\n	    if (i > v.count) { drop vec_oob(i); }\n    pass v.items[i];\n
+vec-at-sign	src/core/vec.npk	    if (i < 0i64) { drop vec_oob(i); }\n    if (i >= v.count) { drop vec_oob(i); }\n    pass v.items[i];\n	    if (i >= v.count) { drop vec_oob(i); }\n    pass v.items[i];\n
+vec-pop-empty	src/core/vec.npk	    if (v.count <= 0i64) { drop vec_oob(v.count); }\n	
+vec-free-twice	src/core/vec.npk	    if (v.cap <= 0i64) { drop vec_oob(v.cap); }\n    dalloc(v.items =>! wild int8->);\n	    dalloc(v.items =>! wild int8->);\n
+vec-reserve-overflow	src/core/vec.npk	    if (need > I64_MAX - v.count) { drop vec_oob(need); }\n	
+vec-leak-free-forgotten	src/core/vec.npk	    dalloc(v.items =>! wild int8->);\n	
+bytes-at-upper	src/core/bytes.npk	    if (i >= b.len) { drop bytes_oob(i); }\n	    if (i > b.len) { drop bytes_oob(i); }\n
+bytes-leak-kept	tests/unit/bytes_leak_capped.npk	func:main = int32(cstring[]:_~argv) {\n    for (int64:i in 0i64...10000i64) {\n        Bytes:b = raw bytes_init(65536i64);\n        drop bytes_push(@b, 1u8);\n        if (b.len != 1i64)                                  { exit 10i32; }\n    }\n    exit 0i32;\n};\n	func:hold = int64(int64:n) never fails {\n    if (n <= 0i64) { pass 0i64; }\n    Bytes:b = raw bytes_init(65536i64);\n    drop bytes_push(@b, 1u8);\n    int64:deeper = raw hold(n - 1i64);\n    pass deeper + b.len;\n};\n\nfunc:main = int32(cstring[]:_~argv) {\n    if ((raw hold(10000i64)) != 10000i64)               { exit 10i32; }\n    exit 0i32;\n};\n
+put-uint-leading-zero	src/core/bytes.npk	        if (d != 0u8 || started || k == tens.len - 1i64) {\n	        if (d != 0u8 || started || k >= 0i64) {\n
+limit-value	src/core/limits.npk	pub fixed int64:NSOCK_CMSG_MAX = 256i64;\n	pub fixed int64:NSOCK_CMSG_MAX = 257i64;\n
+generic-uninstantiated	tests/unit/generic_instances.npk	    drop vec_clear(@v);\n	
+generic-floor-write	src/core/vec.npk	pub func:vec_clear<T: Copy> = NIL(Vec<T>->:v) never fails {\n	pub func:vec_dump<T: Copy> = int64(Vec<T>:v) never fails {\n    wild int8->:none = calloc(1i64, 8i64);\n    Result<int64>:r = write((1i32) =>! fd, none, 0i64);\n    dalloc(none);\n    if (r.is_error) { pass 0i64; }\n    pass v.count;\n};\n\npub func:vec_clear<T: Copy> = NIL(Vec<T>->:v) never fails {\n
+generic-floor-write	tests/unit/generic_instances.npk	    drop vec_clear(@v);\n	    drop vec_clear(@v);\n    discard(raw vec_dump(v));\n

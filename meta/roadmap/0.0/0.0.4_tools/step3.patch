@@ -65,7 +65,7 @@ index b6a8156..0dfa50d 100644
 +`../../tests/unit/`.
 diff --git a/src/core/bytes.npk b/src/core/bytes.npk
 new file mode 100644
-index 0000000..d45d385
+index 0000000..bdc78bc
 --- /dev/null
 +++ b/src/core/bytes.npk
 @@ -0,0 +1,230 @@
@@ -94,11 +94,11 @@ index 0000000..d45d385
 +//
 +// ---- NO VIEW OF THE BYTES LEAVES THIS FILE --------------------------------------------------------------------------
 +//
-+// There is no `bytes_view`: a range of the body, `buf[lo...hi]`, freezes it for the view's whole block, so a sink that
-+// handed one out could not grow while it lived, and a `#wild_slice` over `.ptr` would read freed memory after a growth
-+// (D-341's own warning). The bytes leave one at a time (`bytes_at`) or all at once as an OWNED copy (`bytes_take`).
-+// Growth makes a fresh buffer, copies the live bytes into it by the checked index, and overwrites the field, which drops
-+// the old body -- with no view of either held across the overwrite.
++// There is no `bytes_view`: a range of the body, `buf[lo...hi]`, freezes it against an overwrite for the view's whole
++// block, so a sink that handed one out could not grow while it lived, and a `#wild_slice` over `.ptr` would read freed
++// memory after a growth (D-341's own warning). The bytes leave one at a time (`bytes_at`) or all at once as an OWNED
++// copy (`bytes_take`). Growth makes a fresh buffer, copies the live bytes into it by the checked index, and overwrites
++// the field, which drops the old body -- with no view of either held across the overwrite.
 +//
 +// ---- GROWTH DOUBLES, AND NO MULTIPLY CAN OVERFLOW -------------------------------------------------------------------
 +//

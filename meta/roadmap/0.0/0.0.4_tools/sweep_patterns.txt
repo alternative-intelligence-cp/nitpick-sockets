@@ -1,0 +1,24 @@
+# 0.0.4's stale-claim sweep: one subject per claim the steps changed, in more than one wording, each proved on a twin
+# phrased in other words than its old text's (`tools/sweep.py`).
+no library code yet | no library code( yet| exists| so far)?|library code (does not exist|is not (yet )?written)|nothing under src/ but placeholders
+the nine NSOCK names and the deadline defaults | NSOCK_(ADDR_MAX|DEFAULT_BACKLOG|CONNECT_TIMEOUT|ACCEPT_TIMEOUT|IO_TIMEOUT)|deadline defaults?|default (connect|accept|io|read|write) (timeout|deadline)s?
+the value rule | none of these numbers appears|nor a value (that|the) file declares|no (bound|limit)'?s? (number|value) (appears|is written) (anywhere|elsewhere)|every literal equal to a bound
+indexing traps | indexing traps|indexing is bounds-checked|every index (into|of) .{0,40}(bounds-checked|traps)|(index|indexes) (always )?traps? out of range
+the rungs refusing contracts | rungs refuse|refuses? the constructs by name|premature ensures is a build failure|until a construct is live|refuses? (requires|ensures|contracts) .{0,20}by name
+the cycle-1.5 labels | cycle 1\.5\b|when 1\.5\.\d lands|\b1\.5\.\d (lands|is live|makes)|discharge in cycle 1\.5|compiler'?s? 1\.5\.\d
+a view of Bytes | bytes_view|\bview\(\)|a (borrowed )?view of (the |its )?(bytes|body|sink)|hands? (out )?a borrowed uint8\[\]
+generics unseen by the call-edge scan | generic .{0,40}(no (module )?root instantiates|uninstantiated|not instantiated|no program instantiates)|(cannot|does not|can.t) see (a |the )?generic|scan .{0,40}(cannot|can.t|does not) see .{0,30}generic
+the bound reader reads the first number | first (whole )?number after its name|first number in its sentence|first number that follows
+the Z-4 shapes compile as written | shapes? compiles? as written|compiles? exactly as (the specification|it is) writ
+a range freezes every write to its buffer | a write to it there being|range .{0,40}freezes? (it|the (buffer|sink|body)) for (its|the view.s) (whole )?block|freezes? every write
+twin: no library code yet | the repository holds no library code so far
+twin: the nine NSOCK names and the deadline defaults | the default accept timeout is a named bound in limits.npk
+twin: the value rule | no bound's number is written anywhere else under src
+twin: indexing traps | every index always traps out of range
+twin: the rungs refusing contracts | the compiler still refuses ensures by name
+twin: the cycle-1.5 labels | the obligations land once the compiler's 1.5.3 is live
+twin: a view of Bytes | the sink hands out a borrowed uint8[] for the write path
+twin: generics unseen by the call-edge scan | the call-edge scan cannot see a generic function that no program instantiates
+twin: the bound reader reads the first number | the check takes the first number that follows a bound's name
+twin: the Z-4 shapes compile as written | the two contract shapes compile exactly as the specification writes them
+twin: a range freezes every write to its buffer | a range of the buffer freezes every write to it while the view lives
