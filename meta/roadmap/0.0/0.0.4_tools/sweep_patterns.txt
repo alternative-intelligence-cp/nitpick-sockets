@@ -11,6 +11,7 @@ generics unseen by the call-edge scan | generic .{0,40}(no (module )?root instan
 the bound reader reads the first number | first (whole )?number after its name|first number in its sentence|first number that follows
 the Z-4 shapes compile as written | shapes? compiles? as written|compiles? exactly as (the specification|it is) writ
 a range freezes every write to its buffer | a write to it there being|range .{0,40}freezes? (it|the (buffer|sink|body)) for (its|the view.s) (whole )?block|freezes? every write
+what the call-edge scan reads | probes and the tests,? (are|is) not\b|does not read the probes and the tests\b|src/?, judges every suite|review and the tree checks (do\.|of cycle 0\.0\.3 hold)|(reads|scans) (only|just) (the )?modules?\b|never (reads|scans) a test
 twin: no library code yet | the repository holds no library code so far
 twin: the nine NSOCK names and the deadline defaults | the default accept timeout is a named bound in limits.npk
 twin: the value rule | no bound's number is written anywhere else under src
@@ -22,3 +23,4 @@ twin: generics unseen by the call-edge scan | the call-edge scan cannot see a ge
 twin: the bound reader reads the first number | the check takes the first number that follows a bound's name
 twin: the Z-4 shapes compile as written | the two contract shapes compile exactly as the specification writes them
 twin: a range freezes every write to its buffer | a range of the buffer freezes every write to it while the view lives
+twin: what the call-edge scan reads | the scan reads only the modules and never scans a test

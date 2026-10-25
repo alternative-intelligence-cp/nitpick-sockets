@@ -61,10 +61,10 @@ index f6f9b39..d7e34bc 100644
 +
 +*Reversal:* a rename, by a later decision; no rule moves.
 diff --git a/meta/OPEN_QUESTIONS.md b/meta/OPEN_QUESTIONS.md
-index c514f63..a6ea21e 100644
+index 11e05e4..65475d5 100644
 --- a/meta/OPEN_QUESTIONS.md
 +++ b/meta/OPEN_QUESTIONS.md
-@@ -125,6 +125,15 @@ workbench registry id for it is the orchestrator's to assign — ED2.)*
+@@ -127,6 +127,15 @@ workbench registry id for it is the orchestrator's to assign — ED2.)*
    **Recommendation:** yes, with `SOCKET_MODEL.md` K-9's verification, because
    the alternative is that a consumer writes it without the check. Settled at
    cycle 0.2.

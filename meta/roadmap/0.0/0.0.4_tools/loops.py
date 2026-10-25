@@ -22,9 +22,16 @@ Its CONTROL runs the other way, on every run: a function no unit calls, holding 
 module of `src/` that has a loop, and planted the same way; every unit importing it is built and run, and the control
 passes only if none exits 93 -- a sweep that called every loop reached would fail it.
 
-A `for` whose binding is not an integer cannot take this plant, and a `while` or `when` loop is not planted at all:
-each is a STOP by name, for the cycle that writes the first one to extend this sweep. Exit 0 when every loop is reached
-and the control is not; 1 otherwise.
+THE STOPS. The sweep plants only what its reader reads, and each loop it cannot is a STOP by name, for the cycle that
+writes the first one to extend it -- never a loop passed over:
+  1. a `while`, `when`, `till` or `loop` loop (D-022's `till(limit, step)` and `loop(start, limit, step)`), which it
+     does not plant at all;
+  2. a `for` whose binding it cannot read -- a type with punctuation, such as `Vec<int64>:v`, `uint8[]:row` or
+     `int8->:p` -- or whose type is no integer, which this plant cannot take;
+  3. a `for` whose body does not open on its header's line, where the plant has no line to go on.
+Its READER CONTROLS run first, on planted text: a sound loop read, a loop in a comment left out, and one planted loop
+for each STOP's every form, each of which must stop. Exit 0 when every loop is reached and the control is not; 1
+otherwise.
 """
 import os
 import re
@@ -35,7 +42,8 @@ import sys
 
 INTS = {"int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128"}
 FOR = re.compile(r"\bfor\s*\(\s*([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)\s+in\b")
-OTHER = re.compile(r"\b(while|when)\b")
+FOR_ANY = re.compile(r"\bfor\s*\(")
+OTHER = re.compile(r"\b(while|when|till|loop)\b")
 PLANT = "int64:g8_planted = ({b} - {b}) + 9223372036854775807i64 + 1i64;"
 CONTROL = ("\n// g8 control: a loop no unit calls.\nfunc:g8_unreached = int64(int64:n) never fails {\n"
            "    int64:t = 0i64;\n    for (int64:c in 0i64...n) {\n        t = t + c;\n    }\n    pass t;\n};\n")
@@ -48,32 +56,84 @@ def copy(tree, dest):
     subprocess.run(["tar", "-x", "-C", dest], input=arc, check=True)
 
 
+class Stop(Exception):
+    pass
+
+
+def read(rel, code):
+    """[(relpath, line, type, binding, offset of the body's `{`)] of one file's code, comments and strings blanked; a
+    loop this sweep cannot plant raises Stop, by its rule (the docstring's THE STOPS)."""
+    found = []
+    for m in OTHER.finditer(code):
+        raise Stop("STOP: %s:%d: a `%s` loop, which this sweep does not plant -- extend it first"
+                   % (rel, code.count("\n", 0, m.start()) + 1, m.group(1)))
+    for a in FOR_ANY.finditer(code):
+        line = code.count("\n", 0, a.start()) + 1
+        m = FOR.match(code, a.start())
+        if not m:
+            raise Stop("STOP: %s:%d: a `for` whose binding this sweep cannot read -- extend it first" % (rel, line))
+        if m.group(1) not in INTS:
+            raise Stop("STOP: %s:%d: a `for` over `%s:%s`, whose binding this plant cannot take -- extend it first"
+                       % (rel, line, m.group(1), m.group(2)))
+        depth, i = 0, code.index("(", m.start())
+        while True:
+            depth += {"(": 1, ")": -1}.get(code[i], 0)
+            if depth == 0:
+                break
+            i += 1
+        j = i + 1
+        while code[j] in " \t":
+            j += 1
+        if code[j] != "{":
+            raise Stop("STOP: %s:%d: a `for` whose body does not open on its header's line" % (rel, line))
+        found.append((rel, line, m.group(1), m.group(2), j))
+    return found
+
+
 def loops_in(root, lexical):
-    """[(relpath, line, type, binding, offset of the body's `{` in the file's bytes)] and [(relpath, line, word)]."""
-    found, other = [], []
+    """Every `for` loop of every module under `src/`, as `read` gives it."""
+    found = []
     for d, dirs, fs in os.walk(os.path.join(root, "src")):
         dirs.sort()
         for f in sorted(x for x in fs if x.endswith(".npk")):
             path = os.path.join(d, f)
-            rel = os.path.relpath(path, root)
-            code = lexical.blank(lexical.read(path))
-            for m in OTHER.finditer(code):
-                other.append((rel, code.count("\n", 0, m.start()) + 1, m.group(1)))
-            for m in FOR.finditer(code):
-                depth, i = 0, code.index("(", m.start())
-                while True:
-                    depth += {"(": 1, ")": -1}.get(code[i], 0)
-                    if depth == 0:
-                        break
-                    i += 1
-                j = i + 1
-                while code[j] in " \t":
-                    j += 1
-                if code[j] != "{":
-                    raise SystemExit("STOP: %s:%d: a `for` whose body does not open on its header's line"
-                                     % (rel, code.count("\n", 0, m.start()) + 1))
-                found.append((rel, code.count("\n", 0, m.start()) + 1, m.group(1), m.group(2), j))
-    return found, other
+            found += read(os.path.relpath(path, root), lexical.blank(lexical.read(path)))
+    return found
+
+
+# The reader's controls: (what, the planted body, whether it must stop). Each is a function's body under `src/`.
+SOUND = "    for (int64:c in 0i64...n) {\n        t = t + c;\n    }"
+READER = [
+    ("a `for` over an `int64`", SOUND, False),
+    ("a loop in a comment", "    // while (c) { for (Vec<int64>:v in xs) {\n    t = n;", False),
+    ("a `while` loop", "    while (t < n) {\n        t = t + 1i64;\n    }", True),
+    ("a `when` loop", "    when (t < n) {\n        t = t + 1i64;\n    }", True),
+    ("a `till` loop", "    till(n, 1i64) {\n        t = t + 1i64;\n    }", True),
+    ("a `loop` loop", "    loop(0i64, n, 1i64) {\n        t = t + 1i64;\n    }", True),
+    ("a `for` over `Vec<int64>:v`", "    for (Vec<int64>:v in xs) {\n        t = n;\n    }", True),
+    ("a `for` over `uint8[]:row`", "    for (uint8[]:row in rows) {\n        t = n;\n    }", True),
+    ("a `for` over `int8->:p`", "    for (int8->:p in ps) {\n        t = n;\n    }", True),
+    ("a `for` over `flt64:x`", "    for (flt64:x in xs) {\n        t = n;\n    }", True),
+    ("a `for` whose body opens on the next line", "    for (int64:c in 0i64...n)\n    {\n        t = t + c;\n    }", True),
+]
+
+
+def reader_controls(lexical):
+    good = 0
+    for what, body, stops in READER:
+        code = lexical.blank("func:f = int64(int64:n) never fails {\n    int64:t = 0i64;\n%s\n    pass t;\n};\n" % body)
+        try:
+            got = read("planted.npk", code)
+            ok = not stops and (len(got) == (0 if "comment" in what else 1))
+        except Stop:
+            ok = stops
+        good += ok
+        if not ok:
+            print("  READER CONTROL FAILED: %s" % what)
+    print("reader controls: %d of %d -- a sound `for` read, a loop in a comment left out, and each of %d planted loops "
+          "the sweep cannot plant a STOP: %s" % (good, len(READER), sum(s for *_, s in READER),
+                                                 ", ".join(w for w, _, s in READER if s)))
+    return good == len(READER)
 
 
 def plant(root, rel, brace, binding):
@@ -145,15 +205,18 @@ def main(argv):
     copy(tree, probe)
     sys.path.insert(0, os.path.join(probe, "harness"))
     import lexical
-    found, other = loops_in(probe, lexical)
-    for rel, line, word in other:
-        raise SystemExit("STOP: %s:%d: a `%s` loop, which this sweep does not plant -- extend it first" % (rel, line, word))
-    for rel, line, typ, binding, _ in found:
-        if typ not in INTS:
-            raise SystemExit("STOP: %s:%d: a `for` over `%s:%s`, whose binding this plant cannot take -- extend it "
-                             "first" % (rel, line, typ, binding))
+    if not reader_controls(lexical):
+        shutil.rmtree(base, ignore_errors=True)
+        print("loops: the reader's controls failed; the sweep RED")
+        return 1
+    try:
+        found = loops_in(probe, lexical)
+    except Stop as e:
+        shutil.rmtree(base, ignore_errors=True)
+        raise SystemExit(str(e))
     mods = sorted({rel for rel, *_ in found})
-    print("loops under src/: %d `for` loop(s) in %d module file(s), 0 `while` or `when`; units importing each: %s"
+    print("loops under src/: %d `for` loop(s) in %d module file(s), 0 `while`, `when`, `till` or `loop`; units "
+          "importing each: %s"
           % (len(found), len(mods), ", ".join("%s %d" % (os.path.basename(m), len(units_of(probe, m, lexical)))
                                              for m in mods) or "none"))
     bad, hit, control = 0, 0, "absent, with no loop to append it beside"
@@ -176,7 +239,7 @@ def main(argv):
         path = os.path.join(root, mods[0])
         with open(path, "a", encoding="utf-8") as fh:
             fh.write(CONTROL)
-        got, _ = loops_in(root, lexical)
+        got = loops_in(root, lexical)
         rel, line, typ, binding, brace = [x for x in got if x[0] == mods[0]][-1]
         plant(root, rel, brace, binding)
         unit, ran, of = reached(root, rel, lexical, os.path.join(root, ".g8"))

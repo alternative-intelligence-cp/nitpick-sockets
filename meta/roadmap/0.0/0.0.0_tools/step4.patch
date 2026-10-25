@@ -133,17 +133,18 @@ index 739b4ba..1243329 100644
  
  ### O-N2 — `npkg` cannot build a library, and `[dependencies]` resolves to nothing
  Measured at the compiler's 1.5.0 and recorded in `specs/BUILD.md` §1.
-@@ -65,7 +69,8 @@ so explicitly. The code is right and the comment is loose.
+@@ -65,7 +69,9 @@ so explicitly. The code is right and the comment is loose.
  designing a server will look, and `SK-035` is built on the code's behaviour
  rather than the comment's. *(@@DATE@@, cycle 0.0.0: the behaviour RUN at compiler
  `2e1cb4a` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
--so, `src/frontend/types.npk:1733`. The ask stands.)*
-+so, `src/frontend/types.npk:1733`. The ask stands.)* *(This id is this repository's
-+own; a workbench registry id for it is the orchestrator's to assign — ED2.)*
+-so, `src/frontend/types.npk:1756`, "cross a spawn". The ask stands.)*
++so, `src/frontend/types.npk:1756`, "cross a spawn". The ask stands.)* *(This id is
++this repository's own; a workbench registry id for it is the orchestrator's to
++assign — ED2.)*
  
  ### O-N4 — no `sigaction` and no signal-mask primitive in the language
  Stated as an observation rather than a request: `nsockets` needs neither
-@@ -76,7 +81,29 @@ have one library that wants it and one that does not. *(2026-10-18, cycle
+@@ -76,7 +82,30 @@ have one library that wants it and one that does not. *(2026-10-18, cycle
  0.0.0: the floor's runtime itself installs handlers — `SIGPIPE`'s returns,
  measured by probe 04 through a raw `rt_sigaction` read — so the language's
  programs have a disposition that is not the default; `nsockets` still needs no
@@ -160,7 +161,8 @@ index 739b4ba..1243329 100644
 +08 and 10 identify theirs against a witness). So `connect`'s `EINPROGRESS` and
 +the accept loop's `ECONNABORTED`, `EMFILE` and `ENFILE` cannot be told apart
 +from any other failure, though each is forwarded verbatim at no cost
-+(`SAFETY.md` S-6).
++(`SAFETY.md` S-6). *(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption:
++`NITPICK-RESOLVE-010` at 15:1 and `NITPICK-TYPE-032` at 17:24, the same.)*
 +**Ask:** the prelude names the errnos a socket library decides on —
 +`EINPROGRESS` (115), `EALREADY` (114), `ECONNABORTED` (103), `EMFILE` (24) and
 +`ENFILE` (23) at least — as it names `WouldBlock` and `Interrupted`, where its

@@ -1,5 +1,5 @@
 diff --git a/CLAUDE.md b/CLAUDE.md
-index 76e3495..b5e8cde 100644
+index 76e3495..2f11db3 100644
 --- a/CLAUDE.md
 +++ b/CLAUDE.md
 @@ -85,7 +85,8 @@ Full statement in `meta/specs/SAFETY.md` §1. The ones that bite hardest here:
@@ -12,6 +12,31 @@ index 76e3495..b5e8cde 100644
  - Every blocking operation carries a **mandatory deadline**, and every wait is a
    task suspension through the reactor.
  - There is **no `select`** across channels — fan-in is `io_watch` plus one
+@@ -117,8 +118,9 @@ trailing semicolon; declarations end `};` and control-flow blocks do not.
+ compiler's own bootstrap ladder, and `[dependencies]` resolves to nothing.
+ `harness/run.py` is the runner until that changes (`SK-004`), since cycle 0.0.2:
+ `NPKC=… NPKRT=… python3 -B harness/run.py` builds and scans every module under
+-`src/`, judges every suite `nitpick.toml` declares — each program at −O0 and
+-through `opt -O2`, each refusal by its exact codes — and prints its verdict last
++`src/` and the one unit that instantiates its generics (@@PD-177@@), judges every
++suite `nitpick.toml` declares — each program at −O0 and through `opt -O2`, each
++refusal by its exact codes — and prints its verdict last
+ (`harness/README.md`). *(Until cycle 0.0.2 the probes
+ were run by hand.)* Since cycle 0.0.3 a full run proves first that it can fail —
+ the self-check, every case beside its control — sweeps every `.npk` in the tree
+diff --git a/harness/README.md b/harness/README.md
+index e6e7596..5130be0 100644
+--- a/harness/README.md
++++ b/harness/README.md
+@@ -59,6 +59,8 @@ prints is its verdict — `harness: GREEN -- …` or `harness: RED -- …` — a
+   the floor-writer's `main` is flagged, `SAFETY.md` S-2;
+ - every module under `src/` compiles as a root with no diagnostic, and none needs a symbol the
+   runtime does not define — or the root's `failsafe` — or calls one its rules deny;
++- `tests/unit/generic_instances.npk` instantiates every generic function `src/` declares, and its
++  emission calls none its rules deny (B-2a, @@PD-177@@);
+ - `[build] entry` and every conformance root emit byte-identical IR from two copies of the tree,
+   each with its manifest (B-4);
+ - every program unit was built at -O0 and through `opt -O2`, its modules stating the
 diff --git a/harness/build.py b/harness/build.py
 index 993d7dd..7e7d254 100644
 --- a/harness/build.py
@@ -77,6 +102,35 @@ index 993d7dd..7e7d254 100644
 +    bad += irscan.findings(ir, floor_edges, INSTANCES)
 +    return (f"the {len(gens)} generic function(s) its modules declare, each instantiated by {INSTANCES}, whose "
 +            "emission is scanned"), bad
+diff --git a/harness/irscan.py b/harness/irscan.py
+index 3ada9dc..f2a8489 100644
+--- a/harness/irscan.py
++++ b/harness/irscan.py
+@@ -14,9 +14,10 @@ DECLARED and not DEFINED in the module, `llvm.*` excluded (an intrinsic is an in
+ never a symbol), the trailing `.<digits>` of compiler-generated glue normalised away (the
+ counter moves with program content). An edge the floor program does not have, to a DENIED
+ symbol, is a finding that names the calling function, the facet and the rule. `run.py` reads
+-every module under `src/` this way, each compiled as a root on its own; it does not read the
+-probes and the tests, which reach the kernel, the floor's `write` and the rest on purpose
+-(`tests/probe/README.md`).
++every module under `src/` this way, each compiled as a root on its own, and at build step 2 one
++test, `tests/unit/generic_instances.npk`, which instantiates every generic function `src/`
++declares (@@PD-177@@); it does not read the probes and the other tests, which reach the kernel, the
++floor's `write` and the rest on purpose (`tests/probe/README.md`).
+ 
+ THE DENY LIST IS GENERATED FROM ONE TABLE: `runtime_symbols.tsv` beside this file classes every
+ global symbol the pinned runtime object defines -- all a module's call can resolve to, since a
+@@ -33,7 +34,9 @@ WHAT IT CANNOT SEE: a facet whose construct lowers to no runtime call of that fa
+ and never held calls only the floor's managed allocator and trap route (`BUILD.md` B-2a) -- which syscall a
+ `sys` call makes (K-1's numbers are `check_constants_named`'s, `TESTING.md` §5), what an allowed
+ function does inside the runtime, and a generic function no module root instantiates, which is
+-not emitted at all. A call-edge scan says nothing of those; review and the tree checks do.
++not emitted at all. A call-edge scan says nothing of those; review and the tree checks do, but for
++a generic: build step 2 scans its instance in `tests/unit/generic_instances.npk` and fails, by
++name, one that file does not instantiate (@@PD-177@@).
+ """
+ import os
+ import re
 diff --git a/harness/run.py b/harness/run.py
 index 14b013a..7bcc322 100644
 --- a/harness/run.py
@@ -150,10 +204,20 @@ index e969036..9028249 100644
      c.stage_case("program-exit-off-by-one", p("// expect-exit: 1\n"), "expected exit 1", p("// expect-exit: 0\n"))
      c.stage_case("program-stress-three", p("// expect-exit: 1\n// stress: 3\n"), "x3", p("// expect-exit: 0\n// stress: 3\n"))
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index 0c7f7a4..1f9e62f 100644
+index 44df30c..aaa3438 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -1077,6 +1077,11 @@ call-edge scan alone** — the scan cannot see a generic function no root instan
+@@ -857,6 +857,9 @@ the drawing and a library object come back by a decision; and when a library mod
+ other than the runtime's and `npk_failsafe`, B-2 names it, and a new allowance is a decision, never an edit.
+ 
+ ### @@PD-170@@ — the call-edge scan holds the library to the runtime facets its rules give it, from a table of the whole runtime
++> **SUPERSEDED IN PART by @@PD-177@@ (@@DATE@@): what the call-edge scan reads.** From cycle 0.0.4 build step 2 reads
++> one test too, `tests/unit/generic_instances.npk`, which instantiates every generic function `src/` declares, and
++> fails, by name, a generic it does not instantiate; the probes and the other tests are not read.
+ **@@DATE@@, cycle 0.0.2 step 1.** `specs/BUILD.md` B-2a.
+ 
+ *What was read and measured* — the workbench's `PLAYBOOK.md` §6: an undefined-symbol scan cannot see a syscall,
+@@ -1077,6 +1080,11 @@ call-edge scan alone** — the scan cannot see a generic function no root instan
  will be; **`check_specs_current` reporting only** — a citation that no longer resolves is a stale document, and a
  report nobody reads is the backlog cycle 0.10's checklist would have to drain.
  
@@ -165,13 +229,14 @@ index 0c7f7a4..1f9e62f 100644
  *Reversal:* none for the key; a new identity, or a declaring module the table does not name, is a change to
  `SAFETY.md` §3 by a decision, which the check then reads.
  
-@@ -1118,3 +1123,53 @@ value rule** — 256 is a number no kernel value shares, and a literal 256 under
+@@ -1118,3 +1126,54 @@ value rule** — 256 is a number no kernel value shares, and a literal 256 under
  *Reversal, for the author:* `NSOCK_POLLSET_MAX` joins the file at the value its consumer's cycle states; a struck bound
  returns with a rule that states its value, in the cycle that needs it; and a bound whose number a specification comes to
  state as a kernel value too moves to the by-name list, which every run's line prints.
 +
 +### @@PD-177@@ — the containers check their own indexes and trap the language's `OutOfBounds` on misuse; `Bytes` reaches every byte through its buffer's checked index and offers no view; `put_uint` divides by nothing; an obligation is a comment unless a decision accepts its arm; every generic function is instantiated where the call-edge scan reads it
-+**@@DATE@@, cycle 0.0.4 step 2.** `specs/BUILD.md` B-2a, B-13; `VERIFICATION.md` Z-1, Z-1a; `SAFETY.md` §1.
++**@@DATE@@, cycle 0.0.4 step 2. Supersedes `@@PD-170@@` in part: what the call-edge scan reads.** `specs/BUILD.md`
++B-2a, B-13; `VERIFICATION.md` Z-1, Z-1a; `SAFETY.md` §1.
 +
 +*What was read and measured* — at the pin `2e1cb4a`, at -O0 and through `opt -O2`. An index through a `wild` pointer
 +does not trap: a read at index 9 of a block of four `int64`s answers. A slice's, a fixed array's and — since the

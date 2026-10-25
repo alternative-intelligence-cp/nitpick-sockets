@@ -165,7 +165,7 @@ index 292c1c5..d130a64 100644
 -rather than the comment's.
 +rather than the comment's. *(@@DATE@@, cycle 0.0.0: the behaviour RUN at compiler
 +`2e1cb4a` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
-+so, `src/frontend/types.npk:1733`. The ask stands.)*
++so, `src/frontend/types.npk:1756`, "cross a spawn". The ask stands.)*
  
  ### O-N4 — no `sigaction` and no signal-mask primitive in the language
  Stated as an observation rather than a request: `nsockets` needs neither
