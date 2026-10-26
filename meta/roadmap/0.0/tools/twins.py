@@ -4,6 +4,8 @@ correction the plan records as made, and each this round makes, is swept for its
 strings it changed, over every surface the plan's text reaches.
 
     python3 -B twins.py run     "$REPO"     # every old string's hits, each classed; an UNCLASSED hit is a stop
+    python3 -B twins.py run     "$CLONE" --before   # a clone at the round's base, fd47ba3, with these tools copied
+                                            # in: a hit of the round's own rows that no line classes is STALE
     python3 -B twins.py control "$REPO"     # each row's provenance; a planted twin found and its new string not;
                                             # the classes' self-test
 
@@ -115,6 +117,16 @@ def record_lines(plan):
         return None
     b = next((i for i, x in enumerate(lines, 1) if i > a and x.startswith("## ")), len(lines) + 1)
     return a, b - 1
+
+
+def without_record(body):
+    """A README's text with the section recording the two checks' output blanked, as every surface reads it."""
+    lines = body.split("\n")
+    a = next((i for i, x in enumerate(lines) if L.RECORD_HEADING.match(x)), None)
+    if a is None:
+        return body
+    b = next((i for i, x in enumerate(lines) if i > a and x.startswith("## ")), len(lines))
+    return "\n".join(lines[:a] + [""] * (b - a) + lines[b:])
 
 
 def tip_texts(plan):
@@ -244,14 +256,22 @@ def run(argv):
               len(rows), len({r[2] for r in rows}), n["tip"], n["patch"], n["tree"], ", ".join(L.SKIP_NAMES),
               "%d–%d" % rec if rec else "(none yet)"))
     hits = sweep(rows, texts, cls)
+    if "--before" in argv:
+        print("before: the round's base -- a hit of a row of fix round 2's own (`fd47ba3..`, or a step's correction "
+              "whose note gives it to fix round 2) that no class line classes is a site the round fixes at its source: "
+              "STALE")
+        for i, r in enumerate(rows):
+            if r[2] == "fd47ba3.." or r[3].startswith("fix round 2"):
+                hits[i] = [("STALE",) + h[1:5] + ("base",) + h[6:] if h[0] == "UNCLASSED" else h for h in hits[i]]
     tally = {c: 0 for c in CLASSES + ("UNCLASSED",)}
     for i, r in enumerate(rows):
         hs = hits[i]
         print("%s  ->  %s  [%s]: %d hit(s)" % (r[0], r[1], r[2], len(hs)))
         for c, surface, path, line, subs, cn, sent in hs:
             tally[c] += 1
+            tag = " [classes:%d]" % cn if isinstance(cn, int) else (" [the round's own site]" if cn else "")
             print("  %-9s %s:%s:%d%s%s" % (c, surface, path, line, " (trees of %s)" % ", ".join(subs) if subs else "",
-                                           " [classes:%d]" % cn if cn else ""))
+                                           tag))
             if c == "UNCLASSED":
                 print("            %r" % sent[:240])
     sec = section_lines(trees, cls)
@@ -282,7 +302,7 @@ def flat(name, body):
 
 def snapshot(repo, commit):
     """The plan folder's text at a commit (or the checkout's, for None), one (raw, joined and normalized) pair per
-    file."""
+    file; the README's record of the two checks blanked, as every surface reads it."""
     if commit is None:
         out = []
         plan = L.plan_dir(repo)
@@ -291,6 +311,8 @@ def snapshot(repo, commit):
                 if f in L.SKIP_NAMES or "__pycache__" in root:
                     continue
                 body = open(os.path.join(root, f), encoding="utf-8", errors="replace").read()
+                if f == "README.md" and root == plan:
+                    body = without_record(body)
                 out.append((body, flat(f, body)))
         return out
     ls = L.sh("git", "-C", repo, "ls-tree", "-r", commit, "--", "meta/roadmap/0.0")
@@ -303,6 +325,8 @@ def snapshot(repo, commit):
         nl = data.index(b"\n", i)
         size = int(data[i:nl].split()[2])
         body = data[nl + 1:nl + 1 + size].decode("utf-8", "replace")
+        if ents[len(out)][1] == "meta/roadmap/0.0/README.md":
+            body = without_record(body)
         out.append((body, flat(ents[len(out)][1], body)))
         i = nl + 1 + size + 1
     return out

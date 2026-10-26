@@ -34,12 +34,23 @@ EARLIER | tip:meta/roadmap/0.0/0.0.5_tools/citations.py | ("a plan's section", [
 EARLIER | patch:0.0.1_tools/step5.patch | is written out in full in cycle 0.0.0's plan, §13
 EARLIER | tree@0.0.1,0.0.2,0.0.3,0.0.4:meta/research/CURRENCY.md | is written out in full in cycle 0.0.0's plan, §13
 EARLIER | tip:meta/roadmap/0.0/0.0.5.md | and the 0.1 roadmap's line 8, "(0.0.5, step 4)", a step this plan numbers 6
+EARLIER | tip:meta/roadmap/0.0/0.0.5.md | and the 0.1 roadmap's line 8, "(0.0.5, step 4)" (§5 has the eighteen it keeps)
 EARLIER | tip:meta/roadmap/0.0/0.0.5.md | "(0.0.5, step 4)" made "(0.0.5)"
 EARLIER | tree@0.0.0,0.0.1,0.0.2,0.0.3,0.0.4:meta/roadmap/0.1/README.md | written execution-grade at cycle 0.0's close (0.0.5, step 4)
 
 # EARLIER -- npkc's usage at c9baa9e, in @@PD-173@@'s text, which its dated note re-measures at 2e1cb4a
 EARLIER | patch:0.0.3_tools/step1.patch | npkc has no parse-only mode — its usage is a root, -o, --obligations, --elide and --extra-picky
 EARLIER | tree:meta/DECISIONS.md | npkc has no parse-only mode — its usage is a root, -o, --obligations, --elide and --extra-picky
+
+# EARLIER -- what the call-edge scan reads, as 0.0.2 wrote it, in the trees before 0.0.4's step 2 corrects it (fix
+# round 2, finding 2; @@PD-170@@'s own text stays, under its mark, and is no hit of these rows)
+EARLIER | patch:0.0.2_tools/step1.patch | it does not read the probes and the tests, which reach the kernel
+EARLIER | tree@0.0.2,0.0.3:harness/irscan.py | it does not read the probes and the tests, which reach the kernel
+EARLIER | patch:0.0.2_tools/step1.patch | review and the tree checks do. """
+EARLIER | patch:0.0.3_tools/step1.patch | review and the tree checks do. """
+EARLIER | tree@0.0.2,0.0.3:harness/irscan.py | review and the tree checks do. """
+EARLIER | patch:0.0.2_tools/step2.patch | builds and scans every module under src/, judges every suite
+EARLIER | tree@0.0.2,0.0.3:CLAUDE.md | builds and scans every module under src/, judges every suite
 
 # EARLIER -- CLAUDE.md's status before 0.0.1's step 6, and the pattern that sweeps it
 EARLIER | tip:meta/roadmap/0.0/0.0.1_tools/sweep_patterns.txt | no library code exists yet
@@ -65,3 +76,6 @@ LOG | log:meta/DECISIONS.md | a keyword declared as a name of any kind is refuse
 LOG | log:meta/DECISIONS.md | a module named sockopt compiles there (cycle 0.0.1's block 0b)
 LOG | log:meta/DECISIONS.md | cycle 0.0.0's plan applied the rule at its gate item 7
 LOG | log:meta/DECISIONS.md | cycle 0.0.1's plan left the refusal entry's stage to 0.0.3
+LOG | log:meta/DECISIONS.md | at compiler c9baa9e, re-measured by block 0b
+LOG | log:meta/DECISIONS.md | cycle 0.0.0's gate item 7 and block 0a's research lines go
+LOG | log:meta/DECISIONS.md | (1.5.8 step 3, def-68's fix)

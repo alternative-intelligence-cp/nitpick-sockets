@@ -5,7 +5,10 @@ sentence cites.
 
     python3 -B lines.py run     "$REPO"      # every citation, by form, with its tree, its line and what it holds
     python3 -B lines.py control "$REPO"      # each form planted in a scratch file and found; a sound citation of
-                                             # each passes, a stale one is a HIT, a clause naming nothing is a HIT
+                                             # each passes, a stale one is a HIT, a sentence naming nothing is a HIT
+
+Both, and `twins.py`, take `--wb <workbench>` and `--npk <compiler clone>` for a clone outside the workbench: by
+default the directory above the repository, and the compiler beside it.
 
 THE SET. Every citation of a file with a line number or a range in the plan's own files -- `0.0.0.md` ... `0.0.5.md`
 and the README -- in every step patch's added and context lines, and in the plan's tools (`tools/`, `<sub>_tools/`,
@@ -33,13 +36,14 @@ else the one file whose path ends with it; a path no tree holds, or that ends mo
   * the workbench: its files as its clone holds them.
 
 WHAT THE LINE MUST HOLD. The cited text is what the citation's clause -- from the previous citation, or the sentence's
-start, to the next, or the sentence's end -- quotes or names: a quoted string ("…" or “…”), a string in backticks that
+start, to the next, or the sentence's end; where the clause names nothing, its whole sentence (a table's cell is one)
+-- quotes or names: a quoted string ("…" or “…”), a string in backticks that
 is not a path or a commit, or a label (a decision's `SK-n`, a placeholder `@@PD-n@@` read through `decisions.txt` as
 `apply.py` writes it, a rule's or an entry's name such as `B-2a` or `O-N3`). A string holds when it starts on the cited
 line (or in the range), read through `sweep.py`'s transform with case ignored, an ellipsis splitting it into parts that
 must follow in order; a label holds when it is on the line or the line lies in its entry. A citation holds when one of
-its texts does, and the run prints which. A clause that names nothing checkable is a HIT, and so is one none of whose
-texts the line holds.
+its texts does, and the run prints which. A sentence that names nothing checkable is a HIT, and so is a citation none
+of whose texts the line holds.
 
 THE SWEEP TABLES. A row of a subcycle's sweep table -- `| subject | n | sites |` in the section headed "The sweep's
 candidates" -- cites every candidate its subject's pattern finds. It is resolved by running that subcycle's sweep
@@ -587,7 +591,7 @@ class Check:
             repo_ref = (sub, int(m.group(1)))
         self.repo_ref = repo_ref
         sha = None
-        m = re.match(r"\s?\)?,?\s*(?:\(|,)?\s*at (?:compiler )?`([0-9a-f]{7,40})`", after)
+        m = re.match(r"`?\s?\)?,?\s*(?:\(|,)?\s*at (?:compiler )?`([0-9a-f]{7,40})`", after)
         if m:
             sha = m.group(1)
         lib = re.search(r"`?nitpick-([a-z]+)`?'s\s[^|;]{0,40}$", before)
@@ -630,6 +634,11 @@ class Check:
         flines = self.t.lines(wh, real)
         tree = tree_name(wh)
         texts = texts_of(*bounds, path, self.t.pd_to_sk)
+        if not texts:
+            # a list of citations whose sentence quotes once: the sentence's texts, where the clause names none
+            text, lo, s, e, hi = bounds
+            slo, shi = sentence(text, s, e)
+            texts = texts_of(text, slo, s, e, shi, path, self.t.pd_to_sk)
         for ln, mult in lines:
             span = -mult if mult < 0 else 0
             cite = "%s:%d%s" % (real, ln, "–%d" % (ln + span) if span else "")
@@ -638,7 +647,7 @@ class Check:
                                                                                            len(flines)))
                 continue
             if not texts:
-                self.hits.append("HIT  %s %s -> %s %s: the clause names nothing checkable; the line reads %r"
+                self.hits.append("HIT  %s %s -> %s %s: the sentence names nothing checkable; the line reads %r"
                                  % (at, form, tree, cite, flines[ln - 1].strip()[:90]))
                 continue
             good = [t for t in texts if holds(flines, ln, span, t[0], t[1])]

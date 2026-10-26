@@ -74,3 +74,50 @@ written out in full in cycle 0.0.0's plan, §13	written out in full in its reque
 `--obligations`, `--elide` and `--extra-picky`	`--obligations`, `--elide`, `--dump-refs`	2e0ab72	T7v3's (12): npkc's usage line, without --dump-refs
 No library code exists yet	Status: cycle 0.0	step:0.0.1/6	T7v3's (12): CLAUDE.md's status, replaced by 0.0.1's step6.patch
 which cycle 0.0.4's `Vec<T>` will be	(kept, with its dated note: it describes the tree before cycle 0.0.4)	-	T7v3's (12): @@PD-175@@'s forecast, kept by the log's rule with a dated note -- every hit is LOG
+so, `src/frontend/types.npk:1733`. The ask stands.)*	so, `src/frontend/types.npk:1756`, "cross a spawn". The ask stands.)*	fd47ba3..	fix round 2, finding 1: O-N3's note in 0.0.0's step1.patch and step4.patch
+it does not read the probes and the tests	it does not read the probes and the other tests	step:0.0.4/2	fix round 2, finding 2: harness/irscan.py's docstring, at the step that makes the scan read the instances
+review and the tree checks do.	review and the tree checks do, but for a generic	step:0.0.4/2	fix round 2, finding 2: irscan.py's WHAT IT CANNOT SEE
+builds and scans every module under `src/`, judges	builds and scans every module under `src/` and the one unit that instantiates its generics	step:0.0.4/2	fix round 2, finding 2: CLAUDE.md's account of a full run
+A `while`, a `when`, or a `for` whose binding is not an integer is a stop by name	Three things stop it by name	fd47ba3..	fix round 2, finding 6: 0.0.4.md §6, the loop sweep's STOPs
+and a `while` stops it until	and a loop it cannot plant (§6's three) stops it until	fd47ba3..	fix round 2, finding 6: 0.0.4.md §8
+0 `while` or `when`	0 `while`, `when`, `till` or `loop`	fd47ba3..	fix round 2, finding 6: loops.py's count and block 4l's Expect
+OTHER = re.compile(r"\b(while|when)\b")	OTHER = re.compile(r"\b(while|when|till|loop)\b")	fd47ba3..	fix round 2, finding 6: the loops loops.py stops on
+Block 5 lists 34 candidate lines under 11 subjects	Block 5 lists 37 candidate lines under 12 subjects	fd47ba3..	fix round 2, finding 2: 0.0.4 §7's count, with the subject "what the call-edge scan reads"
+`DECISIONS.md` 1093 and 1096 ×5	`DECISIONS.md` 1096 and 1099 ×5	fd47ba3..	fix round 2, finding 2: 0.0.4 §7's sites, moved by @@PD-170@@'s mark
+`DECISIONS.md` 1165 and 1174	`DECISIONS.md` 1169 and 1178	fd47ba3..	fix round 2, finding 2: the same
+`harness/irscan.py` 35, `BUILD.md` 108	`harness/irscan.py` 36 — with step 2's clause beneath, on the instances — `BUILD.md` 108	fd47ba3..	fix round 2, finding 2: the same, and irscan's new clause
+`DECISIONS.md` 1133, @@PD-177@@'s measured clause	`DECISIONS.md` 1137, @@PD-177@@'s measured clause	fd47ba3..	fix round 2, finding 2: the same
+the decision log's 26 lines kept by its rule	the decision log's 28 lines that cite a cycle file's section — 29 of the sweep's 39 candidates — kept by its rule	fd47ba3..	fix round 2, finding 3: 0.0.5 §9's count, a neighbouring total
+26 candidates in 2 files	39 (the table's first row)	fd47ba3..	fix round 2, findings 3 and 4: 0.0.5 §5's count, re-derived from the widened subject
+`meta/DECISIONS.md`'s 24 — the	`meta/DECISIONS.md` 534, … 1131, the openings …; 669, 704, …	fd47ba3..	fix round 2, findings 3 and 4: 0.0.5 §5's log lines, re-derived
+The decision log's own lines are the sweep's (block 2): a decision's settled text is never rewritten	The decision log's own lines are the sweep's (block 2): every line of the log that cites a cycle file's plan, section, gate item, step or block	fd47ba3..	fix round 2, finding 4: 0.0.5 §1.5, made true of the set
+with step 1's patch applied	with `step1.patch` applied (step 2's)	fd47ba3..	fix round 2, finding 9: 0.0.5 §1's patch named by its file and its step
+no added line of step 1's carries	no added line of `step1.patch` carries	fd47ba3..	fix round 2, finding 9: 0.0.5 §1.7
+Step 1's patch cites	`step1.patch`, which step 2 applies, cites	fd47ba3..	fix round 2, finding 9: the same
+when step 7's patch applies	when step 7 applies `step2.patch`	fd47ba3..	fix round 2, finding 9: 0.0.5's gate item 6
+the archive's patch, step 7	`step2.patch`, which the archive applies at step 7	fd47ba3..	fix round 2, finding 9: 0.0.5's title box
+whose patch changes a comment of	whose `step1.patch` changes a comment of	fd47ba3..	fix round 2, finding 9: 0.0.5 §1.1
+run it once their patch is staged	run it once `step1.patch` and `step2.patch` are staged, at steps 2 and 7	fd47ba3..	fix round 2, finding 9: 0.0.5 §3
+DOT = re.compile(r"(?<![.\d])\.(?![.\d])\s*(\w*)")	DOT = re.compile(r"(?<!\.)\.(?![.\d])\s*(\w*)")	fd47ba3..	fix round 2, finding 5: census.py's member dot, which left out a name ending in a digit
+`vec_leak_forgotten_free.npk` 96 and `vec_leak_freed.npk` 0	`vec_leak_forgotten_free.npk` exiting 96 and `vec_leak_freed.npk` exiting 0	fd47ba3..	fix round 2, check (a): two exit codes the citation form reads as lines
+`VERIFICATION.md` 7, 22 … 26, 102 and 125	`VERIFICATION.md`'s line on "the compiler's cycle 1.5", its table of the compiler's 1.5 subcycles, Z-4 and Z-5	fd47ba3..	fix round 2, check (a): SL-5's sites by name, their lines moving with each subcycle (T7fix1's own correction, 19c02e1)
+and `SAFETY.md` 193 … 194, "discharge in cycle 1.5"	and `SAFETY.md` S-16's "discharge in cycle 1.5"	fd47ba3..	fix round 2, check (a): the README's S-16 site, stale at the tree the README is read at
+`TESTING.md` 197, V-14's	`TESTING.md` 197 ×2, V-14's	fd47ba3..	fix round 2, check (a): 0.0.3 §6's row, its two matches counted
+from line 1733 to 1756, 21 lines and 2	from line 1733 at `c9baa9e`, "cross a spawn", to its line 1756 at `2e1cb4a`, 21 lines and 2	fd47ba3..	fix round 2, check (a): the README's landing 127 row, each line with its pin
+`bytes.npk` line 140	`bytes.npk` holds the shape that breaks	fd47ba3..	fix round 2, check (a): another library's line, no commit named
+from its line 96 to 119	from its line 96 at `2e1cb4a` to 119 at `6451911`	fd47ba3..	fix round 2, check (a): npkg's manifest line, each with its commit (0.0.1.md and the README)
+`LIBRARIES.md:14`	`LIBRARIES.md`'s `nitpick-sockets` row	fd47ba3..	fix round 2, check (a): the workbench's file, by its row
+`CONTRIBUTING.md`:46	`CONTRIBUTING.md`:47, "Every identity this library's code can raise"	fd47ba3..	fix round 2, check (a): the cost sentence's line at the final tree
+line 1733 of `types.npk` empty at the new pin	moved from line 1733 of `src/frontend/types.npk` at `c9baa9e` to its line 1756 at `2e1cb4a`, line 1733 empty there	fd47ba3..	fix round 2, check (a): 0.0.0 §11's record of the adoption, its file and pins named (b5999c8's own correction)
+`CONCURRENCY_MODEL.md` 50 and 93, `SAFETY.md` 17	`CONCURRENCY_MODEL.md` 50 and 93 ("probes 09", `SK-035`), `SAFETY.md` 17	fd47ba3..	fix round 2, check (a): 0.0.5 §1.2's nine lines, each with what it holds
+the 0.1 roadmap's 8 (§5	the 0.1 roadmap's line 8, "(0.0.5, step 4)" (§5	fd47ba3..	fix round 2, check (a): 0.0.5 §1.5's three, each with what it holds
+`ancillary` 5, `datagram` 4	`src/ancillary/ancillary.npk` 5, `src/datagram/datagram.npk` 4	fd47ba3..	fix round 2, check (a): 0.0.5 §5's placeholders, each by its path
+`OPEN_QUESTIONS.md` 102 (the fifth	`OPEN_QUESTIONS.md` 104 (the fifth	fd47ba3..	fix round 2, findings 1 and 13: 0.0.0 §7's site, moved by O-N3's and O-N5's notes
+359 over the 190	433 over the 190	fd47ba3..	fix round 2, finding 5: the README's landing 143 row, the census's member dots, a name ending in a digit counted
+census member-dot: 359	census member-dot: 433	fd47ba3..	fix round 2, finding 5: 0.0.5's block 3 Expect, retaken
+APPLY 0.0.4 step2: 37 file(s)	APPLY 0.0.4 step2: 39 file(s)	fd47ba3..	fix round 2, finding 2: 0.0.4's blocks 0a and 2, retaken; step 2 gains irscan.py and harness/README.md
+thirty-seven files	thirty-nine files	fd47ba3..	fix round 2, finding 2: 0.0.4 step 2's file count
+4, 10 and 1 added lines	4, 11 and 1 added lines	fd47ba3..	fix round 2, finding 2: 0.0.4 §1.16, @@PD-170@@'s mark dated
+step1 4; step2 10; step3 1	step1 4; step2 11; step3 1	fd47ba3..	fix round 2, finding 2: the same, 0.0.4's block 0b Expect, retaken
+holds 65 files	holds 69 files	fd47ba3..	fix round 2, checks (a) and (b): the plan folder gains four tools; 0.0.5's block 5 Expect, retaken
+hunks that remove prose: 16; matched by a pattern: 6	hunks that remove prose: 19; matched by a pattern: 9	fd47ba3..	fix round 2, finding 2: 0.0.4's block 5 control, the new subject's three hunks
