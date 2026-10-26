@@ -1,11 +1,12 @@
 # 0.0.5's stale-claim sweep: one subject per claim the steps changed, in more than one wording, each proved on a twin
 # phrased in other words than its old text's (`tools/sweep.py`). The sweep runs over step 2's commit, before the
 # archive; the fourth subject's sites are the archive's own patch, `step2.patch`, whose hunks are its positive control.
-a cycle file's section cited by a permanent file | \b0\.0\.[0-5][a-z]?'s (plan|block|step|facts|record|request|table)\b|\b0\.0\.[0-5][a-z]?,? (step|block|§) ?\d|\bplan(\'s|,) § ?\d|\bsubcycle's (plan|record|block|step)\b
+a cycle file's section cited by a permanent file | \b0\.0\.[0-5][a-z]?'s (?:(?:plan|block|step|facts|record|request|table)\b|§)|\b0\.0\.[0-5][a-z]?,? (step|block|§) ?\d|\bplan(\'s|,) § ?\d|\bsubcycle's (plan|record|block|step)\b|\bgate item \d|\bblock \d+[a-z]?\b|(?<!build )\bstep \d
 the opening file written at a numbered step of the close | \b0\.0\.5,? step \d|\bclose'?s? (step|block) \d|written .{0,40}at (the|cycle 0\.0's) close \(0\.0\.5, step
 the scan's shapes measured by a subcycle's mutants | \b0\.0\.\d's mutants?\b|\bmutants? (of|in) (cycle )?0\.0\.\d|\bsubcycle's mutant
 cycle 0.0 as the current cycle | \b(status|now|currently|at present)\W+(in |at )?cycle 0\.0\b(?![\s\S]{0,20}closed)|\b0\.0 \| Foundations(?![^|]*closed)
 twin: a cycle file's section cited by a permanent file | the request is written out whole in the probes' subcycle's plan, at its thirteenth section
+twin: a cycle file's section cited by a permanent file | the probes' subcycle measured it again at its block 0b, as its gate item 7 asked
 twin: the opening file written at a numbered step of the close | the next cycle's first file is written at the close's step 4
 twin: the scan's shapes measured by a subcycle's mutants | these are the constructs that an earlier subcycle's mutant runs found the scan flags
 twin: cycle 0.0 as the current cycle | the library is currently in cycle 0.0, laying its foundations

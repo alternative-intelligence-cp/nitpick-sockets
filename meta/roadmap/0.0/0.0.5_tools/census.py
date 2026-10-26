@@ -13,8 +13,8 @@ dot's, which is counted; the census judges nothing.
 
   func-in-body  a `func:` declared inside a brace that is no `impl`'s or `trait`'s, over every `func:` within braces
                 (landing 141)
-  member-dot    a `.` before a member: counted, and each one before a keyword of the pin's table or before no name
-                printed (landing 143)
+  member-dot    a `.` before a member, after a name, a `)` or a `]`: counted, and each one before a keyword of the
+                pin's table or before no name printed (landing 143); a number's `.` is no member's
   macro         `macro` (landing 144)
   atomic        `atomic` or `Atomic<` (landing 146)
   comptime      `comptime` (landing 147)
@@ -34,7 +34,9 @@ dot's, which is counted; the census judges nothing.
 
 A statement is read where a line, a `{` or a `;` starts it, so a write inside a one-line body is counted. The control
 runs first: one planted line per class, counted in code -- the three statement classes each inside a one-line body --
-and the same text in a comment and in a string, each left out.
+and the same text in a comment and in a string, each left out; then a member dot after a name of each character class
+-- a letter, a name ending in a digit (`a1.if`), an underscore inside one and leading one, a capital -- each counted
+and flagged before the keyword, and a number's dots, a decimal's and a range's, left out.
 """
 import os
 import re
@@ -95,7 +97,8 @@ CLASSES = [
 ]
 ASYNC = re.compile(r"\basync\s+func:(\w+)")
 FUNC = re.compile(r"\bfunc:\w+")
-DOT = re.compile(r"(?<![.\d])\.(?![.\d])\s*(\w*)")
+DOT = re.compile(r"(?<!\.)\.(?![.\d])\s*(\w*)")
+TOKEN = re.compile(r"\w+$")
 PICK = re.compile(r"\bpick\s*\(")
 ARM = re.compile(r"\(([^()]*)\)\s*\{")
 
@@ -147,6 +150,9 @@ def scan(text, kw):
     for m in DOT.finditer(b):
         if m.start() == 0 or not re.match(r"[\w)\]]", b[m.start() - 1]):
             continue
+        tok = TOKEN.search(b, max(0, m.start() - 120), m.start())
+        if tok and tok.group(0)[0].isdigit():
+            continue  # a number's `.`, never a member's: a name never starts with a digit
         dots += 1
         if not m.group(1) or not re.match(r"[A-Za-z_]", m.group(1)) or m.group(1) in kw:
             hit("member-dot", m.start())
@@ -209,6 +215,11 @@ PLANT = {
 }
 
 
+# A name of each character class before a member dot, and a number's dots (a decimal's and a range's), which are none.
+DOT_NAMES = ["a", "a1", "a_b", "_a", "A"]
+DOT_NUMBERS = ["1.5", "0i64...3i64"]
+
+
 def control(kw):
     code = comment = string = 0
     for k, line in PLANT.items():
@@ -219,7 +230,13 @@ def control(kw):
     n = len(PLANT)
     print("census controls: %d of %d classes counted in code; %d of %d left out of a comment; %d of %d left out of a "
           "string" % (code, n, comment, n, string, n))
-    return code == comment == string == n
+    names = sum(scan("int64:n = %s.if;" % x, kw)[1][0] == 1 and len(scan("int64:n = %s.if;" % x, kw)[0]["member-dot"])
+                == 1 for x in DOT_NAMES)
+    nums = sum(scan("int64:n = %s;" % x, kw)[1][0] == 0 for x in DOT_NUMBERS)
+    print("census member-dot controls: %d of %d names' dots counted and flagged before a keyword (%s); %d of %d numbers' "
+          "dots left out (%s)" % (names, len(DOT_NAMES), ", ".join(x + ".if" for x in DOT_NAMES), nums,
+                                   len(DOT_NUMBERS), ", ".join(DOT_NUMBERS)))
+    return code == comment == string == n and names == len(DOT_NAMES) and nums == len(DOT_NUMBERS)
 
 
 def main(root, kwfile):
