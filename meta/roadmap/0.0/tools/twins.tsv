@@ -1,8 +1,9 @@
 # meta/roadmap/0.0/tools/twins.tsv -- the twin sweep's table (`twins.py`): one row per correction, its old
 # string exactly as the correction removed it, the new, the commit that made it, and what it corrected.
 # A commit is a sha of this branch; `step:<sub>/<n>` a correction a step patch makes in the tree; `-` a
-# correction no commit's tree holds, said in its note; `fd47ba3..` fix round 2's own. A fifth column `raw`
-# matches the old string as written, on one line, case kept, where the transform would strip its marks.
+# correction no commit's tree holds, said in its note; `fd47ba3..` fix round 2's own, `5862558..` fix round 3's.
+# A fifth column `raw` matches the old string as written, on one line, case kept, where the transform would strip
+# its marks.
 owes exactly one arm	the bill as one arm	60d1e03	T7fix1: S-8's bill, T7v1's EC3 -- the sweep subject's old words
 SL-6's eight	SL-6: eleven lines in nine places	60d1e03	T7fix1: the pin audit's SL-6 sites, counted
 probe 04's first assertion fails (exit 11)	probe 04 exits 11 in its first leg	60d1e03	T7fix1: @@PD-159@@'s reversal
@@ -122,3 +123,26 @@ step1 4; step2 10; step3 1	step1 4; step2 11; step3 1	fd47ba3..	fix round 2, fin
 holds 65 files	holds 69 files	fd47ba3..	fix round 2, checks (a) and (b): the plan folder gains four tools; 0.0.5's block 5 Expect, retaken
 hunks that remove prose: 16; matched by a pattern: 6	hunks that remove prose: 19; matched by a pattern: 9	fd47ba3..	fix round 2, finding 2: 0.0.4's block 5 control, the new subject's three hunks
 and for a module under src/ the call-edge scan	and for a module under src/ or tests/unit/generic_instances.npk the call-edge scan	step:0.0.4/2	fix round 3, T7v4's 1: B-2's drawing in BUILD.md, whose clause 0.0.4's step 2 extends to the one test the call-edge scan also reads
+0.0.1's `step1.patch` (704, 719 and 721, at its step 1)	0.0.1's `step1.patch` (704, 719 with the `block 0b` that opens 720, and 721, at its step 1)	5862558..	fix round 3, a3 (T7v4's 2): 0.0.5 §14's reversal names the `block 0b` that opens 720
+Measured with the eight reworded at every subcycle's sweep tree, two counts move and no other	Measured in scratch, the eleven places reworded and every patch applied in plan order, two sweep counts move and no other	5862558..	fix round 3, a3: §14's measurement, rerun with 0.0.2's hunk reworded too and the record's moves said
+echo "research: $f.md $(grep -m1 -oE	research_fresh security-defects security-guidance security-vectors	5862558..	fix round 3, b1 (T7v3's 12): block 0a's staleness loop, in six files, is one function in tools/env.sh
+each headed as a digest; a missing one is a stop	each headed as a digest and within 90 days of today; a missing or stale one is a stop	5862558..	fix round 3, b1: 0.0.1 §0's account of block 0a
+a module-level binding with no initialiser: 1	a module-level binding with no initialiser: 2	5862558..	fix round 3, b1 (T7v3's 12): 0.0.0's block 0b, where rulings.py reads `wild int8->:g3;`
+every `.npk` but those under `.git`, `build` and `.internal`	every `.npk` but those under the entry's own `.git`, `build` and `.internal`	5862558..	fix round 3, b2 (T7v3's 15 n2): @@PD-173@@'s sweep sentence
+every `.npk` under the entry's path, `.git`, `build` and `.internal` aside	every `.npk` under the entry's path but the `.git`, `build` and `.internal` directly under it	5862558..	fix round 3, b2: harness/stages.py's docstring, in 0.0.3's step1.patch
+dirs[:] = sorted(x for x in dirs if x not in SWEEP_SKIP)	dirs[:] = sorted(x for x in dirs if d != top or x not in SWEEP_SKIP)	5862558..	fix round 3, b2: the sweep's filter, at the entry's top only
+selfcheck parse-not-parsing: caught -- 1 file(s) swept; noparse.npk: NITPICK-PARSE-001	selfcheck parse-not-parsing: caught -- 1 file(s) swept; sub/build/noparse.npk: NITPICK-PARSE-001	5862558..	fix round 3, b2: the case plants under a nested `build/`; the Expect of 0.0.3's block 1 and 0.0.4's blocks 1, 2 and 3, retaken
+the release records no digest for the asset and no second primary states one	the release records no digest for the asset, or no second primary states one	5862558..	fix round 3, c4 (T7v3's 14): @@PD-172@@'s request says `or`, as its reversal does
+if the release's record names no digest. None is left open.	if the release's record names no digest or the request finds no second primary for it. None is left open.	5862558..	fix round 3, c4: §2's summary of @@PD-172@@'s reversal
+the version pin alone if the release's record names no digest).	the version pin alone if the release's record names no digest or the request finds no second primary for it).	5862558..	fix round 3, c4: §15's summary of @@PD-172@@'s reversal
+answer gives the asset on one line, exactly	answer gives the asset bare, on a line of its own, exactly	5862558..	fix round 3, c4: the request's digest line, in the form block 0a counts
+by that research digest, as of its date, from the release's own record	@@DATE@@, cycle 0.0.2: by that research digest, as of the date its `As of` line gives	5862558..	fix round 3, c4: CURRENCY.md's LLVM row, dated as the rows beside it
+2 could not proceed and judged nothing, with an empty stderr	2 could not proceed and judged nothing (at the pin: a missing or directory root, no output; a malformed command line, its usage on stderr)	5862558..	fix round 3, c5 (T7v3's 15 n4): build.py's exit alphabet, measured at the pin
+To the cycle that writes the first `while`, `when`, `till` or `loop` loop, or a `for` over a collection or with a punctuated binding	To the cycle that writes, in `src/`, the first loop `loops.py` stops on	5862558..	fix round 3, c8 (T7v4's 7): 0.0.4 §10's hand-on names loops.py's three STOPs
+the comparator masks a run's seconds, free memory, dates and `check_refs`'s file counts (which each later plan of the cycle moves), reads a run's decision number	the comparator masks a run's seconds, free memory, dates (whatever they say) and `check_refs`'s file counts (which each later plan of the cycle moves), and the white space at the end of a line, reads a run's decision number	5862558..	fix round 3, c3 (T7v3's 11): the comparator's masks, as blocks.py has them
+The control's ten misses	The control's eleven misses	5862558..	fix round 3, a2 (T7v4's 1): 0.0.4 §1.16, B-2's drawing is one more miss
+hunks that remove prose: 19; matched by a pattern: 9; not matched: 10	hunks that remove prose: 20; matched by a pattern: 9; not matched: 11	5862558..	fix round 3, a2: 0.0.4's block 5 control, with the BUILD.md hunk
+harness/selfcheck.py -320,15 +336,24	harness/selfcheck.py -321,15 +337,24	5862558..	fix round 3, b2: 0.0.4's block 5, the selfcheck.py hunk one line later after 0.0.3's self-check case
+rules cited by the added lines: 12	rules cited by the added lines: 13	5862558..	fix round 3, a2: 0.0.4's §1.17, B-2 cited by step 2's BUILD.md hunk
+`CLAUDE.md`'s account of a full run and @@PD-170@@'s mark, superseded in part	`CLAUDE.md`'s account of a full run, `BUILD.md`'s list of the build steps and @@PD-170@@'s mark, superseded in part	5862558..	fix round 3, a2: what 0.0.4's step 2 supersedes in part
+`harness/README.md` and `CLAUDE.md` say what the call-edge scan reads from this step	`harness/README.md`, `CLAUDE.md` and `BUILD.md`'s list of the build steps say what the call-edge scan reads from this step	5862558..	fix round 3, a2: the places that say what the scan reads from 0.0.4's step 2

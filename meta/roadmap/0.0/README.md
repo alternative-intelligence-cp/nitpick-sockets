@@ -415,7 +415,7 @@ cycle 0.0 met every other clause of its gate at a close its audit refused (its `
   traps under D-151 — which sees `wild` bytes and nothing else: not a descriptor (0.0.0 §1.3), and not a `buffer`, which
   `Bytes`' leak unit holds under a memory cap (0.0.4).
 
-## Fix round 2: the two checks' record
+## Fix rounds 2 and 3: the two checks' record
 
 **Fix round 2** (T7fix2, 2026-10-25) answered the final plan verification's findings 1, 2, 3, 4, 5, 6, 9 and 13 at
 their sources, and built the two checks its rulings asked for. Both are kept in [`tools/`](tools/), so any later pass
@@ -444,10 +444,10 @@ classed STALE and none UNCLASSED — a text the plan fixed at its source has com
 round fixes. A STALE hit beside an UNCLASSED one is 1, and the counts say both. `control` exits 0 when every check holds
 and 1 when one fails, and plants each case it proves.
 
-**(a) The citation check.** Its control plants 13 sound citations, one per form and the pin's O-N3 comment, and each
-holds. It plants 7 stale or empty ones, and each is a HIT. It reads 61 files of the plan: the subcycle files, this
-README, every patch's added and context lines, and every tool. The checks' data and the other tools' planted and clean
-files are skipped by name.
+**(a) The citation check.** Round 2's control planted 13 sound citations, one per form and the pin's O-N3 comment, and
+each held. It planted 7 stale or empty ones, and each was a HIT (round 3's plants more: below). It reads 61 files of the
+plan: the subcycle files, this README, every patch's added and context lines, and every tool. The checks' data and the
+other tools' planted and clean files are skipped by name.
 
 - **At the round's base, `fd47ba3`**, with the final tools copied in, it finds 402 citations: `path:N` 263, "line N of
   path" 2, "`path`'s line N" 4, a named file's line 5, `path` N in the sweep tables 128, and a bare `:N` 0. 257 of
@@ -463,17 +463,17 @@ files are skipped by name.
   - *no tree, or two*, 4: `0.0.0.md` §11's bare `types.npk`, which ends two of the compiler's files; `0.0.4.md` §2's
     two exit codes, read as lines; and the landing 128 row's line of `nitpick-time`'s file, with no commit named,
     dropped.
-- **At this tip** it finds 425 citations: `path:N` 278, "line N of path" 2, "`path`'s line N" 3, a named file's line 8,
-  `path` N 134, and a bare `:N` 0. 273 of them are in fenced blocks. Of the 94 resolved here (49 sweep-table rows),
-  **94 hold and none is a HIT**.
+- **At round 2's tip, `5862558`,** it found 425 citations: `path:N` 278, "line N of path" 2, "`path`'s line N" 3, a named
+  file's line 8, `path` N 134, and a bare `:N` 0. 273 of them were in fenced blocks. Of the 94 resolved here (49
+  sweep-table rows), **94 held and none was a HIT**.
 
-**(b) The twin sweep by exact strings.** Its table, `tools/twins.tsv`, holds 118 rows from 16 commits. Each row gives a
-correction's old string exactly as it was removed, the new one, and the commit that made it: T7fix1's, T7a's, T7c4's
-dated lines, T7c4b's, T7c5's, the verification's (12), and this round's own (`fd47ba3..`, or the step that makes
-it). Its classes, `tools/twins_classes.txt`, class each hit STALE (a twin this round fixes at its source, found only
+**(b) The twin sweep by exact strings.** At round 2's tip its table, `tools/twins.tsv`, held 118 rows from 16 commits.
+Each row gives a correction's old string exactly as it was removed, the new one, and the commit that made it: T7fix1's,
+T7a's, T7c4's dated lines, T7c4b's, T7c5's, the verification's (12), and round 2's own (`fd47ba3..`, or the step that
+makes it). Its classes, `tools/twins_classes.txt`, class each hit STALE (a twin a round fixes at its source, found only
 before the fix), EARLIER (a statement about an earlier cut, said as such, or a tree before the step that corrects it)
-or LOG (a record the decision log keeps by its rule). An UNCLASSED hit is a stop. Its control: the provenance of 115
-rows of 115 holds, each old string more often before its commit than at it, and 3 rows name no commit, each saying
+or LOG (a record the decision log keeps by its rule). An UNCLASSED hit is a stop. Round 2's control: the provenance of
+115 rows of 115 held, each old string more often before its commit than at it, and 3 rows name no commit, each saying
 why; a planted twin is found and its correction is not; and the classes' self-test reads 6 of 6 as planted. It sweeps
 the plan's 46 files at the tip, the 21 patches' added and context lines, and the distinct file texts of the six trees
 the subcycles leave, 217 at `fd47ba3` and 219 here. It also reads the decision log's lines that cite a cycle file's
@@ -491,7 +491,8 @@ clause that 0.0.4's step 2 extends to one test).
   - LOG 36, 24 of them the log's section citations read through `fd47ba3`'s own pattern. Those are T7v3's 24, which
     missed 669 and 823 … 824 (finding 4);
   - UNCLASSED 0.
-- **At this tip** it finds 50 hits and 29 section citations. **STALE 0, UNCLASSED 0**, and each kept hit by its row:
+- **At round 2's tip, `5862558`,** it found 50 hits and 29 section citations. **STALE 0, UNCLASSED 0**, and each kept hit
+  by its row (round 3's table, below, has one row more):
 
 | Row, its old string | Class | Hits |
 |---|---|---|
@@ -504,3 +505,88 @@ clause that 0.0.4's step 2 extends to one test).
 | npkc's usage at `c9baa9e` | EARLIER | 3: @@PD-173@@'s text, in its patch and trees, with its dated note |
 | "No library code exists yet" | EARLIER | 2: 0.0.1's sweep pattern, and `CLAUDE.md` before 0.0.1's step 6 |
 | the call-edge scan's reading, as 0.0.2 wrote it | EARLIER | 10: 0.0.2's and 0.0.3's patches and trees, before 0.0.4's step 2 |
+
+**Fix round 3** (T7fix3, 2026-10-28) answered the deferred findings of T7v4 and T7v3 that the libraries' seat ruled into
+it, each at its source, and changed the two checks and five tools beside them. What follows is the checks and tools as it
+left them, and their output at its tip; the figures above are round 2's. Each tool below exits non-zero on everything it
+reports as wrong, and each control plants a case the old code got wrong. It sits under round 2's heading, as one
+section: `lines.py` reads each heading afresh, so a heading inside the record would end its skip.
+
+- **(a) `lines.py`.** The commands are the block's, the exit statuses as above. It reads a capitalised `Line N of path`,
+  `Its line N`, `Probe NN's line N` and `The X.Y roadmap's line N` as it reads the lower-case forms; its pattern matched
+  lower case only, and read none of the four in the plan. Its control plants 17 sound citations (the 13, and the four
+  capitalised) and 10 stale or empty ones (the 7, and three capitalised): each sound one is found and holds, each stale
+  one is a HIT. At this tip it reads the same 61 files and finds the same 425 citations by the same forms, since the
+  plan holds no capitalised one: 94 resolved here (49 sweep-table rows), **94 hold and none is a HIT**, exit 0.
+- **(b) `twins.py`.** The commands are the block's, the exit statuses as above, with 3 for a STALE hit and no UNCLASSED
+  one. Its control plants, beside round 2's, the four statuses a `run` can give, through the functions `run` reports
+  with, and a README of four lines whose record's heading is the third. Each is as planted: **exit statuses 4 of 4** (a
+  restored stale text 3, an unclassed hit 1, a classed earlier one 0, a stale hit beside an unclassed one 1; the old code
+  gave 0 for the first), **the record's range 3–4** (the old code read 3–5, one line past the file), the provenance 139
+  of 139 rows with 3 naming no commit, a planted twin found and its correction not, and the classes 6 of 6. Its table
+  holds 142 rows from 17 commits: round 3 adds 23 rows, `5862558..`, each a correction's old string taken from its diff
+  (a2 5, a3 2, b1 3, b2 5, c3 1, c4 5, c5 1, c8 1), and a2's `step:0.0.4/2` row for B-2's drawing in `BUILD.md`, which
+  0.0.4's step 2 extends to one test. The denominator is as above: 46 plan files, 21 patches, 219 file texts.
+  - **At `5862558`** (`run --before`, the final tools copied into a clone there) it finds 94 hits, exit 3: **STALE 41**,
+    each a site this round fixes at its source (a2 6, a3 2, b1 8, b2 12, c3 1, c4 7, c5 4, c8 1), EARLIER 41, LOG 41
+    (29 of them the log's section citations), UNCLASSED 0.
+  - **At this tip** it finds 53 hits and 29 section citations on 28 lines, exit 0: **STALE 0, UNCLASSED 0**. The 23 new
+    rows have no hit, so no twin of what round 3 removed survives anywhere the plan's text reaches. Each kept hit, by its
+    row (round 2's table, and one row more):
+
+| Row, its old string | Class | Hits |
+|---|---|---|
+| "owes exactly one arm" | LOG | 6: @@PD-163@@'s account of S-8, in 0.0.0's `step4.patch` and the log of each tree |
+| "which cycle 0.0.4's `Vec<T>` will be" | LOG | 6: @@PD-175@@'s forecast under its dated note, in the patches and trees that carry it, and `0.0.4.md` §7 |
+| the log's lines that cite a cycle file's section | LOG | 29 on 28 lines: `0.0.5.md` §5's first row, and §14's author item |
+| "LLVM 20.1.2" | EARLIER | 8: the setup-era manifest, as history — `0.0.1.md`, this README's opening, 0.0.1's sweep pattern, and `CLAUDE.md` and `README.md` before 0.0.1 |
+| "notice 118" | EARLIER | 1: `0.0.1.md`, the old pin's row until the adoption |
+| the three section citations 0.0.5's step 2 replaces | EARLIER | 14: `0.0.5.md`'s account of them, `citations.py`'s planted form, and the patches and trees before 0.0.5's step 2 |
+| npkc's usage at `c9baa9e` | EARLIER | 3: @@PD-173@@'s text, in its patch and trees, with its dated note |
+| "No library code exists yet" | EARLIER | 2: 0.0.1's sweep pattern, and `CLAUDE.md` before 0.0.1's step 6 |
+| the call-edge scan's reading, as 0.0.2 wrote it | EARLIER | 10: 0.0.2's and 0.0.3's patches and trees, before 0.0.4's step 2 |
+| B-2's drawing in `BUILD.md`, as 0.0.2 wrote it | EARLIER | 3: 0.0.2's `step1.patch` and the trees of 0.0.2 and 0.0.3, before 0.0.4's step 2 extends its clause to one test |
+
+- **`tools/rulings.py`** (0.0.0's block 0b): `python3 -B rulings.py [--sites] <file>...`, and `--selftest`. It reads a
+  module-level binding by the qualifier its line leads with (`fixed`, `const`, `wild`, `wildx`, `stack` or none), and
+  STOPs, printed last, on a binding-shaped line at depth 0 led by any other word (an attribute, `limit<…>`, a second
+  qualifier, `nodrop`, `move`, `sealed`, a type it does not spell) and on a file it cannot read. Exit 0: every such line
+  was read; 1: a STOP. The old reader counted neither `wild int8->:g3;` nor a `stack` binding, and said nothing.
+  `--selftest` (exit 0, or 1 when one is not as planted) plants 17 bindings, 7 unread forms, 5 places where none fires
+  and an unreadable file, and reads 17 of 17, 7 of 7, 5 of 5 and the file's STOP with `main`'s status 1; the block
+  prints its exit. Denominator: the 19 `.npk` files the patches add, 132 bindings and no STOP. Over the compiler's 1084
+  `.npk` files at `2e1cb4a` it counts 6 bindings with no initialiser (the old reader 5), 2 `stack` ones (old 0), and
+  stops on 5 lines, each a form it does not read: `nodrop fixed` and `move fixed` (`tests/analysis/rejection/moves.npk`:123
+  and :147), `fixed int32[#three()]` (`tests/backend/programs/macro_walk_positions.npk`:47), `fixed sealed`
+  (`tests/types/rejection/field_qual_position.npk`:25) and `fixed wild` (`tests/types/rejection/null_plain_pointer.npk`:45).
+- **`0.0.4_tools/obligations.py`** (0.0.4's block 0b): `python3 -B obligations.py <npkc> <scratch dir> <module.npk>...`.
+  It reads each `// obligation:` comment strictly (the clause, its continuations indented ten columns or more, then a
+  bare `//` or the function's head, which ends `never fails {`), and a line it cannot place is a STOP by name, before
+  anything is compiled: the old reader dropped a continuation indented under ten columns, so a count could read "12;
+  compile: 12" with a clause cut short. Exit 0: every obligation compiles live; 1: npkc refuses one, a STOP, or a control
+  failed; 2: a usage error. Its controls run first, on every run: the reader 10 of 10 (a sound clause with its
+  continuation read, and nine planted forms, each a STOP) and the compile 2 of 2 (a sound planted obligation compiles
+  live; one naming `resultz` is refused, `NITPICK-RESOLVE-002`). Denominator: `vec.npk` and `bytes.npk`, 24 of 24
+  compile live, no STOP.
+- **`tools/apply.py selftest`** (0.0.0's block 0a): exit 0 when each case is as planted, 1 when one is not. A dated
+  context line it cannot read to one date is a STOP by its own name: `nowhere`, `with more than one date` (on two lines)
+  or `with two different dates on the one line` (the old code called that one `nowhere`). It plants 6 cases in a temp
+  dir, and reads 6 of 6: a date, one date twice on a line, each of the three STOPs, and a missing line left as it is when
+  not strict.
+- **`research_fresh`, in `tools/env.sh`** (each subcycle's block 0a): `research_fresh <name or path>...` prints each
+  digest's `As of` line and heading, then `digests within 90 days of today: N of M`, and returns 0 when N is M and
+  non-zero when a digest is stale or has no date (a security digest is stale after 90 days, the research skill; exactly 90
+  is fresh). The comparator masks dates, so the old loop could not DIFF on a stale digest; the count line can. Controls,
+  in 0.0.0's block 0a: a copy 90 days old reads 1 of 1, exit 0; one 91 days old, 0 of 1, exit 1; one with no `As of`
+  line, 0 of 1, exit 1. Denominator: 3 of 3 digests in 0.0.0 and 0.0.1, 4 of 4 from 0.0.2.
+- **`harness/stages.py`**, by 0.0.3's `step1.patch`: the sweep skips `.git`, `build` and `.internal` only directly under
+  the entry's path (@@PD-173@@'s "So" paragraph says "the entry's own"). Its self-check case `parse-not-parsing` plants
+  its hit under `sub/build/`, which the old filter, skipping the name at any depth, passed with 0 files swept; the case
+  count is unchanged, and the Expect of 0.0.3's block 1 and 0.0.4's blocks 1, 2 and 3 are retaken.
+- **`tools/blocks.py`, `tools/sweep.py` and each `sweep_patterns.txt`**: documentation only. `blocks.py`'s docstring
+  names the comparator's masks (seconds, free memory, dates whatever they say, `check_refs`'s counts, the white space at
+  a line's end on both sides) and the `# (any)` line; `sweep.py`'s docstring and each header say a word pattern cannot
+  find an other-worded twin.
+- **Left for 0.0.0's execution**: `STREAM_MODEL.md`:143's `EMFILE|ENFILE`, which sockets' own question N-5 renames
+  `TooManyOpenFiles|FileTableFull`. 0.0.0's block 6 reads the line, and a scratch sweep with the rename moves its "an
+  unnamed errno compared" count from 20 to 18 and its §7 row; step 4's dated note under T-12 names the same errno rows.

@@ -11,9 +11,9 @@ strings it changed, over every surface the plan's text reaches.
 
 THE TABLE, `twins.tsv` beside this tool: one row per correction, `old <TAB> new <TAB> commit <TAB> note` -- the old
 string exactly as the correction removed it, the new one, the commit that made it (a commit of this plan's branch;
-`step:<sub>/<n>` for a correction a step patch makes in the tree; `fd47ba3..` for fix round 2's own, read against the
-plan folder as the checkout holds it; `-` for one no commit holds, its note saying why), and what it corrected. A
-number too common to sweep alone is swept with the identifier beside it -- the file's name and the line number together,
+`step:<sub>/<n>` for a correction a step patch makes in the tree; `fd47ba3..` for fix round 2's own and `5862558..` for
+fix round 3's, each read against the plan folder as the checkout holds it; `-` for one no commit holds, its note saying
+why), and what it corrected. A number too common to sweep alone is swept with the identifier beside it -- the file's name and the line number together,
 never the bare number -- and the note says so. A string matches where its text, read through `sweep.py`'s transform -- markers and emphasis gone, lines
 joined by one space -- occurs, case ignored; a row with a fifth column `raw` matches its text as written, on one line,
 case kept (a date note's opening `*(`, which the transform would strip to a bare parenthesis).
