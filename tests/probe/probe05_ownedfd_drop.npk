@@ -1,0 +1,78 @@
+// expect-exit: 0
+//
+// PROBE 05 -- AN `OwnedFd`'S DROP IS THE CLOSE.
+//
+// ASKS: `own_fd` on a socket inside a block: at the closing brace the descriptor is closed --
+// `fcntl(F_GETFD)` answers the error a closed descriptor does, measured against a witness. Then
+// the other path: `release_fd(move(o))` inside a block, whose vacated owner's drop must NOT close
+// (landing 105's unconditional drop of an address-taken owner leaves a moved-out slot a no-op,
+// D-225) -- the descriptor is still open after that block -- and an explicit `close` whose
+// verdict is observable, a second `close` answering the same error as the witness.
+// DEPENDS ON THE ANSWER: SK-011 (`SAFETY.md` S-17): the drop is the whole lifetime story, and there
+// is no `close` in the surface; `close(release_fd(move s))` is the spelling for a caller that must
+// see close's verdict, with no double close spellable.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
+mod:probe05_ownedfd_drop;
+
+fixed int64:SYS_CLOSE = 3i64;
+fixed int64:SYS_SOCKETPAIR = 53i64;
+fixed int64:SYS_FCNTL = 72i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:F_GETFD = 1i64;
+fixed int64:NO_SUCH_DESCR = 987654i64;
+
+func:main = int32(cstring[]:_~argv) {
+    wild int8->:sv = alloc(8i64);
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
+    if (rp.is_error) { exit 10i32; }
+    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
+    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
+    dalloc(sv);
+    Result<int64>:witness = sys(SYS_CLOSE, NO_SUCH_DESCR);
+    if (!witness.is_error) { exit 11i32; }
+
+    // the drop closes
+    {
+        OwnedFd:o = own_fd((a =>! int32) =>! fd);
+        Result<int64>:open_inside = sys(SYS_FCNTL, o.value, F_GETFD);
+        if (open_inside.is_error) { exit 12i32; }
+    }
+    Result<int64>:after = sys(SYS_FCNTL, a, F_GETFD);
+    if (!after.is_error) { exit 13i32; }
+    if (after.err != witness.err) { exit 14i32; }
+
+    // a released owner's drop does not close; the explicit close's verdict is observable, once
+    int64:kept = 0i64 - 1i64;
+    {
+        OwnedFd:p = own_fd((b =>! int32) =>! fd);
+        fd:bare = release_fd(move(p));
+        kept = (bare =>! int32) => int64;
+    }
+    if (kept != b) { exit 15i32; }
+    Result<int64>:still = sys(SYS_FCNTL, b, F_GETFD);
+    if (still.is_error) { exit 16i32; }
+    Result<NIL>:first = close((b =>! int32) =>! fd);
+    if (first.is_error) { exit 17i32; }
+    Result<NIL>:second = close((b =>! int32) =>! fd);
+    if (!second.is_error) { exit 18i32; }
+    if (second.err != witness.err) { exit 19i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

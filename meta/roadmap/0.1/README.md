@@ -49,7 +49,7 @@ scope id? recommendation: yes).
 
 ### 0.1.1 — encode and decode
 - [ ] `addr_encode` / `addr_decode` — one pair, and nothing else touches the bytes (A-5)
-- [ ] every offset from `ADDRESS_MODEL.md` §2, each behind its own accessor (`SAFETY.md` S-16)
+- [ ] every offset from `ADDRESS_MODEL.md` §2, each behind its own accessor over `fixed uint8[]` (`SAFETY.md` S-16, SK-103)
 - [ ] `sin_zero` zeroed on every encode (A-6), so two encodings of one address compare equal
 - [ ] `sin6_flowinfo` swapped, `sin6_scope_id` **not** — the adjacent-fields-opposite-conventions case, with its own test
 - [ ] the returned length is the `addrlen` to pass, and is never `sizeof(sockaddr_storage)`
@@ -62,7 +62,7 @@ scope id? recommendation: yes).
 - [ ] **the abstract encoding asserted byte for byte**: `sun_path[0] == 0`, `addrlen == 2 + 1 + len`, and a test that binds two abstract names differing only in trailing bytes and asserts they are different addresses (A-12)
 - [ ] a 108-byte path refused `ESockAddr` with the length in the message (A-13)
 - [ ] a 107-byte path accepted, with its NUL
-- [ ] `unix_addr_from_path(Path)` for absolute paths; `unix_addr_path(uint8[])` for everything else (A-14)
+- [ ] `unix_addr_from_path(Path)` for absolute paths; `unix_addr_path(fixed uint8[])` for everything else (A-14)
 - [ ] an unnamed address round-trips through `getsockname` on a `socketpair` end (A-15)
 
 ### 0.1.3 — parsing
@@ -70,7 +70,7 @@ scope id? recommendation: yes).
 - [ ] **every spelling in A-19's refusal table is a rejection test** — `127.1`, `0177.0.0.1`, `010.0.0.1`, `1.2.3.04`, `0x7f.0.0.1`, `1.2.3.4.5`, `1.2.3.`, `+1.2.3.4`, leading whitespace — because an untested security claim is a comment
 - [ ] `ipv6_parse` per RFC 4291 §2.2: eight groups, at most one `::`, the trailing dotted-quad form, the `%scope` suffix
 - [ ] `socket_addr_parse` with the bracketed IPv6 form; unbracketed IPv6-with-port refused (A-21)
-- [ ] every parser takes `uint8[]`, not `string`, and allocates nothing (A-22)
+- [ ] every parser takes `fixed uint8[]`, not `string`, and allocates nothing (A-22); `socket_addr_parse(string_bytes(s))` compiles (SK-103)
 
 ### 0.1.4 — formatting
 - [ ] appends to a `Bytes`, never `string_concat` in a loop (A-23)

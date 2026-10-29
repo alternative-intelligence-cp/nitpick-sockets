@@ -1,0 +1,35 @@
+// expect-error: NITPICK-TYPE-007
+//
+// PROBE 14b -- `string_bytes` INTO A PLAIN `uint8[]` PARAMETER.
+//
+// ASKS: probe 14's decoder declared as the specifications spell it today, over a plain
+// `uint8[]:src`, and called with `string_bytes(wire)`.
+// DEPENDS ON THE ANSWER: the pin audit's SL-1: a caller holding a `string` -- a configuration value,
+// an argument -- could not reach a decoder or parser spelled this way.
+// EXPECTED: refused, `NITPICK-TYPE-007` at the argument, and nothing else.
+mod:probe14b_view_into_plain;
+
+func:family_of = int64(uint8[]:src) never fails {
+    if (src.len < 2i64) { pass 0i64 - 1i64; }
+    pass src[0i64] => int64;
+};
+
+func:main = int32(cstring[]:_~argv) {
+    string:wire = string_concat("\n", "rest");
+    exit (raw family_of(string_bytes(wire))) =>! int32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (OutOfBounds)       { exit 94i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

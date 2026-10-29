@@ -182,7 +182,7 @@ Options that may be set at any time are on the concrete types
 **Rule K-13.** `bind(descr, addr_bytes, addr_len)` where the bytes and the
 length come from `ADDRESS_MODEL.md`'s encoder. The length is **not**
 `sizeof(sockaddr_storage)`: for `AF_UNIX` it is significant to the kernel
-(§9), and passing a fixed 128 there changes the meaning of the address.
+(§9), and passing a constant 128 there changes the meaning of the address.
 
 **Rule K-14 — an ephemeral bind is read back.** Binding to port 0 asks the
 kernel to choose; the chosen port is only knowable through `getsockname`.

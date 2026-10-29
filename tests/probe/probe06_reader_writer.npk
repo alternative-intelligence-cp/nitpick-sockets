@@ -1,0 +1,136 @@
+// expect-exit: 0
+//
+// PROBE 06 -- THE PRELUDE'S `Reader` AND `Writer` OVER A STRUCT HOLDING AN `OwnedFd`.
+//
+// ASKS: a struct with one `OwnedFd` field implementing the prelude's two stream traits with their
+// exact signatures -- `async`, a `Self->` receiver, `write`'s `fixed uint8[]:wsrc`, `read`'s plain
+// `uint8[]:dest`, `Duration:within`, and `Writer`'s `flush` -- driven through a generic bound and
+// through `dyn Writer` (an explicit `move(x) => dyn Writer`). `write` is `sendto` with
+// `MSG_NOSIGNAL`, from the view's own `.ptr` and `.len` (the pointer-and-length a `fixed` view
+// gives a syscall), never the floor's `write` (SK-013's corollary, `SAFETY.md` S-2); a would-block
+// waits on `io_ready` with what remains of the deadline, the descriptor converted `fd` -> `int32`
+// at the reactor.
+// DEPENDS ON THE ANSWER: SK-027 (`STREAM_MODEL.md` T-6), the library's interoperability property;
+// `TYPE-014` holds an impl to its trait's spelling (probe 06b refuses the dropped `fixed`).
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
+mod:probe06_reader_writer;
+
+fixed int64:SYS_SENDTO = 44i64;
+fixed int64:SYS_RECVFROM = 45i64;
+fixed int64:SYS_SOCKETPAIR = 53i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:MSG_NOSIGNAL = 16384i64;
+
+struct:Sock = { OwnedFd:descr; };
+
+impl:Sock:Writer = {
+    async func:write = int64(Sock->:self, fixed uint8[]:wsrc, Duration:within) {
+        int64:give_up = (mono_now()) + within.ns;
+        // a retry loop over WouldBlock, bounded by the deadline `within` (DeadlineExceeded), not by a count
+        while (true) unbounded {
+            Result<int64>:r = sys(SYS_SENDTO, self.descr.value, wsrc.ptr, wsrc.len, MSG_NOSIGNAL, 0i64, 0i64);
+            if (!r.is_error) { pass r.value; }
+            if (r.err != WouldBlock) { fail r.err; }
+            int64:rem = give_up - (mono_now());
+            if (rem <= 0i64) { fail DeadlineExceeded; }
+            Result<NIL>:w = await io_ready((self.descr.value) =>! int32, 4i32, raw duration_ns(rem));
+            if (w.is_error) { fail w.err; }
+        }
+    };
+    async func:flush = NIL(Sock->:self, Duration:_~within) {
+        pass NIL;
+    };
+};
+
+impl:Sock:Reader = {
+    async func:read = int64(Sock->:self, uint8[]:dest, Duration:within) {
+        int64:give_up = (mono_now()) + within.ns;
+        // a retry loop over WouldBlock, bounded by the deadline `within` (DeadlineExceeded), not by a count
+        while (true) unbounded {
+            Result<int64>:r = sys(SYS_RECVFROM, self.descr.value, dest.ptr, dest.len, 0i64, 0i64, 0i64);
+            if (!r.is_error) {
+                if (r.value == 0i64) { fail IoEof; }
+                pass r.value;
+            }
+            if (r.err != WouldBlock) { fail r.err; }
+            int64:rem = give_up - (mono_now());
+            if (rem <= 0i64) { fail DeadlineExceeded; }
+            Result<NIL>:w = await io_ready((self.descr.value) =>! int32, 1i32, raw duration_ns(rem));
+            if (w.is_error) { fail w.err; }
+        }
+    };
+};
+
+async func:push<W: Writer> = int64(W->:w, fixed uint8[]:msg) {
+    int64:n = relay await w.write(msg, raw duration_ms(1000i64));
+    pass n;
+};
+
+async func:pull<R: Reader> = int64(R->:r, uint8[]:dest) {
+    int64:n = relay await r.read(dest, raw duration_ms(1000i64));
+    pass n;
+};
+
+async func:push_dyn = int64(dyn Writer:w, fixed uint8[]:msg) {
+    int64:n = relay await w.write(msg, raw duration_ms(1000i64));
+    pass n;
+};
+
+async func:main = int32(cstring[]:_~argv) {
+    wild int8->:sv = alloc(8i64);
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
+    if (rp.is_error) { exit 10i32; }
+    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
+    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
+    dalloc(sv);
+    Sock:wr = Sock{ descr: own_fd((a =>! int32) =>! fd) };
+    Sock:rd = Sock{ descr: own_fd((b =>! int32) =>! fd) };
+
+    // through a bound
+    string:ping = string_concat("ping", "");
+    fixed uint8[]:msg = string_bytes(ping);
+    Result<int64>:sent = await push(@wr, msg);
+    if (sent.is_error) { exit 11i32; }
+    if (sent.value != 4i64) { exit 12i32; }
+    uint8[8]:space = [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    uint8[]:dest = space[0i64...8i64];
+    Result<int64>:got = await pull(@rd, dest);
+    if (got.is_error) { exit 13i32; }
+    if (got.value != 4i64) { exit 14i32; }
+    if (space[0i64] != 112u8) { exit 15i32; }
+    if (space[3i64] != 103u8) { exit 16i32; }
+
+    // through `dyn`, the owner moved into the erased cell
+    string:pong = string_concat("pong!", "");
+    fixed uint8[]:msg2 = string_bytes(pong);
+    Result<int64>:sent2 = await push_dyn(move(wr) => dyn Writer, msg2);
+    if (sent2.is_error) { exit 17i32; }
+    if (sent2.value != 5i64) { exit 18i32; }
+    Result<int64>:got2 = await pull(@rd, dest);
+    if (got2.is_error) { exit 19i32; }
+    if (got2.value != 5i64) { exit 20i32; }
+    if (space[4i64] != 33u8) { exit 21i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (OutOfBounds)       { exit 94i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (DecreasesViolated) { exit 108i32; },
+        (DeadlineExceeded)  { exit 111i32; },
+        (IoEof)             { exit 112i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

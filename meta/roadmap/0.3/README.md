@@ -28,7 +28,7 @@ drop to three).
 
 ### 0.3.0 — `TcpStream` and the traits
 - [ ] `TcpStream` with its recorded `peer` and `local` (T-1)
-- [ ] `impl:TcpStream:Reader` and `impl:TcpStream:Writer` with the prelude's **exact** signatures — `Self->`, `async`, `Duration:within` (TYPE-048 requires the impl to keep the trait's `async`)
+- [ ] `impl:TcpStream:Reader` and `impl:TcpStream:Writer` with the prelude's **exact** signatures — `Self->`, `async`, `Duration:within`, `fixed uint8[]:wsrc` on `write` (`NITPICK-TYPE-014` otherwise, probe 06b) and `Writer`'s `flush` (TYPE-048 requires the impl to keep the trait's `async`; SK-103)
 - [ ] **the `Writer` impl uses `sendto` with `MSG_NOSIGNAL`, not the floor's `write`** (T-5), with a comment at the site saying why it cannot share `ByteWriter`'s body
 - [ ] `flush` is `pass NIL` and a comment says why that is correct (T-4)
 - [ ] a `TcpStream` driven through `dyn Writer`, and through `TextWriter<TcpStream>` — the interoperability property `SK-027` exists for

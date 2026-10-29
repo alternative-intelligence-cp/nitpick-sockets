@@ -102,7 +102,7 @@ with a per-field table rather than "swap everything on the way out".
 ### `sockaddr_storage` — 128 bytes
 
 The receiving buffer for `accept4`, `recvfrom` and `getpeername`, big enough
-for any family. `nsockets` uses it as a fixed 128-byte array and decodes by
+for any family. `nsockets` uses it as a 128-byte array and decodes by
 reading `family` at offset 0 first.
 
 **Rule A-4.** Every one of those sizes is asserted by a probe that fills a
@@ -118,9 +118,9 @@ program that round-trips it is a measurement.
 
 ```nitpick
 addr_encode(SocketAddr, uint8[]:dest) -> int64        // bytes written = the addrlen to pass
-addr_decode(uint8[]:src, int64:len)   -> SocketAddr   // family read from offset 0
+addr_decode(fixed uint8[]:src, int64:len)   -> SocketAddr   // family read from offset 0
 unix_encode(UnixAddr, uint8[]:dest)   -> int64
-unix_decode(uint8[]:src, int64:len)   -> UnixAddr
+unix_decode(fixed uint8[]:src, int64:len)   -> UnixAddr
 ```
 
 The returned length is the `addrlen` the syscall takes. It is **not** the
@@ -190,7 +190,8 @@ D-054) requires an **absolute** path — `path_parse` fails `BadPath` on anythin
 whose first byte is not `/` — and an abstract address is not a filesystem
 object at all. Unix socket addresses are routinely relative (`./app.sock`) and
 routinely abstract, so `Path` is the wrong type twice over. `unix_addr_path`
-takes a byte slice; `unix_addr_from_path(Path)` exists as the convenience for
+takes the read-only byte view, `fixed uint8[]` (SK-103);
+`unix_addr_from_path(Path)` exists as the convenience for
 callers who genuinely have an absolute path and want the check.
 
 **Rule A-15 — an unnamed address is a real answer.** `getsockname` on a
@@ -262,9 +263,12 @@ dotted-quad is read by A-19's rules, so `::ffff:010.0.0.1` is refused, as RFC
 in its own right — and the bracket form is what every RFC and every tool uses.
 Unbracketed IPv6 with a port is `ESockAddr`.
 
-**Rule A-22 — a parser is a pure function over `uint8[]`** and allocates
-nothing. It takes a byte slice, not a `string`, so a caller parsing out of a
-buffer does not build one first.
+**Rule A-22 — a parser is a pure function over `fixed uint8[]`** and allocates
+nothing. It takes the read-only byte view, not a `string`, so a caller parsing
+out of a buffer does not build one first, and a caller holding a `string`
+passes `string_bytes(s)` — which a plain `uint8[]` parameter refuses,
+`NITPICK-TYPE-007` (probe 14b), while the view takes both (probe 14;
+SK-103). The encoders' `dest` stays a plain `uint8[]`: they write.
 
 *(2026-10-29, cycle 0.0.0: measured at compiler `2e1cb4a` — an element of a `uint8` array declared without an
 initialiser, a local of sixteen (an IPv6 result's size) or a struct's field of 108 (`UnixAddr`'s `path`), cannot be

@@ -155,8 +155,8 @@ signal facility, SK-101.)*
 ### Ancillary
 
 - **O-Y1 — the `SCM_RIGHTS` cap.** Sixteen descriptors per message, against the
-  kernel's 253, chosen so the fixed control buffer is comfortable.
-  **Recommendation:** keep 16 at 1.0; a higher cap costs a bigger fixed buffer
+  kernel's 253, chosen so the constant-size control buffer is comfortable.
+  **Recommendation:** keep 16 at 1.0; a higher cap costs a bigger control buffer
   on every ancillary receive, paid by everyone. Raise it with a measurement if a
   consumer asks.
 - **O-Y2 — descriptor passing to a non-`AF_UNIX` peer.** Nothing to do; recorded

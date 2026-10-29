@@ -1,0 +1,49 @@
+// expect-exit: 0
+//
+// PROBE 14 -- THE READ-ONLY VIEW AT A DECODER'S EDGE.
+//
+// ASKS: a decoder shaped as `ADDRESS_MODEL.md`'s A-5 and A-22 shape every parser -- a pure
+// function over bytes it only reads, here the family a `sockaddr` begins with -- declared over
+// `fixed uint8[]:src`, and called with what a caller has: `string_bytes` of a `string` (which
+// returns the read-only view since the compiler's landing 103, D-351), a plain view of a local
+// array (which converts INTO a `fixed` slot), and a range of either -- `"\nrest"` begins 10, 114,
+// so its family reads 10 + 114 * 256 = 29194. Probe 14b declares the same
+// decoder over a plain `uint8[]` and calls it with `string_bytes`.
+// DEPENDS ON THE ANSWER: the pin audit's SL-1 -- every read-only byte parameter is `fixed uint8[]`
+// (A-5, A-22, Z-2's accessors, `unix_addr_path`) -- and SK-103, which takes for every slot a
+// reader's bytes reach the read-only view `nitpick-regex`'s RX-230 names.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 19 are the assertions.
+mod:probe14_view_codec;
+
+// The family a sockaddr's first two bytes hold, host order; -1 when there are fewer than two.
+func:family_of = int64(fixed uint8[]:src) never fails {
+    if (src.len < 2i64) { pass 0i64 - 1i64; }
+    pass (src[0i64] => int64) | ((src[1i64] => int64) << 8i64);
+};
+
+func:main = int32(cstring[]:_~argv) {
+    string:wire = string_concat("\n", "rest");
+    fixed uint8[]:from_text = string_bytes(wire);
+    if ((raw family_of(from_text)) != 29194i64) { exit 10i32; }
+    uint8[4]:arr = [2u8, 0u8, 31u8, 144u8];
+    uint8[]:plain = arr[0i64...4i64];
+    if ((raw family_of(plain)) != 2i64) { exit 11i32; }
+    if ((raw family_of(from_text[0i64...2i64])) != 29194i64) { exit 12i32; }
+    if ((raw family_of(plain[0i64...1i64])) != (0i64 - 1i64)) { exit 13i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (OutOfBounds)       { exit 94i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

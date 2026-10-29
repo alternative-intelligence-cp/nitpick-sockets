@@ -107,7 +107,7 @@ error identities `nsockets` declares is a hard budget, and it is four.**
 |---|---|---|
 | `ESockAddr` | an address could not be parsed, or does not fit its family's kernel structure | `src/addr/` |
 | `ESockState` | an API was used out of order in a way the type system could not prevent — a second `connect`, a `bind` after `listen`, an operation on a socket whose peer half is shut down | `src/socket/` |
-| `ESockCapacity` | a fixed-capacity structure is full — the ancillary control buffer, a received address longer than its family allows | `src/socket/` |
+| `ESockCapacity` | a constant-capacity structure is full — the ancillary control buffer, a received address longer than its family allows | `src/socket/` |
 | `ESockProtocol` | received ancillary data is not what the wire promised — `MSG_CTRUNC`, a `cmsghdr` of the wrong level or type, a control length the kernel could not have produced | `src/ancillary/` |
 
 **Rule S-5 — four is a ceiling, not a target**, and adding a fifth is a
@@ -228,8 +228,8 @@ and it is the one place this library asks an application to clean up after it.
 suspends tasks. An application that wants a thread per connection creates it,
 and `CONCURRENCY_MODEL.md` §3 says what the language permits.
 
-**Rule S-22 — ancillary buffers are fixed-size and stack-shaped.** The control
-buffer for a `sendmsg`/`recvmsg` is a fixed array sized by
+**Rule S-22 — ancillary buffers are constant-size and stack-shaped.** The control
+buffer for a `sendmsg`/`recvmsg` is a stack array of constant size, sized by
 `ANCILLARY_MODEL.md` §4's bound, not a growable allocation, so the ancillary
 path takes no `wild` bytes and cannot trip D-151 on any exit path.
 

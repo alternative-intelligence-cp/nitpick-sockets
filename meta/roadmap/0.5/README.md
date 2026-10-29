@@ -26,7 +26,7 @@ recommendation: keep it).
 
 ### 0.5.0 — the one `msghdr`
 - [ ] `MsgHdr` (56), `IoVec` (16), `CMsg` (16 + payload) as Nitpick structs over
-      one fixed block, `#size_of` asserted for each
+      one constant-size block, `#size_of` asserted for each
 - [ ] `msg_namelen` and `msg_flags` as single 8-byte words covering the `int32`
       and its padding (N-1) — layout-identical, and what the compiler's Bridge
       does
@@ -34,7 +34,7 @@ recommendation: keep it).
 - [ ] `CMSG_LEN(n) == 16 + n` and `CMSG_SPACE(n)` rounded to 8, **as separate
       named functions**, because conflating them is the most common
       `SCM_RIGHTS` bug (N-2)
-- [ ] the control buffer a fixed 256-byte stack array (N-4), taking no `wild`
+- [ ] the control buffer a 256-byte stack array (N-4), taking no `wild`
       bytes
 - [ ] the `cmsghdr` walk with its invariant and variant written as comments in
       the syntax they will take (`specs/VERIFICATION.md` Z-3)

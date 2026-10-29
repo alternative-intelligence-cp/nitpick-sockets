@@ -61,7 +61,7 @@ The obligations below are the ones that remain.
 field** (`SAFETY.md` S-16), and the accessor carries the obligation:
 
 ```nitpick
-func:sin_port_at = uint16(uint8[]:sa)
+func:sin_port_at = uint16(fixed uint8[]:sa)
     requires (sa.len >= 16i64)
     never fails { … };
 ```

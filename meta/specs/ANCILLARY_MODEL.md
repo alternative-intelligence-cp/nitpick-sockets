@@ -61,7 +61,7 @@ says the same about itself, in its section title, for the same reason: the
 layout is fiddly, the alignment rules are unobvious, and three copies would
 be three chances to get `CMSG_SPACE` wrong in one of them.
 
-**Rule N-4 — the control buffer is a fixed-size stack array**
+**Rule N-4 — the control buffer is a constant-size stack array**
 (`SAFETY.md` S-22), sized `NSOCK_CMSG_MAX` = 256 bytes. That holds
 `SCM_RIGHTS` for up to 60 descriptors, or `SCM_CREDENTIALS`, or both. It takes
 no `wild` bytes, so the ancillary path cannot trip D-151 on any exit path.
@@ -206,7 +206,7 @@ its own decision. The `msghdr` layer is built so that adding one is a
 - **O-Y1 — whether `SCM_RIGHTS` should cap at 16 or expose the kernel's 253.**
   Sixteen is a named constant chosen for a comfortable control buffer.
   **Recommendation:** keep 16 at 1.0 and raise it with a measurement if a
-  consumer asks; a higher cap costs a bigger fixed buffer on every ancillary
+  consumer asks; a higher cap costs a bigger control buffer on every ancillary
   receive, paid by everyone.
 - **O-Y2 — descriptor passing to a process that is not `AF_UNIX`-adjacent.**
   Nothing to do; recorded because "can I pass a descriptor over TCP" is asked

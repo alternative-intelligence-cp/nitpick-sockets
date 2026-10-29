@@ -1,0 +1,40 @@
+// expect-error: NITPICK-TYPE-014
+//
+// PROBE 06b -- A `Writer` WHOSE `write` DROPS THE `fixed`.
+//
+// ASKS: probe 06's implementation with one change: `write`'s source spelled a plain `uint8[]:wsrc`
+// where the prelude's trait spells `fixed uint8[]:wsrc`. The compiler's `IO_REFERENCE.md` says an
+// impl declares `wsrc` as the trait does; this asks it.
+// DEPENDS ON THE ANSWER: the pin audit's SL-4 -- the stream checklists name the `fixed`
+// (`STREAM_MODEL.md` T-6, cycle 0.3) -- and SK-027.
+// EXPECTED: refused, `NITPICK-TYPE-014` at the implementation's `write`, and nothing else.
+mod:probe06b_impl_drops_fixed;
+
+struct:Sock = { OwnedFd:descr; };
+
+impl:Sock:Writer = {
+    async func:write = int64(Sock->:self, uint8[]:wsrc, Duration:_~within) {
+        pass wsrc.len;
+    };
+    async func:flush = NIL(Sock->:self, Duration:_~within) {
+        pass NIL;
+    };
+};
+
+async func:main = int32(cstring[]:_~argv) {
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (DeadlineExceeded)  { exit 111i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

@@ -114,6 +114,12 @@ than four struct declarations for the same guarantee.
 `close(release_fd(move s))` is the spelling for a caller that must observe
 close's verdict — the move defuses the drop, so no double close is spellable.
 
+*(2026-10-29, cycle 0.0.0: RUN at compiler `2e1cb4a` — `own_fd` on a socket closes it at the block's end; an owner
+handed to `release_fd(move(o))` is vacated, so its block's end closes nothing (the compiler's landing 105 drops an
+address-taken owner unconditionally, and a moved-out slot's drop is a no-op); `close` on the bare number answers
+success, and a second `close` the same error as a witness close of a number never opened (`tests/probe/probe05_ownedfd_drop.npk`).
+This decision holds as written.)*
+
 ### SK-012 — non-blocking and close-on-exec are set atomically at creation
 **2026-09-03.** `SOCK_NONBLOCK | SOCK_CLOEXEC` in the `socket()`,
 `socketpair()` and `accept4()` calls. Never `socket()` followed by two `fcntl`
@@ -308,6 +314,10 @@ socket addresses are routinely relative and routinely abstract, so `Path` is
 the wrong type twice over. `unix_addr_from_path(Path)` exists for callers who
 genuinely have an absolute path and want the check.
 
+*(2026-10-29, cycle 0.0.0, SK-103: the byte slice `unix_addr_path` takes is the read-only view, `fixed uint8[]`,
+so a caller holding a `string` passes `string_bytes(s)` — `ADDRESS_MODEL.md` A-14 says so; this decision's choice of a
+byte slice over `Path` holds as written.)*
+
 ### SK-024 — no DNS
 **2026-09-03.** No `getaddrinfo`, no `/etc/hosts`, no resolver.
 
@@ -357,6 +367,12 @@ property.
 *The rider, which is `SK-013`'s corollary:* the `Writer` impl uses `sendto`
 with `MSG_NOSIGNAL` and **not** the floor's `write`, so it cannot share a body
 with the prelude's `ByteWriter` impl.
+
+*(2026-10-29, cycle 0.0.0, SK-103: RUN at compiler `2e1cb4a` — a struct holding an `OwnedFd` implements the
+prelude's `Reader` and `Writer` with their exact signatures, `fixed uint8[]:wsrc` and `Writer`'s `flush` among them, its
+`write` a `sendto` with `MSG_NOSIGNAL` from the view's own `.ptr` and `.len`, and it runs through a generic bound and
+through `dyn Writer` (`tests/probe/probe06_reader_writer.npk`); an implementation that drops the `fixed` is
+`NITPICK-TYPE-014` (`refused/probe06b_impl_drops_fixed.npk`). This decision holds as written.)*
 
 ### SK-028 — `IPV6_V6ONLY` is set explicitly, never left to the sysctl
 **2026-09-03.** Every IPv6 socket sets it to whatever the caller asked for.
@@ -576,3 +592,32 @@ the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, a
 *Reversal:* none for the sizes, which are measurements — a later pin that moves one reddens probe 02, 03 or 12 on its
 first run, and the specification follows. If a later compiler frees `pid`, `uid` or `gid` as names, the fields keep
 the names they have, since renaming a public field is a major version.
+
+### SK-103 — every slot a reader's bytes reach is the read-only view; a writer's is plain
+**2026-10-29, cycle 0.0.0 step 3, probes 06, 06b, 14 and 14b. The pin audit's SL-1 and SL-4; SL-6 beside them.**
+
+*What was measured* at compiler `c9baa9e`, at `-O0` and through `opt -O2`: a decoder over `fixed uint8[]:src` takes
+`string_bytes` of a `string` (the read-only view since the compiler's landing 103, D-351), a plain view of a local
+array, and a range of either (probe 14); the same decoder over a plain `uint8[]:src` refuses `string_bytes(s)`,
+`NITPICK-TYPE-007` at the argument (probe 14b). An implementation of the prelude's `Writer` takes `fixed
+uint8[]:wsrc` exactly as the trait does — dropping the `fixed` is `NITPICK-TYPE-014` (probe 06b) — and its `write`
+hands the view's own `.ptr` and `.len` to `sendto` (probe 06). A `Reader`'s `dest` is a plain `uint8[]`: it writes.
+
+*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
+
+*So:* every parameter this library declares over bytes it only reads is `fixed uint8[]` — `addr_decode`,
+`unix_decode`, `unix_addr_path`, every parser (A-5, A-14, A-22), every kernel-structure accessor (`VERIFICATION.md`
+Z-2's `sin_port_at`), and cycle 0.1's checklist, with a test that `socket_addr_parse(string_bytes(s))` compiles —
+and every parameter it writes stays a plain `uint8[]`: `addr_encode`'s and `unix_encode`'s `dest`, a receive's
+`dest`. The stream implementations' checklist (cycle 0.3) names `fixed uint8[]:wsrc` and `flush`. And the bare word
+`fixed` is the keyword's: a size is "constant-size", never "fixed" (SL-6: eleven lines in nine places, the pin
+audit's ten less `SK-022`'s settled text).
+
+*Alternatives declined:* **keep plain `uint8[]` and let a caller copy a `string` into a buffer first** — every call
+from a `string` would allocate, the cost A-22 exists to avoid; **a `string` overload beside each parser** — two
+entry points per parser where one view serves both callers; **plain `uint8[]` everywhere and a `fixed` copy at the
+edge** — a copy per call to undo a type the compiler hands out.
+
+*Reversal:* if a later compiler lets `string_bytes` fill a plain slot, nothing need move: a `fixed` parameter takes a
+plain view too (probe 14). If it removes the read-only view, the parameters return to `uint8[]` by a later decision,
+probe 14 reddening first.
