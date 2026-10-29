@@ -6,7 +6,7 @@ that makes the library usable.
 
 ## Decisions in
 
-`SK-010`, `SK-014`, `SK-018`, `SK-019`, `SK-027`, `SK-031`. All settled.
+`SK-010`, `SK-014`, `SK-018`, `SK-019`, `SK-027`, `SK-031`. All settled; two rows of `SK-031`'s table wait on the compiler's answer to O-N5 (SK-104).
 
 **Open questions to settle:** `O-T1` (`TCP_NODELAY`'s default — **against a
 measurement**), `O-T2` (how `write_all` reports a partial count), `O-S1`
@@ -35,7 +35,7 @@ drop to three).
 - [ ] `check_no_floor_write` covering the new impls
 
 ### 0.3.1 — connect
-- [ ] the full sequence from `STREAM_MODEL.md` T-8: immediate success, `EINPROGRESS`, wait `EPOLLOUT`, `SO_ERROR` **once**
+- [ ] the full sequence from `STREAM_MODEL.md` T-8: immediate success, `EINPROGRESS`, wait `EPOLLOUT`, `SO_ERROR` **once** — spelled, at the pin, without naming `EINPROGRESS`: a second `connect` after the wait answers the outcome (SK-104, probe 08)
 - [ ] **a connect to a closed loopback port reporting `ECONNREFUSED`** — the test that proves writability is not success
 - [ ] a second `SO_ERROR` read returning 0, asserted, so the read-once rule has a test (T-9)
 - [ ] `EINTR` during connect does **not** re-call `connect` (T-8.5); a test that a re-call would spin on `EALREADY`
@@ -49,9 +49,9 @@ drop to three).
 - [ ] a truncated returned address is `ESockCapacity`, never a silently short address (K-18)
 - [ ] K-19's error table implemented arm by arm, each with a test:
   - [ ] `EINTR` retries immediately
-  - [ ] **`ECONNABORTED` retries immediately** — the test connects and resets before the accept, and asserts the server survives (T-13)
+  - [ ] **`ECONNABORTED` retries immediately** — the test connects and resets before the accept, and asserts the server survives (T-13) — **waits on O-N5** (SK-104)
   - [ ] `EAGAIN` waits on `EPOLLIN`
-  - [ ] `EMFILE` is returned with the connection still pending (K-19.1)
+  - [ ] `EMFILE` is returned with the connection still pending (K-19.1) — **waits on O-N5** (SK-104)
 - [ ] a loopback accept loop under `// stress: 40`
 
 ### 0.3.3 — `write_all` and partial writes

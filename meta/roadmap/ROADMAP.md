@@ -3,11 +3,14 @@
 The specification set (`meta/specs/`) is written and the decisions it rests on
 are in `meta/DECISIONS.md`. This is the plan built on them.
 
-**`SK-001` … `SK-037` are settled.** What remains open in
-`../OPEN_QUESTIONS.md` is open *by design*: two measurements taken in the
-cycles that can take them, three defaults that want a number rather than a
-taste, one item gated on the compiler's tooling, and four that are the
-compiler's rather than ours. **No cycle in this plan is blocked on a decision.**
+**Every decision in `../DECISIONS.md` is settled, or proposed with its
+reversal.** What remains open in `../OPEN_QUESTIONS.md` is open *by design*,
+each entry saying why — a measurement taken in the cycle that can take it, a
+default that wants a number rather than a taste, or the compiler's. **Two rows
+of cycle 0.3's accept loop and cycle 0.8.2's back-off wait on the compiler**
+(O-N5, SK-104); no other cycle waits on a decision. *(2026-10-29: this
+paragraph counted the decisions, `SK-001` … `SK-037`, and the open entries,
+which the files now do themselves — the early ecosystem audit's E2-10.)*
 
 ## How this is organised
 

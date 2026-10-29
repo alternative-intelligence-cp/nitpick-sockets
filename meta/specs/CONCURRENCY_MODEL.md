@@ -130,6 +130,11 @@ waits `NSOCK_EMFILE_BACKOFF` (a named constant, 50 ms) before retrying, which
 turns a melt into a degradation. It also logs nothing, because a library does
 not own an application's diagnostics — it returns the condition and the count.
 
+*(2026-10-29, SK-104: at compiler `2e1cb4a` nothing names `EMFILE` that a
+program can compare an error with (probes 13 and 13b), so the loop cannot tell
+this condition from any other; the back-off waits, with `SOCKET_MODEL.md`
+K-19.1, on the compiler's answer to O-N5.)*
+
 ---
 
 ## 4. When a collection of sockets is genuinely wanted

@@ -17,7 +17,7 @@ costs a library that talks to the kernel over descriptors.
 | **The runtime catches `SIGPIPE` with a handler that returns** | measured, §2 (probe 04) | a send to a dead peer answers `EPIPE` on the floor's runtime, and kills a process whose disposition is the default. **Every send carries `MSG_NOSIGNAL`**, which answers `EPIPE` under either. §2 |
 | `defer` does **not** run on a trap | D-014 | a socket open at trap time is closed by process exit and by nothing else. §6 |
 | A trap is a **whole-program** event; no task resumes | D-063 | there is no "the connection task cleans up" |
-| `failsafe`'s `pick` must **name** every error that can reach it | REACH-002 | every public `error:` we declare is an arm every consuming program owes. §3 |
+| `failsafe`'s `pick` must **name** every error that can reach it | REACH-002 | every identity a reachable `fail` raises — public or private, qualified by its module — is an arm every consuming program owes, beside the floor's six and what its code reaches; an identity never raised costs nothing (measured, §3). §3 |
 | Reachability is **import-scoped** | 1.4.8's `nsys` note | module decomposition decides what a consumer's `failsafe` owes. §3 |
 | An `OwnedFd` is **refused as a channel element** | TYPE-057, D-235; measured, probes 09 and 09b | a connection cannot be queued to a worker pool. This decides the server model outright. `CONCURRENCY_MODEL.md` §3 |
 | An `OwnedFd` does **not** hold a pointer | `escape.npk`, D-185; measured, probes 10 and 10b | a **move** into a spawned task *is* legal, and a borrow across the spawn is `BORROW-004`. The two rules together are the whole concurrency story. `CONCURRENCY_MODEL.md` §3 |
@@ -134,7 +134,10 @@ import-scoped:
 
 - `src/sys/` declares **no error at all** — every failure is an errno.
 - `src/addr/` declares **`ESockAddr` only**. A program that parses and formats
-  addresses and never opens a socket owes exactly one arm.
+  addresses and never opens a socket owes one arm of this library's — `ESockAddr`,
+  qualified by its module — beside the floor's six and what the parser's code
+  reaches (`IntOverflow`, `OutOfBounds`), measured by cycle 0.0.0's block 0b
+  (SK-105).
 - `src/socket/`, `src/stream/`, `src/datagram/`, `src/option/`, `src/server/`
   declare `ESockState` and `ESockCapacity`.
 - `src/ancillary/` declares `ESockProtocol`.

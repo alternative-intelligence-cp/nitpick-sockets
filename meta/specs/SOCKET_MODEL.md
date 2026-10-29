@@ -237,6 +237,11 @@ conflating them is how an accept loop becomes a busy loop or a dead server:
 | `EMFILE` / `ENFILE` | the process or system is out of descriptors | §7.1 |
 | anything else | the listener is broken | fail, forwarded verbatim |
 
+*(2026-10-29, SK-104: `EAGAIN` and `EINTR` are the prelude's `WouldBlock` and `Interrupted`, and compare; at
+compiler `2e1cb4a` nothing names `ECONNABORTED`, `EMFILE` or `ENFILE` that a program can compare an error with
+(probes 13 and 13b), so the loop cannot tell their rows from "anything else". Those two rows, and K-19.1, wait on
+the compiler's answer to O-N5.)*
+
 **Rule K-19.1 — `EMFILE` does not kill the server and does not spin.** Out of
 descriptors, `accept4` fails immediately and the connection stays pending, so a
 naive retry loop spins at 100% CPU accepting nothing. `nsockets`' accept

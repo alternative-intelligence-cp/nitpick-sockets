@@ -38,8 +38,10 @@ is settled here if the author has not settled it earlier.
 - [ ] **the four identities stated as the contract**, with `SK-034`'s rule that
       a fifth is a major version — the one thing about `nsockets` a consumer
       most needs to know, and a rule no library in another language has to state
-- [ ] the fact that **`src/addr/` costs exactly one arm** stated prominently: a
-      program that only parses addresses pays almost nothing
+- [ ] the fact that **a program that parses addresses and never opens a socket
+      owes one arm of this library's** stated prominently — `ESockAddr`,
+      qualified by its module, beside the floor's six and what the parser's code
+      reaches (`SAFETY.md` S-8, SK-105)
 
 ### 1.0.2 — the guide
 - [ ] getting started: an echo server in under thirty lines

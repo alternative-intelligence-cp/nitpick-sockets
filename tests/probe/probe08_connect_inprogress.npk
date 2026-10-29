@@ -1,0 +1,196 @@
+// expect-exit: 0
+//
+// PROBE 08 -- `connect`'S IN-PROGRESS PATH, ITS FAILURE AND ITS SUCCESS.
+//
+// ASKS: a non-blocking TCP `connect` on 127.0.0.1, three times, each waited on for EPOLLOUT:
+//   A. to a CLOSED port (one bound to port 0, read back, and closed): `connect` answers an error that
+//      is none of the prelude's named five; the socket turns writable; `getsockopt(SOL_SOCKET,
+//      SO_ERROR)` reads 111, `ECONNREFUSED`, as data; and a second read reads 0;
+//   B. the same, but after the wait `getpeername` fails and a SECOND `connect` answers the pending
+//      error itself -- an error unlike the first, which then leaves `SO_ERROR` at 0;
+//   C. to a listener on port 0 in this program: `connect` answers the SAME error as A's first --
+//      `EINPROGRESS`, identified by identity, since no program can name it (probe 13) -- the socket
+//      turns writable, `SO_ERROR` reads 0, `getpeername` succeeds, a second `connect` answers
+//      SUCCESS, a third an error unlike every other here (`EISCONN`), and the listener's `accept4`
+//      takes the peer.
+// DEPENDS ON THE ANSWER: SK-014's protocol. At this pin a program compares an errno only with a
+// prelude identity or another error (probe 13), so the protocol must tell its cases apart
+// without naming `EINPROGRESS`: by readiness and a second `connect`, which answers success once the
+// connection is made and otherwise hands back the kernel's own error, to forward verbatim
+// (`SAFETY.md` S-6).
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 59 are the assertions. A loopback
+// connect may complete or fail at once on another kernel; at this machine's it does neither.
+mod:probe08_connect_inprogress;
+
+fixed int64:SYS_CLOSE = 3i64;
+fixed int64:SYS_SOCKET = 41i64;
+fixed int64:SYS_CONNECT = 42i64;
+fixed int64:SYS_BIND = 49i64;
+fixed int64:SYS_LISTEN = 50i64;
+fixed int64:SYS_GETSOCKNAME = 51i64;
+fixed int64:SYS_GETPEERNAME = 52i64;
+fixed int64:SYS_GETSOCKOPT = 55i64;
+fixed int64:SYS_ACCEPT4 = 288i64;
+fixed int64:AF_INET = 2i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:SOL_SOCKET = 1i64;
+fixed int64:SO_ERROR = 4i64;
+fixed int32:EV_OUT = 4i32;
+fixed int64:ECONNREFUSED_NUMBER = 111i64;
+
+struct:SockaddrIn = { uint16:family; uint16:port_be; uint8[4]:addr; uint8[8]:zero; };
+
+// A fresh non-blocking TCP socket, or -1.
+func:tcp_socket = int64() never fails {
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:r = sys(SYS_SOCKET, AF_INET, kind, 0i64);
+    if (r.is_error) { pass 0i64 - 1i64; }
+    pass r.value;
+};
+
+// 127.0.0.1 and `port_be` (already in network order) written into a zeroed 16-byte block.
+func:loopback = wild int8->(uint16:port_be) never fails {
+    wild int8->:blk = calloc(1i64, 16i64);
+    wild SockaddrIn->:sa = blk =>! wild SockaddrIn->;
+    sa.family = 2u16;
+    sa.port_be = port_be;
+    sa.addr[0i64] = 127u8;
+    sa.addr[3i64] = 1u8;
+    pass blk;
+};
+
+// The socket's `SO_ERROR`, read as data, or -1.
+func:so_error = int64(int64:s) never fails {
+    wild int8->:val = calloc(1i64, 8i64);
+    wild int8->:len = calloc(1i64, 8i64);
+    <-(#ptr_add<int32>(len, 0i64)) = 4i32;
+    Result<int64>:r = sys(SYS_GETSOCKOPT, s, SOL_SOCKET, SO_ERROR, val, len);
+    int64:v = (<-(#ptr_add<int32>(val, 0i64))) => int64;
+    dalloc(val);
+    dalloc(len);
+    if (r.is_error) { pass 0i64 - 1i64; }
+    pass v;
+};
+
+// A socket bound to 127.0.0.1:0, its port read back (network order) into `out`, the socket returned.
+func:bound_any = int64(wild int8->:out) never fails {
+    int64:s = raw tcp_socket();
+    if (s < 0i64) { pass 0i64 - 1i64; }
+    wild int8->:blk = raw loopback(0u16);
+    wild int8->:len = calloc(1i64, 8i64);
+    <-(#ptr_add<int32>(len, 0i64)) = 16i32;
+    Result<int64>:rb = sys(SYS_BIND, s, blk, 16i64);
+    Result<int64>:rg = sys(SYS_GETSOCKNAME, s, blk, len);
+    wild SockaddrIn->:sa = blk =>! wild SockaddrIn->;
+    <-(#ptr_add<uint16>(out, 0i64)) = sa.port_be;
+    dalloc(blk);
+    dalloc(len);
+    if (rb.is_error) { pass 0i64 - 1i64; }
+    if (rg.is_error) { pass 0i64 - 1i64; }
+    pass s;
+};
+
+async func:main = int32(cstring[]:_~argv) {
+    // a closed port: bound, read back, closed
+    wild int8->:portw = calloc(1i64, 8i64);
+    int64:gone = raw bound_any(portw);
+    if (gone < 0i64) { exit 10i32; }
+    uint16:closed_port = <-(#ptr_add<uint16>(portw, 0i64));
+    Result<int64>:cg = sys(SYS_CLOSE, gone);
+    if (cg.is_error) { exit 11i32; }
+    wild int8->:to_closed = raw loopback(closed_port);
+
+    // A: SO_ERROR after the wait, then again
+    int64:sa = raw tcp_socket();
+    if (sa < 0i64) { exit 12i32; }
+    Result<int64>:ca = sys(SYS_CONNECT, sa, to_closed, 16i64);
+    if (!ca.is_error) { exit 13i32; }
+    if (ca.err == WouldBlock) { exit 14i32; }
+    if (ca.err == Interrupted) { exit 15i32; }
+    if (ca.err == NotFound) { exit 16i32; }
+    if (ca.err == Exists) { exit 17i32; }
+    if (ca.err == CrossDevice) { exit 18i32; }
+    Result<NIL>:wa = await io_ready((sa =>! int32), EV_OUT, raw duration_ms(1000i64));
+    if (wa.is_error) { exit 19i32; }
+    if ((raw so_error(sa)) != ECONNREFUSED_NUMBER) { exit 20i32; }
+    if ((raw so_error(sa)) != 0i64) { exit 21i32; }
+    Result<int64>:xa = sys(SYS_CLOSE, sa);
+    if (xa.is_error) { exit 22i32; }
+
+    // B: getpeername, then a second connect hands back the pending error
+    int64:sb = raw tcp_socket();
+    if (sb < 0i64) { exit 23i32; }
+    Result<int64>:cb1 = sys(SYS_CONNECT, sb, to_closed, 16i64);
+    if (!cb1.is_error) { exit 24i32; }
+    if (cb1.err != ca.err) { exit 25i32; }
+    Result<NIL>:wb = await io_ready((sb =>! int32), EV_OUT, raw duration_ms(1000i64));
+    if (wb.is_error) { exit 26i32; }
+    wild int8->:peer = calloc(1i64, 16i64);
+    wild int8->:peerlen = calloc(1i64, 8i64);
+    <-(#ptr_add<int32>(peerlen, 0i64)) = 16i32;
+    Result<int64>:pb = sys(SYS_GETPEERNAME, sb, peer, peerlen);
+    if (!pb.is_error) { exit 27i32; }
+    Result<int64>:cb2 = sys(SYS_CONNECT, sb, to_closed, 16i64);
+    if (!cb2.is_error) { exit 28i32; }
+    if (cb2.err == cb1.err) { exit 29i32; }
+    if ((raw so_error(sb)) != 0i64) { exit 30i32; }
+    Result<int64>:xb = sys(SYS_CLOSE, sb);
+    if (xb.is_error) { exit 31i32; }
+
+    // C: a listener, and the same first answer
+    int64:lsn = raw bound_any(portw);
+    if (lsn < 0i64) { exit 32i32; }
+    Result<int64>:rl = sys(SYS_LISTEN, lsn, 8i64);
+    if (rl.is_error) { exit 33i32; }
+    wild int8->:to_lsn = raw loopback(<-(#ptr_add<uint16>(portw, 0i64)));
+    int64:sc = raw tcp_socket();
+    if (sc < 0i64) { exit 34i32; }
+    Result<int64>:cc1 = sys(SYS_CONNECT, sc, to_lsn, 16i64);
+    if (!cc1.is_error) { exit 35i32; }
+    if (cc1.err != ca.err) { exit 36i32; }
+    Result<NIL>:wc = await io_ready((sc =>! int32), EV_OUT, raw duration_ms(1000i64));
+    if (wc.is_error) { exit 37i32; }
+    if ((raw so_error(sc)) != 0i64) { exit 38i32; }
+    <-(#ptr_add<int32>(peerlen, 0i64)) = 16i32;
+    Result<int64>:pc = sys(SYS_GETPEERNAME, sc, peer, peerlen);
+    if (pc.is_error) { exit 39i32; }
+    Result<int64>:cc2 = sys(SYS_CONNECT, sc, to_lsn, 16i64);
+    if (cc2.is_error) { exit 40i32; }
+    Result<int64>:cc3 = sys(SYS_CONNECT, sc, to_lsn, 16i64);
+    if (!cc3.is_error) { exit 41i32; }
+    if (cc3.err == cc1.err) { exit 42i32; }
+    if (cc3.err == cb2.err) { exit 47i32; }
+    int64:kind = SOCK_NONBLOCK | SOCK_CLOEXEC;
+    Result<int64>:acc = sys(SYS_ACCEPT4, lsn, 0i64, 0i64, kind);
+    if (acc.is_error) { exit 43i32; }
+    dalloc(peer);
+    dalloc(peerlen);
+    dalloc(portw);
+    dalloc(to_closed);
+    dalloc(to_lsn);
+    Result<int64>:x1 = sys(SYS_CLOSE, acc.value);
+    Result<int64>:x2 = sys(SYS_CLOSE, sc);
+    Result<int64>:x3 = sys(SYS_CLOSE, lsn);
+    if (x1.is_error) { exit 44i32; }
+    if (x2.is_error) { exit 45i32; }
+    if (x3.is_error) { exit 46i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (OutOfBounds)       { exit 94i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (DeadlineExceeded)  { exit 111i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

@@ -1,0 +1,110 @@
+// expect-exit: 0
+//
+// PROBE 07 -- `io_ready` AND `io_ready2` ON SOCKETS.
+//
+// ASKS: the prelude's reactor waits on a `socketpair`, each with a deadline: `io_ready(descr, 1,
+// within)` (EPOLLIN) with a byte pending returns well before its deadline; the same with nothing
+// pending answers `DeadlineExceeded`, no sooner than the deadline; `io_ready(descr, 4, within)`
+// (EPOLLOUT) on a writable socket returns; `io_ready2` over both ends with only one readable
+// returns; and over two with neither readable answers `DeadlineExceeded`. A descriptor is the
+// reactor's `int32` -- `(o.value) =>! int32` at each call.
+// DEPENDS ON THE ANSWER: `CONCURRENCY_MODEL.md` §1 -- every wait in the library is one of these --
+// and `io_ready2` is what makes fan-in expressible without a `select` the language does not have.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions; the time
+// bounds are wide (a ready wait under 900 ms of a 1 s deadline; an expired one no sooner than its
+// 20 ms), so the probe states a verdict, not a rate.
+mod:probe07_io_ready;
+
+fixed int64:SYS_SENDTO = 44i64;
+fixed int64:SYS_RECVFROM = 45i64;
+fixed int64:SYS_SOCKETPAIR = 53i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:MSG_NOSIGNAL = 16384i64;
+fixed int32:EV_IN = 1i32;
+fixed int32:EV_OUT = 4i32;
+fixed int64:MS = 1000000i64;
+
+error:ESend;
+error:ERecv;
+
+func:send_one = NIL(OwnedFd->:o) {
+    wild int8->:one = calloc(1i64, 8i64);
+    <-one = 7i8;
+    Result<int64>:r = sys(SYS_SENDTO, o.value, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);
+    dalloc(one);
+    if (r.is_error) { fail ESend; }
+    pass NIL;
+};
+
+func:recv_one = NIL(OwnedFd->:o) {
+    wild int8->:one = calloc(1i64, 8i64);
+    Result<int64>:r = sys(SYS_RECVFROM, o.value, one, 1i64, 0i64, 0i64, 0i64);
+    dalloc(one);
+    if (r.is_error) { fail ERecv; }
+    pass NIL;
+};
+
+async func:main = int32(cstring[]:_~argv) {
+    wild int8->:sv = alloc(8i64);
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
+    if (rp.is_error) { exit 10i32; }
+    OwnedFd:a = own_fd(((<-(#ptr_add<int32>(sv, 0i64)))) =>! fd);
+    OwnedFd:b = own_fd(((<-(#ptr_add<int32>(sv, 1i64)))) =>! fd);
+    dalloc(sv);
+    int32:ia = (a.value) =>! int32;
+    int32:ib = (b.value) =>! int32;
+
+    // readable with a byte pending: well inside the deadline
+    send_one(@a) ?! ESend;
+    int64:t0 = mono_now();
+    Result<NIL>:w1 = await io_ready(ib, EV_IN, raw duration_ms(1000i64));
+    if (w1.is_error) { exit 11i32; }
+    if (((mono_now()) - t0) >= (900i64 * MS)) { exit 12i32; }
+    recv_one(@b) ?! ERecv;
+
+    // nothing pending: the deadline's, no sooner than it
+    int64:t1 = mono_now();
+    Result<NIL>:w2 = await io_ready(ib, EV_IN, raw duration_ms(20i64));
+    if (!w2.is_error) { exit 13i32; }
+    if (w2.err != DeadlineExceeded) { exit 14i32; }
+    if (((mono_now()) - t1) < (20i64 * MS)) { exit 15i32; }
+
+    // writable
+    Result<NIL>:w3 = await io_ready(ia, EV_OUT, raw duration_ms(1000i64));
+    if (w3.is_error) { exit 16i32; }
+
+    // two descriptors, one readable
+    send_one(@a) ?! ESend;
+    int64:t2 = mono_now();
+    Result<NIL>:w4 = await io_ready2(ia, EV_IN, ib, EV_IN, raw duration_ms(1000i64));
+    if (w4.is_error) { exit 17i32; }
+    if (((mono_now()) - t2) >= (900i64 * MS)) { exit 18i32; }
+    recv_one(@b) ?! ERecv;
+
+    // two descriptors, neither readable
+    Result<NIL>:w5 = await io_ready2(ia, EV_IN, ib, EV_IN, raw duration_ms(20i64));
+    if (!w5.is_error) { exit 19i32; }
+    if (w5.err != DeadlineExceeded) { exit 20i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (ESend)             { exit 21i32; },
+        (ERecv)             { exit 22i32; },
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (DeadlineExceeded)  { exit 111i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

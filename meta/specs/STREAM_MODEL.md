@@ -107,6 +107,14 @@ socket `connect` almost never completes immediately. The sequence is:
    - otherwise → **fail with that errno**, forwarded verbatim, so a caller sees
      `ECONNREFUSED` (`-111`), `ETIMEDOUT` (`-110`) or `EHOSTUNREACH` (`-113`)
      and can tell them apart.
+
+   *(2026-10-29, SK-104: at compiler `2e1cb4a` no program can make an error
+   of `SO_ERROR`'s number, nor name `EINPROGRESS` to compare step 2's answer
+   with (probes 13 and 13b). Probe 08 measures the spelling that needs neither:
+   after the wait, a SECOND `connect` answers success once the connection is
+   made and otherwise hands back the kernel's own error — `ECONNREFUSED` for a
+   closed port — to forward verbatim, leaving `SO_ERROR` at 0. Cycle 0.3.1
+   writes steps 2 and 4 by it.)*
 5. **`EINTR`** — the handshake continues in the background. Do **not** re-call
    `connect`; go to step 3. A second `connect` on a socket already connecting
    returns `EALREADY`, and a loop that retries on `EINTR` by re-calling
@@ -144,6 +152,14 @@ loop:
     if r.err == TooManyOpenFiles|FileTableFull-> fail it: the caller backs off (K-19.1)
     otherwise                -> fail r.err
 ```
+
+*(2026-10-29, SK-104: the `Interrupted` and `WouldBlock` rows compare — they
+are the prelude's; at compiler `2e1cb4a` nothing names `ECONNABORTED`,
+`EMFILE` or `ENFILE` that a program can compare an error with (probes 13 and
+13b), and `ConnAborted`, `TooManyOpenFiles` and `FileTableFull` are no
+identities the prelude declares, so the loop cannot tell those two rows from
+`otherwise`. They, and T-13's retry, wait on the compiler's answer to O-N5, as
+`SOCKET_MODEL.md` K-19's rows do.)*
 
 **Rule T-13 — `ECONNABORTED` is not an error about the listener.** The peer
 sent a SYN and then reset before the accept. Failing the accept loop on it kills

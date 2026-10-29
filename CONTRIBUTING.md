@@ -44,8 +44,9 @@ never for concluding.
    only server shape the language permits. `meta/specs/CONCURRENCY_MODEL.md` §2
    has the two compiler rules and where they live in its source.
 
-3. **Every public `error:` this library declares becomes a mandatory `pick` arm
-   in every consuming program's `failsafe`.** The budget is four, it is a
+3. **Every identity this library's code can raise becomes a mandatory `pick`
+   arm in every consuming program's `failsafe`** — public or private, qualified
+   by its module, beside the floor's six (SK-105). The budget is four, it is a
    ceiling, and adding a fifth is a major version. Kernel errnos are forwarded
    verbatim and cost nothing — that is the mechanism that keeps the budget
    small, and it is why `ECONNREFUSED` is not an identity.

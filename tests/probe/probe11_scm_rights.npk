@@ -1,0 +1,152 @@
+// expect-exit: 0
+//
+// PROBE 11 -- `SCM_RIGHTS` OVER A `socketpair`, RECEIVED WITH `MSG_CMSG_CLOEXEC`.
+//
+// ASKS: a pipe holding three bytes, its read end passed over a `socketpair` by `sendmsg` with one
+// payload byte and one `cmsghdr` of `SOL_SOCKET`/`SCM_RIGHTS` -- `cmsg_len` = `CMSG_LEN(4)` = 20 in a
+// control buffer of `CMSG_SPACE(4)` = 24 -- and received by `recvmsg` with `MSG_CMSG_CLOEXEC`
+// (0x40000000) in its flags word. The received descriptor is a different number, the control
+// length and the header come back as sent, reading through it gives the pipe's bytes, and
+// `fcntl(F_GETFD)` reports `FD_CLOEXEC` -- so the flag reached the kernel through `sys`.
+// DEPENDS ON THE ANSWER: `ANCILLARY_MODEL.md` end to end -- N-2's distinction between `CMSG_LEN`
+// and `CMSG_SPACE`, and the rule that every received descriptor is close-on-exec atomically.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 39 are the assertions.
+mod:probe11_scm_rights;
+
+fixed int64:SYS_READ = 0i64;
+fixed int64:SYS_WRITE = 1i64;
+fixed int64:SYS_CLOSE = 3i64;
+fixed int64:SYS_SENDMSG = 46i64;
+fixed int64:SYS_RECVMSG = 47i64;
+fixed int64:SYS_SOCKETPAIR = 53i64;
+fixed int64:SYS_FCNTL = 72i64;
+fixed int64:SYS_PIPE2 = 293i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:PIPE_CLOEXEC = 524288i64;
+fixed int64:MSG_NOSIGNAL = 16384i64;
+fixed int64:MSG_CMSG_CLOEXEC = 1073741824i64;
+fixed int32:SOL_SOCKET = 1i32;
+fixed int32:SCM_RIGHTS = 1i32;
+fixed int64:F_GETFD = 1i64;
+fixed int64:FD_CLOEXEC = 1i64;
+fixed int64:CMSG_LEN_ONE_FD = 20i64;
+fixed int64:CMSG_SPACE_ONE_FD = 24i64;
+
+// `msg_namelen` and `msg_flags` as one 8-byte word each, covering the `int32` and its padding (N-1).
+struct:MsgHdr = {
+    wild int8->:name; int64:namelen;
+    wild int8->:iov; uint64:iovlen;
+    wild int8->:control; uint64:controllen;
+    int64:flags;
+};
+struct:IoVec = { wild int8->:base; uint64:len; };
+struct:CmsgFd = { uint64:len; int32:level; int32:ctype; int32:passed; int32:pad; };
+
+func:main = int32(cstring[]:_~argv) {
+    if (#size_of<CmsgFd>() != CMSG_SPACE_ONE_FD) { exit 10i32; }
+    // the pipe, three bytes in it
+    wild int8->:pv = alloc(8i64);
+    Result<int64>:rp = sys(SYS_PIPE2, pv, PIPE_CLOEXEC);
+    if (rp.is_error) { exit 11i32; }
+    int64:pr = (<-(#ptr_add<int32>(pv, 0i64))) => int64;
+    int64:pw = (<-(#ptr_add<int32>(pv, 1i64))) => int64;
+    dalloc(pv);
+    wild int8->:xyz = calloc(1i64, 8i64);
+    <-(#ptr_add<uint8>(xyz, 0i64)) = 120u8;
+    <-(#ptr_add<uint8>(xyz, 1i64)) = 121u8;
+    <-(#ptr_add<uint8>(xyz, 2i64)) = 122u8;
+    Result<int64>:rw = sys(SYS_WRITE, pw, xyz, 3i64);
+    dalloc(xyz);
+    if (rw.is_error) { exit 12i32; }
+
+    // the socketpair
+    wild int8->:sv = alloc(8i64);
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:rs = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
+    if (rs.is_error) { exit 13i32; }
+    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
+    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
+    dalloc(sv);
+
+    // send the read end: one payload byte, one SCM_RIGHTS header
+    wild int8->:blk = calloc(1i64, 128i64);
+    wild MsgHdr->:sm = blk =>! wild MsgHdr->;
+    wild IoVec->:siv = (#ptr_add<int8>(blk, 56i64)) =>! wild IoVec->;
+    wild CmsgFd->:sc = (#ptr_add<int8>(blk, 72i64)) =>! wild CmsgFd->;
+    siv.base = #ptr_add<int8>(blk, 120i64);
+    siv.len = 1u64;
+    sc.len = CMSG_LEN_ONE_FD =>! uint64;
+    sc.level = SOL_SOCKET;
+    sc.ctype = SCM_RIGHTS;
+    sc.passed = pr =>! int32;
+    sm.iov = #ptr_add<int8>(blk, 56i64);
+    sm.iovlen = 1u64;
+    sm.control = #ptr_add<int8>(blk, 72i64);
+    sm.controllen = CMSG_SPACE_ONE_FD =>! uint64;
+    Result<int64>:rsend = sys(SYS_SENDMSG, a, blk, MSG_NOSIGNAL);
+    dalloc(blk);
+    if (rsend.is_error) { exit 14i32; }
+    if (rsend.value != 1i64) { exit 15i32; }
+
+    // receive it, close-on-exec atomically
+    wild int8->:rblk = calloc(1i64, 128i64);
+    wild MsgHdr->:rm = rblk =>! wild MsgHdr->;
+    wild IoVec->:riv = (#ptr_add<int8>(rblk, 56i64)) =>! wild IoVec->;
+    wild CmsgFd->:rc = (#ptr_add<int8>(rblk, 72i64)) =>! wild CmsgFd->;
+    riv.base = #ptr_add<int8>(rblk, 120i64);
+    riv.len = 1u64;
+    rm.iov = #ptr_add<int8>(rblk, 56i64);
+    rm.iovlen = 1u64;
+    rm.control = #ptr_add<int8>(rblk, 72i64);
+    rm.controllen = CMSG_SPACE_ONE_FD =>! uint64;
+    Result<int64>:rrecv = sys(SYS_RECVMSG, b, rblk, MSG_CMSG_CLOEXEC);
+    if (rrecv.is_error) { exit 16i32; }
+    if (rrecv.value != 1i64) { exit 17i32; }
+    if ((rm.flags & 8i64) != 0i64) { exit 18i32; }
+    if ((rm.controllen =>! int64) != CMSG_SPACE_ONE_FD) { exit 19i32; }
+    if ((rc.len =>! int64) != CMSG_LEN_ONE_FD) { exit 20i32; }
+    if (rc.level != SOL_SOCKET) { exit 21i32; }
+    if (rc.ctype != SCM_RIGHTS) { exit 22i32; }
+    int64:got = rc.passed => int64;
+    dalloc(rblk);
+    if (got == pr) { exit 23i32; }
+    if (got < 3i64) { exit 24i32; }
+    Result<int64>:fl = sys(SYS_FCNTL, got, F_GETFD);
+    if (fl.is_error) { exit 25i32; }
+    if ((fl.value & FD_CLOEXEC) == 0i64) { exit 26i32; }
+
+    // the pipe's bytes, through the received descriptor
+    wild int8->:inb = calloc(1i64, 8i64);
+    Result<int64>:rr = sys(SYS_READ, got, inb, 8i64);
+    if (rr.is_error) { exit 27i32; }
+    if (rr.value != 3i64) { exit 28i32; }
+    if ((<-(#ptr_add<uint8>(inb, 2i64))) != 122u8) { exit 29i32; }
+    dalloc(inb);
+    Result<int64>:c1 = sys(SYS_CLOSE, got);
+    Result<int64>:c2 = sys(SYS_CLOSE, pr);
+    Result<int64>:c3 = sys(SYS_CLOSE, pw);
+    Result<int64>:c4 = sys(SYS_CLOSE, a);
+    Result<int64>:c5 = sys(SYS_CLOSE, b);
+    if (c1.is_error) { exit 30i32; }
+    if (c2.is_error) { exit 31i32; }
+    if (c3.is_error) { exit 32i32; }
+    if (c4.is_error) { exit 33i32; }
+    if (c5.is_error) { exit 34i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

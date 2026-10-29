@@ -1,0 +1,32 @@
+// expect-error: NITPICK-TYPE-032
+//
+// PROBE 13b -- AN ERROR READ AS A NUMBER.
+//
+// ASKS: may a program read the code a kernel errno carries -- `int32:code = r.err =>! int32;` -- so
+// that it could compare it with a number where it cannot name an identity (probe 13)?
+// DEPENDS ON THE ANSWER: with probe 13, SK-014, SK-031 and S-6.
+// EXPECTED: refused, `NITPICK-TYPE-032` at the cast, and nothing else. An error compares only with
+// an identity the prelude declares, or with another error (probes 04, 05, 08 and 10 do both).
+mod:probe13b_errno_number;
+
+fixed int64:SYS_CLOSE = 3i64;
+
+func:main = int32(cstring[]:_~argv) {
+    Result<int64>:r = sys(SYS_CLOSE, 987654i64);
+    if (!r.is_error) { exit 10i32; }
+    int32:code = r.err =>! int32;
+    exit code;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

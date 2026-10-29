@@ -13,10 +13,12 @@ A question that gets answered moves to `DECISIONS.md` as a numbered decision
 and is struck through here with the decision's number, **never deleted** — the
 question is part of the record of how the answer was reached.
 
-**No cycle in this plan is blocked on a question.** What is open below is open
-by design: two measurements, three defaults that want a number rather than a
-taste, one item gated on the compiler's tooling, and three that are the
-compiler's rather than ours.
+**One cycle's items wait on the compiler:** two rows of cycle 0.3's accept loop
+and cycle 0.8.2's back-off wait on O-N5 (SK-104). Everything else below is
+open by design, and each entry says why — a measurement, a default that wants a
+number rather than a taste, or the compiler's. *(2026-10-29: this said "No cycle
+in this plan is blocked on a question", and counted the entries, which the
+entries now do themselves.)*
 
 ---
 
@@ -43,7 +45,9 @@ socket-specific error space are not specified here. `ARCHIVE/nsocket` exists
 and has not been assessed."*
 **This library is the answer.** The ask is a one-line amendment pointing at it
 once `nsockets` exists, so the language's specification stops carrying an open
-item that has been closed elsewhere.
+item that has been closed elsewhere. *(This id is this repository's own; a
+workbench registry id for it is the orchestrator's to assign — the early
+ecosystem audit's ED2.)*
 
 ### O-N2 — `npkg` cannot build a library, and `[dependencies]` resolves to nothing
 Measured at the compiler's 1.5.0 and recorded in `specs/BUILD.md` §1.
@@ -65,7 +69,9 @@ so explicitly. The code is right and the comment is loose.
 designing a server will look, and `SK-035` is built on the code's behaviour
 rather than the comment's. *(2026-10-29, cycle 0.0.0: the behaviour RUN at compiler
 `2e1cb4a` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
-so, `src/frontend/types.npk:1756`, "cross a spawn". The ask stands.)*
+so, `src/frontend/types.npk:1756`, "cross a spawn". The ask stands.)* *(This id is
+this repository's own; a workbench registry id for it is the orchestrator's to
+assign — ED2.)*
 
 ### O-N4 — no `sigaction` and no signal-mask primitive in the language
 Stated as an observation rather than a request: `nsockets` needs neither
@@ -76,7 +82,30 @@ have one library that wants it and one that does not. *(2026-10-29, cycle
 0.0.0: the floor's runtime itself installs handlers — `SIGPIPE`'s returns,
 measured by probe 04 through a raw `rt_sigaction` read — so the language's
 programs have a disposition that is not the default; `nsockets` still needs no
-signal facility, SK-101.)*
+signal facility, SK-101.)* *(This id is this repository's own; a workbench
+registry id for it is the orchestrator's to assign — ED2.)*
+
+### O-N5 — an errno the prelude does not name can be forwarded, but neither named nor compared
+Measured at compiler `c9baa9e` by cycle 0.0.0's probes 13 and 13b: a program's
+`error:EInProgress = 115i32;` is `NITPICK-RESOLVE-010` — *"an explicit error
+code is the prelude's alone (D-179)"* — and `r.err =>! int32` is
+`NITPICK-TYPE-032`. An error compares only with an identity the prelude
+declares — five errnos beside `IoEof` — or with another error (probes 04, 05,
+08 and 10 identify theirs against a witness). So `connect`'s `EINPROGRESS` and
+the accept loop's `ECONNABORTED`, `EMFILE` and `ENFILE` cannot be told apart
+from any other failure, though each is forwarded verbatim at no cost
+(`SAFETY.md` S-6). *(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption:
+`NITPICK-RESOLVE-010` at 15:1 and `NITPICK-TYPE-032` at 17:24, the same.)*
+**Ask:** the prelude names the errnos a socket library decides on —
+`EINPROGRESS` (115), `EALREADY` (114), `ECONNABORTED` (103), `EMFILE` (24) and
+`ENFILE` (23) at least — as it names `WouldBlock` and `Interrupted`, where its
+own comment says naming more "is a decision for the code that needs it"; no
+wrapper `fail`s one by name, so naming them costs no `failsafe` an arm.
+**Until then** cycle 0.3.1's connect is spelled without `EINPROGRESS`, by a
+second `connect` after the wait (probe 08), and `SOCKET_MODEL.md` K-19's
+`ECONNABORTED` and `EMFILE`/`ENFILE` rows, K-19.1 and cycle 0.8.2's back-off
+wait on this answer (SK-104). *(This id is this repository's own; a
+workbench registry id for it is the orchestrator's to assign — ED2.)*
 
 ---
 

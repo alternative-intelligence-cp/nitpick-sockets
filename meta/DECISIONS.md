@@ -179,6 +179,8 @@ call site in `src/`, with a whitelist of zero (`TESTING.md` V-11), because a
 rule about every call site is a rule that will be broken by the twentieth one.
 
 ### SK-014 — connect's `EINPROGRESS` protocol, including the `SO_ERROR` read
+> **SUPERSEDED IN PART by SK-104 (2026-10-29): its mechanism.** At compiler `2e1cb4a` no program can name
+> `EINPROGRESS` or make an error of `SO_ERROR`'s number; a second `connect` after the wait answers the outcome (probe 08).
 **2026-09-03.** On a non-blocking socket, `connect` returning `EINPROGRESS`
 means the handshake is running; the socket becomes **writable** on both success
 and failure, so writability is not the answer. The library waits for
@@ -414,6 +416,11 @@ failing the loop on it kills a server because a client pressed Ctrl-C. `EMFILE`
 leaves the connection pending, so a naive retry spins at 100% CPU accepting
 nothing; a bounded back-off turns a melt into a degradation.
 
+*(2026-10-29, cycle 0.0.0, SK-104: at compiler `2e1cb4a` the `EINTR` and `EAGAIN` rows compare — they are the
+prelude's `Interrupted` and `WouldBlock` — and the `ECONNABORTED` and `EMFILE`/`ENFILE` rows cannot: nothing names
+them that an error can be compared with (probes 13, 13b). Those rows, and the back-off, wait on the compiler's answer
+to O-N5; the table's design holds as written.)*
+
 ### SK-032 — `SO_REUSEADDR` on by default for listeners; `SO_REUSEPORT` never
 **2026-09-03.** Without `SO_REUSEADDR`, a server restarted within the
 `TIME_WAIT` window fails `EADDRINUSE` — the most common surprise in socket
@@ -621,3 +628,61 @@ edge** — a copy per call to undo a type the compiler hands out.
 *Reversal:* if a later compiler lets `string_bytes` fill a plain slot, nothing need move: a `fixed` parameter takes a
 plain view too (probe 14). If it removes the read-only view, the parameters return to `uint8[]` by a later decision,
 probe 14 reddening first.
+
+### SK-104 — an errno is compared only with the prelude's identities or another error; what needs more waits on O-N5
+**2026-10-29, cycle 0.0.0 step 4, probes 08, 13 and 13b. Supersedes `SK-014` in part: its mechanism.**
+
+*What was measured* at compiler `c9baa9e`: a program's `error:EInProgress = 115i32;` is `NITPICK-RESOLVE-010` at the
+declaration — an explicit error code is the prelude's alone (D-179) — and `int32:code = r.err =>! int32;` is
+`NITPICK-TYPE-032` (probes 13, 13b); an error compares with a prelude identity (`r.err == WouldBlock`) and with
+another error, equal when the errno is (probes 04, 05, 08 and 10 identify `EPIPE` and `EBADF` against witnesses). A
+non-blocking TCP `connect` on loopback answers an error none of the prelude's five — the same one whether the port
+is closed or listening, so `EINPROGRESS` — and the socket turns writable either way; `SO_ERROR` then reads 111 as data
+and 0 on a second read; and a second `connect` after the wait answers success once the connection is made, and
+otherwise the pending error itself — unlike the first, and leaving `SO_ERROR` at 0 (probe 08, legs A, B and C).
+
+*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
+
+*So:* this library compares an errno only with an identity the prelude declares or with another error, and names
+none. `SK-014`'s protocol keeps its reasoning — writability is not success — and changes its mechanism: after any
+`connect` error but `WouldBlock` and `Interrupted`, it waits for writability within the deadline, and a second
+`connect` answers the outcome, its error forwarded verbatim (`SAFETY.md` S-6); `SO_ERROR`'s number, which no
+program can make an error of, is not what reports the failure. `SK-031`'s `ECONNABORTED` and `EMFILE`/`ENFILE` rows,
+`SOCKET_MODEL.md` K-19.1 and cycle 0.8.2's back-off cannot be spelled at the pin, and wait on the compiler's answer
+to O-N5, which asks the prelude to name the errnos a socket library decides on.
+
+*Alternatives declined:* **read the error's bytes through a pointer to the `Result`** — reading a representation
+the language does not define, a workaround its R6 forbids; **manufacture a witness error per errno at startup**
+(`EPIPE` from a pipe, as probe 04 does) — a probe's measuring device, not a library's mechanism, and no syscall
+yields `EMFILE` on demand without spending the descriptor table; **treat every accept error but the prelude's two
+as retryable** — a broken listener becomes a busy loop, the failure K-19 exists to prevent.
+
+*Reversal:* when the compiler names these errnos, `SK-014`'s first-answer comparison and K-19's two rows return as
+written, by a decision that cites the landing; probes 13 and 13b keep their verdicts, since a program still may not
+name an errno with its code.
+
+### SK-105 — what a consumer of each module shape owes, measured; the tests' arm codes beyond the convention
+**2026-10-29, cycle 0.0.0 step 4.**
+
+*What was measured* — `NITPICK-REACH-003`, a root importing one module and declaring no `failsafe`, the compiler as
+the oracle (`PLAYBOOK.md` §6), at compiler `c9baa9e`, re-measured by block 0b: a `sys` wrapper forwarding the
+kernel's errno verbatim owes the floor's six alone; a module raising a public identity owes it qualified by the
+module, `m.ESockAddr`, and one raising a private identity owes it the same way, `m.ESockState`; a public identity
+declared and never raised costs nothing; a decoder that indexes its view and shifts owes `IntOverflow` and
+`OutOfBounds` beside the six; and a wait on the reactor owes `DeadlineExceeded` and `IntOverflow` beside them.
+
+*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
+
+*So:* `SAFETY.md` S-6 holds as written — a forwarded errno costs no arm. S-8's "owes exactly one arm" counted the
+library's identities, not the bill, and now says both; `SAFETY.md` §1's REACH-002 row and `CONTRIBUTING.md`'s third
+surprise say what is owed — every identity a reachable `fail` raises, public or private, qualified by its module —
+the sentence the early ecosystem audit's EC3 found here, which `PLAYBOOK.md` §2 corrected for the ecosystem;
+cycle 0.0.3's `check_error_budget` is what enforces it. And the arm codes this cycle's programs use beyond
+`PLAYBOOK.md` §3 item 8: `DeadlineExceeded` 111 and `IoEof` 112, above 99 and clear of every code item 8 assigns.
+No probe here reaches `DivByZero` or `DivOverflow`; one that does takes nitpick-parse's 97 and 98.
+
+*Alternatives declined:* **state the bill from the declarations** — EC3's own fault; **give the reactor's identities
+the wildcard's 99** — a test could not tell a deadline from any other trap.
+
+*Reversal:* none for the bills, which are measurements a later pin re-takes; the codes move by a later decision if
+`PLAYBOOK.md` §3 item 8 assigns these identities others, every `failsafe` that names them following.

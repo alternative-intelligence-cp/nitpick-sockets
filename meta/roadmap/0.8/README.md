@@ -52,7 +52,7 @@ measurement**: what a scope with ten thousand joined tasks costs), `O-C3`
 
 ### 0.8.2 — the `EMFILE` back-off
 - [ ] `EMFILE`/`ENFILE` from `accept4` returned with the connection pending
-      (K-19.1)
+      (K-19.1) — **waits on O-N5** (SK-104)
 - [ ] `NSOCK_EMFILE_BACKOFF` (50 ms, a named constant) before a retry
 - [ ] **a test that actually exhausts the descriptor table** — `setrlimit`
       through `sys`, then accept — and asserts the server stays alive, does not
