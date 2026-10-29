@@ -1,0 +1,37 @@
+// expect-error: NITPICK-BORROW-004
+//
+// PROBE 10b -- A BORROW OF AN `OwnedFd` ACROSS A SPAWN.
+//
+// ASKS: probe 10's other half: `drop peek(@o)`, a task handed a BORROW of the descriptor its
+// spawner owns. D-004 rule 4, as D-180 narrows it to the spawn, says no.
+// DEPENDS ON THE ANSWER: SK-035 -- the asymmetry with probe 10's legal move is the whole finding.
+// EXPECTED: refused, `NITPICK-BORROW-004` at the spawn, and nothing else.
+mod:probe10b_borrow_spawn;
+
+async func:peek = NIL(OwnedFd->:p) {
+    pass NIL;
+};
+
+async func:serve = NIL(int64:descr) {
+    OwnedFd:o = own_fd((descr =>! int32) =>! fd);
+    drop peek(@o);
+    pass NIL;
+};
+
+async func:main = int32(cstring[]:_~argv) {
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (DeadlineExceeded)  { exit 111i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

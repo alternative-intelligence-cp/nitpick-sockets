@@ -33,11 +33,12 @@ every Nitpick library, if you have the sibling checkouts.
 
 ## The two rules this library exists around
 
-**1. Every send carries `MSG_NOSIGNAL`** (`SK-013`). The Nitpick runtime
-installs **no** signal disposition — a search of `runtime/npkrt.ll` finds no
-`rt_sigaction` — so `SIGPIPE`'s default is live and its default is to terminate
-the process. The compiler's own Bridge records the consequence: *"the first
-EPIPE schedule proved it by taking the whole process down."*
+**1. Every send carries `MSG_NOSIGNAL`** (`SK-013`, SK-101). The floor's
+runtime catches `SIGPIPE` with a handler that returns, so on it a send to a
+dead peer answers `EPIPE`; under the default disposition — which a host may
+restore, and a runtime may stop overriding — the same send kills the process.
+`MSG_NOSIGNAL` answers `EPIPE` under both (probe 04, measured at compiler
+`c9baa9e`).
 
 The corollary that will be broken by accident: **this library does not use the
 runtime floor's `write` on a socket**, and neither may an impl of the prelude's

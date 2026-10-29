@@ -14,13 +14,13 @@ costs a library that talks to the kernel over descriptors.
 
 | Language rule | Where | Consequence for `nsockets` |
 |---|---|---|
-| **The runtime installs no signal dispositions** | measured, §2 | `SIGPIPE`'s default is live and it terminates the process. **Every send carries `MSG_NOSIGNAL`.** §2 |
+| **The runtime catches `SIGPIPE` with a handler that returns** | measured, §2 (probe 04) | a send to a dead peer answers `EPIPE` on the floor's runtime, and kills a process whose disposition is the default. **Every send carries `MSG_NOSIGNAL`**, which answers `EPIPE` under either. §2 |
 | `defer` does **not** run on a trap | D-014 | a socket open at trap time is closed by process exit and by nothing else. §6 |
 | A trap is a **whole-program** event; no task resumes | D-063 | there is no "the connection task cleans up" |
 | `failsafe`'s `pick` must **name** every error that can reach it | REACH-002 | every public `error:` we declare is an arm every consuming program owes. §3 |
 | Reachability is **import-scoped** | 1.4.8's `nsys` note | module decomposition decides what a consumer's `failsafe` owes. §3 |
-| An `OwnedFd` is **refused as a channel element** | TYPE-057, D-235 | a connection cannot be queued to a worker pool. This decides the server model outright. `CONCURRENCY_MODEL.md` §3 |
-| An `OwnedFd` does **not** hold a pointer | `escape.npk`, D-185 | a **move** into a spawned task *is* legal. The two rules together are the whole concurrency story. `CONCURRENCY_MODEL.md` §3 |
+| An `OwnedFd` is **refused as a channel element** | TYPE-057, D-235; measured, probes 09 and 09b | a connection cannot be queued to a worker pool. This decides the server model outright. `CONCURRENCY_MODEL.md` §3 |
+| An `OwnedFd` does **not** hold a pointer | `escape.npk`, D-185; measured, probes 10 and 10b | a **move** into a spawned task *is* legal, and a borrow across the spawn is `BORROW-004`. The two rules together are the whole concurrency story. `CONCURRENCY_MODEL.md` §3 |
 | Owning values are **move-only** | TYPE-046 | no binding-to-binding copies of an `OwnedFd`; a socket is consumed or borrowed, never duplicated by assignment |
 | Borrows are second class | D-004 | a byte view handed to `send` cannot be stored, returned, or held across an `await` |
 | A successful `exit 0` with live `wild` allocations **traps** | D-151 | every `wild` byte an ancillary buffer takes is paired on every path. §6 |
@@ -44,28 +44,41 @@ is to **terminate the process** — not to return an error, not to route through
 `failsafe`, not to run a `defer`. The program is gone, mid-transaction, with
 whatever it was holding.
 
-**This is live in Nitpick, and it is measured, not assumed.** The runtime
-(`runtime/npkrt.ll`) installs no signal disposition for anything: a search of
-its 3 400 lines finds no `rt_sigaction` call. There is no `SIG_IGN` for
-`SIGPIPE` at `_start` and no equivalent anywhere else. The compiler's own
-Bridge records the consequence in its source, in as many words:
+**What the floor's runtime does, measured at compiler `c9baa9e`** (probe 04,
+`tests/probe/probe04_sigpipe.npk`, at `-O0` and through `opt -O2`). It catches
+`SIGPIPE` with a handler that returns: `runtime/npkrt.ll`'s `npk_fault_arm`
+installs it at startup (the compiler's DEF-68), and `rt_sigaction(SIGPIPE,
+NULL, &prior)` reads it back — neither `SIG_DFL` nor `SIG_IGN`, its flags
+`SA_RESTORER | SA_ONSTACK | SA_RESTART`. So on the floor's runtime a send with
+no flags to a dead peer **answers `EPIPE`** and the program lives, and so do
+the same send with `MSG_NOSIGNAL`, the floor's `write` on the socket, and a
+`write` to a pipe whose reader is gone — all four the same error. Under the
+default disposition, set by the probe itself, the `MSG_NOSIGNAL` send still
+answers `EPIPE`, and with no flags it **dies by signal 13** (its mutant, cycle 0.0.0's block 0b).
 
-> *"MSG_NOSIGNAL always: a plain write to a socketpair whose peer died raises
-> SIGPIPE, which terminates the runtime by default — the exact event this
-> architecture exists to prevent."* — `lib/nbridge.npk`
+*(Corrected 2026-10-29 by SK-101. This paragraph said the runtime installs
+no signal disposition for anything — a search of `npkrt.ll` found no
+`rt_sigaction` call — which was true of the runtime it was read in: there is
+none at the compiler's `3d15ac9`, and the handler came with its `b7244d2f`. It
+quoted the compiler's Bridge, `lib/nbridge.npk`: "a plain write to a socketpair
+whose peer died raises SIGPIPE, which terminates the runtime by default" — a
+comment that predates the handler and still reads so at `2e1cb4a` — and "the
+first EPIPE schedule proved it by taking the whole process down", which that
+file says of `?!`, an unwrap that traps on an `EPIPE` result, not of the
+signal.)*
 
-and, elsewhere in the same file, that *"the first EPIPE schedule proved it by
-taking the whole process down."*
-
-**Rule S-1 (SK-013).** **Every send `nsockets` issues carries
+**Rule S-1 (SK-013, SK-101).** **Every send `nsockets` issues carries
 `MSG_NOSIGNAL`.** Without exception, on every family, on every socket type,
 on the ancillary path as well as the ordinary one. The failure then arrives
-as `EPIPE` (`-32`) in `Result.err`, where a caller can see it and act.
+as `EPIPE` (`-32`) in `Result.err`, where a caller can see it and act —
+whatever the process's disposition is, the floor's handler or the default.
 
 **Rule S-2.** `nsockets` therefore **does not use the runtime floor's
 `write`** on a socket, and neither may an impl of the prelude's `Writer` trait
 over one. The floor's `write` is `write(2)`, which raises `SIGPIPE` on a socket
-exactly as it does in C; the only send primitives this library uses are
+exactly as it does in C — answered `EPIPE` by the floor's handler (probe 04),
+fatal under the default disposition (its mutant, cycle 0.0.0's block 0b) — and
+has no flags word to carry `MSG_NOSIGNAL`; the only send primitives this library uses are
 `sendto` (syscall 44) and `sendmsg` (syscall 46), both with `MSG_NOSIGNAL` in
 the flags word. This is the single most likely rule to be broken by accident,
 because `ByteWriter` in the prelude *does* use the floor's `write` and looks

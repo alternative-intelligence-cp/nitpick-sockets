@@ -68,27 +68,34 @@ pathname test is the day one gets left behind.
 
 ## 3. The `SIGPIPE` test is the one that must exist
 
-**Rule V-5.** A test that:
+**Rule V-5 (SK-101).** Probe 04, `tests/probe/probe04_sigpipe.npk`, a
+permanent suite entry, which:
 
-1. makes a `socketpair`;
-2. closes one end;
-3. sends on the other **without** `MSG_NOSIGNAL`, in a child process, and
-   asserts the child **died of signal 13**;
-4. sends on another pair **with** `MSG_NOSIGNAL` and asserts it returns
-   `EPIPE` (`-32`) in `Result.err`.
+1. reads `SIGPIPE`'s disposition and asserts the floor's handler is installed;
+2. makes a `socketpair`, closes one end, and sends on the other with a flags
+   word of 0 — asserting an error, and that the program lives;
+3. sends **with** `MSG_NOSIGNAL`, writes with the floor's `write`, and writes
+   to a pipe whose reader is closed — asserting all three answer the same error
+   as step 2, the pipe's `EPIPE`;
+4. sets the disposition to `SIG_DFL` and sends with `MSG_NOSIGNAL` again —
+   asserting `EPIPE`, and that the program lives.
 
 This is the one test in the suite that proves a *specification claim* rather
-than a behaviour: `SAFETY.md` §2 asserts that the runtime installs no `SIGPIPE`
-disposition and that the default is lethal, and that claim is load-bearing for
-every send in the library. If a future compiler release starts ignoring
-`SIGPIPE` at `_start`, step 3 fails, and the library learns that its central
-rule has become belt-and-braces rather than essential — which is worth knowing
-either way.
+than a behaviour: `SAFETY.md` §2's account of the disposition, and that
+`MSG_NOSIGNAL` reaches the kernel through `sys` — step 4 dies by signal 13 if it
+does not. If a future runtime stops installing the handler, step 1 fails, and
+the library learns that its central rule has become essential again rather
+than belt-and-braces — which is worth knowing either way. *(Rewritten
+2026-10-29 by SK-101: step 3 was a send without `MSG_NOSIGNAL`, in a child,
+asserted to die of signal 13; at compiler `2e1cb4a` that send answers `EPIPE`.)*
 
-**Rule V-6.** Step 3 needs a subprocess, because the whole point is that the
+~~**Rule V-6.** Step 3 needs a subprocess, because the whole point is that the
 process dies. The harness runs it as a separate program whose expected outcome
 is death by signal, and the marker is `// expect-signal: 13` — one addition to
-the compiler's marker grammar, and the only one this library makes.
+the compiler's marker grammar, and the only one this library makes.~~ —
+**retired by SK-101** (2026-10-29): nothing in the suite is expected to die
+by a signal at the pin, so the marker would have no consumer, and this library
+adds none to the compiler's marker grammar.
 
 ---
 
@@ -190,7 +197,7 @@ expectations and requires it to report every one as a failure:
 - a `check` case expecting a code the compiler does not report;
 - a `check` case that reports a code no expectation names (the D-237 rule);
 - a `loopback` case that leaves a socket open at exit (D-151 should trap it);
-- a `// expect-signal: 13` case whose program exits normally;
+- ~~a `// expect-signal: 13` case whose program exits normally;~~ retired with V-6 (SK-101);
 - a `parse` case that does not parse;
 - a tree check fed a deliberate violation — a `sendto` without `MSG_NOSIGNAL`.
 

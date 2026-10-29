@@ -1,0 +1,31 @@
+// expect-error: NITPICK-TYPE-057
+//
+// PROBE 09 -- AN `OwnedFd` AS A CHANNEL ELEMENT.
+//
+// ASKS: is `Channel<OwnedFd, LEVEL, CAP>` spellable -- could an accepted connection be queued to a
+// worker pool? The refusal was read out of the compiler's `chan_elem_verdict_recorded`
+// (`TY_OWNEDFD` -> `CHAN_ELEM_FD`); this asks the compiler.
+// DEPENDS ON THE ANSWER: SK-035, half of it -- the server model (`CONCURRENCY_MODEL.md` §2, §3).
+// EXPECTED: refused, `NITPICK-TYPE-057` at the channel's annotation, and nothing else. Accepted would
+// WIDEN the design space (a worker pool becomes spellable): a decision to reopen, not a failure.
+// Probe 10 is its pair: a MOVE into a spawn is legal.
+mod:probe09_ownedfd_channel;
+
+func:queue = NIL(Channel<OwnedFd, 3i32, 4i64>:_~ch) never fails { pass NIL; };
+
+func:main = int32(cstring[]:_~argv) {
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

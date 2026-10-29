@@ -63,14 +63,20 @@ is `escape.npk`'s `type_holds_pointer`, which answers **`false`** for
 so explicitly. The code is right and the comment is loose.
 **Ask:** a one-word amendment, because that comment is exactly where somebody
 designing a server will look, and `SK-035` is built on the code's behaviour
-rather than the comment's.
+rather than the comment's. *(2026-10-29, cycle 0.0.0: the behaviour RUN at compiler
+`2e1cb4a` — probes 09b and 10, `SK-035`'s dated note — and the comment still reads
+so, `src/frontend/types.npk:1756`, "cross a spawn". The ask stands.)*
 
 ### O-N4 — no `sigaction` and no signal-mask primitive in the language
 Stated as an observation rather than a request: `nsockets` needs neither
 (`MSG_NOSIGNAL` closes its one hazard at the call site, `SAFETY.md` S-3), and
 `nitpick-tui` reaches the signal machinery through `signalfd` over raw `sys`
 calls. Recorded so that a future language-level signal facility is known to
-have one library that wants it and one that does not.
+have one library that wants it and one that does not. *(2026-10-29, cycle
+0.0.0: the floor's runtime itself installs handlers — `SIGPIPE`'s returns,
+measured by probe 04 through a raw `rt_sigaction` read — so the language's
+programs have a disposition that is not the default; `nsockets` still needs no
+signal facility, SK-101.)*
 
 ---
 

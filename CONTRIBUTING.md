@@ -29,9 +29,10 @@ never for concluding.
 
 ## The four things that will surprise you
 
-1. **Every send must carry `MSG_NOSIGNAL`.** Not "should" — the Nitpick runtime
-   installs no `SIGPIPE` disposition, so a plain send to a dead peer terminates
-   the process. `check_msg_nosignal` greps every `sendto`/`sendmsg` site in
+1. **Every send must carry `MSG_NOSIGNAL`.** Not "should" — the floor's runtime
+   catches `SIGPIPE`, so on it a plain send to a dead peer answers `EPIPE`, but
+   under the default disposition, which a host may restore, the same send
+   terminates the process (a mutant of probe 04, cycle 0.0.0's block 0b). `check_msg_nosignal` greps every `sendto`/`sendmsg` site in
    `src/` with a whitelist of zero, and it will catch you. Do not use the
    runtime floor's `write` on a socket, and do not copy the prelude's
    `ByteWriter` impl, which does.

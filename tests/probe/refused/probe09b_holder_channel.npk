@@ -1,0 +1,32 @@
+// expect-error: NITPICK-TYPE-057
+//
+// PROBE 09b -- A STRUCT HOLDING AN `OwnedFd` AS A CHANNEL ELEMENT.
+//
+// ASKS: does probe 09's refusal reach through an aggregate -- a socket type is a struct holding its
+// `OwnedFd`, so this is the case a library type meets. Read out of `type_contains_borrow_recorded`
+// (`TY_OWNEDFD` -> true, so a struct holding one refuses transitively); this asks the compiler.
+// DEPENDS ON THE ANSWER: SK-035, with probe 09: every type this library declares around a
+// descriptor (`TcpStream`, `UnixStream`, `Listener`, `Datagram`) is a struct holding one.
+// EXPECTED: refused, `NITPICK-TYPE-057` at the channel's annotation, and nothing else.
+mod:probe09b_holder_channel;
+
+struct:Sockish = { OwnedFd:descr; uint8:family; };
+
+func:queue = NIL(Channel<Sockish, 3i32, 4i64>:_~ch) never fails { pass NIL; };
+
+func:main = int32(cstring[]:_~argv) {
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

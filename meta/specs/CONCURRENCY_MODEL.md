@@ -46,7 +46,10 @@ expressible, bounded, and needs nothing this library has to invent.
 ## 2. What a socket may cross
 
 Two language rules, measured in the compiler's own source, and they point in
-opposite directions. Both matter.
+opposite directions. Both matter. *(2026-10-29: and run, at compiler `2e1cb4a`,
+by cycle 0.0.0's probes 09, 09b, 10 and 10b — an `OwnedFd`, and a struct
+holding one, are `NITPICK-TYPE-057` as channel elements; a move into a spawned
+task compiles and runs; a borrow across the spawn is `NITPICK-BORROW-004`.)*
 
 **Rule C-5 — an `OwnedFd` is refused as a channel element.**
 `chan_elem_verdict_recorded` in `src/frontend/types.npk` answers

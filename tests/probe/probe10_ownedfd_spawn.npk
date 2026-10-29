@@ -1,0 +1,89 @@
+// expect-exit: 0
+//
+// PROBE 10 -- AN `OwnedFd` MOVED INTO A SPAWNED TASK.
+//
+// ASKS: `drop handler(move(o))`, where `handler` is `async func:handler = NIL(move OwnedFd:o)` --
+// can a task own the descriptor its spawner accepted? Read out of `type_holds_pointer` in the
+// compiler's `escape.npk` (`TY_OWNEDFD` -> false, "a descriptor NUMBER") and `IO_REFERENCE.md` §6;
+// this runs it: the task sends one byte on the descriptor it owns, its drop closes it, and the
+// spawner's join waits for it before its own scope ends.
+// DEPENDS ON THE ANSWER: SK-035 -- with probe 09's refusal, accept-then-spawn is the only server
+// model the language permits (`CONCURRENCY_MODEL.md` §3). Refused, it would leave only "one
+// connection at a time, inline", and the server story would be re-planned from scratch.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 19 are the assertions: the byte the
+// task sent arrives at the other end, and after the join the moved descriptor is closed -- its
+// `fcntl(F_GETFD)` answers the error a closed descriptor's does, measured against a witness.
+// Probe 10b is its pair: a BORROW across the spawn is refused.
+mod:probe10_ownedfd_spawn;
+
+fixed int64:SYS_CLOSE = 3i64;
+fixed int64:SYS_SENDTO = 44i64;
+fixed int64:SYS_RECVFROM = 45i64;
+fixed int64:SYS_SOCKETPAIR = 53i64;
+fixed int64:SYS_FCNTL = 72i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:MSG_NOSIGNAL = 16384i64;
+fixed int64:MSG_DONTWAIT = 64i64;
+fixed int64:F_GETFD = 1i64;
+fixed int64:NO_SUCH_DESCR = 987654i64;
+
+error:ESend;
+
+async func:handler = NIL(move OwnedFd:o) {
+    wild int8->:one = calloc(1i64, 8i64);
+    <-one = 55i8;
+    Result<int64>:r = sys(SYS_SENDTO, o.value, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);
+    dalloc(one);
+    if (r.is_error) { fail ESend; }
+    pass NIL;
+};
+
+async func:serve = NIL(int64:descr) {
+    OwnedFd:o = own_fd((descr =>! int32) =>! fd);
+    drop handler(move(o));
+    pass NIL;
+};
+
+async func:main = int32(cstring[]:_~argv) {
+    wild int8->:sv = alloc(8i64);
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:rsp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
+    if (rsp.is_error) { exit 10i32; }
+    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
+    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
+    dalloc(sv);
+    Result<NIL>:rs = await serve(a);
+    if (rs.is_error) { exit 11i32; }
+    wild int8->:got = calloc(1i64, 8i64);
+    Result<int64>:rn = sys(SYS_RECVFROM, b, got, 8i64, MSG_DONTWAIT, 0i64, 0i64);
+    if (rn.is_error) { exit 12i32; }
+    if (rn.value != 1i64) { exit 13i32; }
+    if ((<-got) != 55i8) { exit 14i32; }
+    dalloc(got);
+    Result<int64>:closed = sys(SYS_FCNTL, a, F_GETFD);
+    Result<int64>:witness = sys(SYS_CLOSE, NO_SUCH_DESCR);
+    if (!closed.is_error) { exit 15i32; }
+    if (!witness.is_error) { exit 16i32; }
+    if (closed.err != witness.err) { exit 17i32; }
+    Result<int64>:cb = sys(SYS_CLOSE, b);
+    if (cb.is_error) { exit 18i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (ESend)             { exit 20i32; },
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (DeadlineExceeded)  { exit 111i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

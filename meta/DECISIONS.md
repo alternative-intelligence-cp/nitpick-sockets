@@ -131,6 +131,8 @@ The one place `fcntl` appears is `sock_adopt` (`SOCKET_MODEL.md` K-9), where a
 descriptor arrived from outside and there is nothing atomic to do.
 
 ### SK-013 — every send carries `MSG_NOSIGNAL`, without exception
+> **SUPERSEDED IN PART by SK-101 (2026-10-29): its stated fact.** At compiler `2e1cb4a` the floor catches
+> `SIGPIPE` with a handler that returns (probe 04); the rule stands, with its reason restated there.
 **2026-09-03. The library's headline safety rule.**
 
 *The fact it rests on, measured rather than assumed:* **the Nitpick runtime
@@ -430,6 +432,13 @@ longer the scope that accepted it.
 *The library builds the shape the language permits and documents why the other
 is absent*, so nobody spends a day trying to defeat the checker.
 
+*(2026-10-29, cycle 0.0.0: both rules RUN at compiler `2e1cb4a`, at `-O0` and through `opt -O2` — an `OwnedFd`,
+and a struct holding one, are `NITPICK-TYPE-057` at the channel's annotation (`tests/probe/refused/probe09_ownedfd_channel.npk`,
+`probe09b_holder_channel.npk`; the struct's diagnostic names the struct, not its field); a task handed one by
+`move` sends on it and its drop closes it before the spawner's join (`tests/probe/probe10_ownedfd_spawn.npk`); and a
+borrow of one across the spawn is `NITPICK-BORROW-004` (`refused/probe10b_borrow_spawn.npk`). This decision holds
+as written.)*
+
 ### SK-036 — address parsing is strict, `inet_pton`-shaped and not `inet_aton`-shaped
 **2026-09-03.** `ipv4_parse` accepts exactly four decimal octets, 0–255, with
 **no leading zeros**, and refuses `127.1`, `0177.0.0.1`, `0x7f.0.0.1` and
@@ -475,3 +484,51 @@ in this ecosystem has the same rule, and five libraries each phrasing it
 slightly differently would be five chances for one of them to phrase it wrong.
 
 Where a future library needs a different policy, it says so against this one.
+
+---
+
+# The third batch — cycle 0.0's probes, 2026-10-29 at compiler `2e1cb4a`
+
+Proposed by cycle 0.0's plan, each in the step whose measurement forces it, and numbered at the libraries' seat's
+review. Each records the alternatives it declines and its reversal.
+
+### SK-101 — the floor catches `SIGPIPE`; every send still carries `MSG_NOSIGNAL`, and nothing dies by a signal
+**2026-10-29, cycle 0.0.0 step 1, probe 04. Supersedes `SK-013` in part: its stated fact. The rule stands.**
+
+*What was measured* (`tests/probe/probe04_sigpipe.npk`, at compiler `c9baa9e`, at `-O0` and through `opt -O2`): the
+floor's runtime installs a handler for `SIGPIPE` at startup — `rt_sigaction(SIGPIPE, NULL, &prior)` reads a handler
+that is neither `SIG_DFL` nor `SIG_IGN`, with the flags `SA_RESTORER | SA_ONSTACK | SA_RESTART` that
+`runtime/npkrt.ll`'s `npk_fault_arm` installs (the compiler's DEF-68) — and that handler returns. A `sendto` with a
+flags word of 0 to a socketpair whose peer is closed answers an error and the program lives; the same send with
+`MSG_NOSIGNAL`, the floor's `write` on the socket, and a `write` to a pipe whose reader is closed answer the same
+error, the pipe's `EPIPE`; and under the default disposition, set by the probe itself, the `MSG_NOSIGNAL` send
+answers `EPIPE` again, where the same send with no flags dies by signal 13, and so does the floor's `write` in its
+place (two mutants of the probe, each a shell's status 141). `SK-013`'s stated fact — the runtime installs no signal
+disposition, so `SIGPIPE`'s default is live — was true of the runtime it was read in and is false here: `npkrt.ll`
+has no `rt_sigaction` at the compiler's `3d15ac9`, and its `SIGPIPE` handler came with the compiler's `b7244d2f`
+(1.5.8 step 3, DEF-68's fix), whose parent has none; it is there at `c3bdae2` and at the pin.
+
+*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
+
+*So:* every send `nsockets` issues still carries `MSG_NOSIGNAL`, and the reason is the default disposition rather
+than the runtime: on the floor's runtime a send to a dead peer answers `EPIPE` either way, but a process's
+disposition is the default whenever its host restores it or its runtime stops overriding it, and `MSG_NOSIGNAL`
+makes this library's sends safe under every one of those, at the cost of one flag. `SAFETY.md` S-2 stands, its
+reason restated: the floor's `write` on a socket answers `EPIPE` under the handler and kills under the default, and
+has no flags word for `MSG_NOSIGNAL`. S-3 stands: the library installs no handler and blocks no signal — the
+runtime's handler is the runtime's. `check_msg_nosignal` and `check_no_floor_write` stand as planned.
+
+*And the marker:* `// expect-signal: N` (`TESTING.md` V-6) is retired. Its one consumer was the leg of probe 04 that
+was to die by signal 13, and at this pin nothing in the suite is expected to die by a signal. `TESTING.md` V-5's test
+is probe 04's legs.
+
+*Alternatives declined:* **keep `SK-013`'s premise and read the probe as an anomaly** — the probe exists to replace a
+reading with a measurement; **drop `MSG_NOSIGNAL` as belt-and-braces** — it costs one flag per send, and the
+floor's handler is not this library's to rely on; **keep `// expect-signal:` with a probe that restores the default
+disposition and dies on purpose** — it would test the kernel's default action, not this library or this language,
+and a marker with no subject of its own is a marker nobody keeps working.
+
+*Reversal:* if a later runtime stops installing the handler, probe 04 exits 11 in its first leg, which reads the
+disposition as `SIG_DFL`, before any send — red on that pin's first run, as the probe started under `SIG_DFL` exits
+11 at this one (a third mutant); there a send with no flags dies by signal 13, as the no-flags mutant does here; and
+a decision restores `SK-013`'s premise and the marker, with probe 04 its consumer.

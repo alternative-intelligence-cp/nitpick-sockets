@@ -1,0 +1,112 @@
+// expect-exit: 0
+//
+// PROBE 04 -- SIGPIPE, AND WHAT `MSG_NOSIGNAL` IS FOR AT THIS PIN.
+//
+// ASKS: what a send to a socket whose peer is gone does to the sender -- under the disposition the
+// floor's runtime installs, and under the default one. In order:
+//   1. the disposition: `rt_sigaction(SIGPIPE, NULL, &prior)` -- is a handler installed, with which flags;
+//   2. a `sendto` with a flags word of 0 to a socketpair whose peer is closed;
+//   3. the same with `MSG_NOSIGNAL` (16384), the floor's `write` on the same socket, and -- the
+//      witness that the error is `EPIPE` -- a `write` to a pipe whose reader is closed;
+//   4. the disposition set to `SIG_DFL` by this program, then the `MSG_NOSIGNAL` send again.
+// DEPENDS ON THE ANSWER: SK-013, `SAFETY.md` §2, and the `// expect-signal:` marker
+// (`TESTING.md` V-6), whose one consumer was this probe's leg 2.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. The floor catches SIGPIPE with a handler that
+// returns (`SA_RESTORER | SA_ONSTACK | SA_RESTART`), so leg 2 answers an error and the program
+// lives; every send answers the same error, the pipe's `EPIPE`; and under `SIG_DFL` the
+// `MSG_NOSIGNAL` send answers it too, so the flag reaches the kernel through `sys`. Were the flag
+// lost, leg 4 would die by signal 13 (a shell's status 141). An errno the prelude does not name
+// compares only against another error (probe 13), so `EPIPE` is identified by its witness. Codes
+// 10 ... 29 are the assertions.
+mod:probe04_sigpipe;
+
+fixed int64:SYS_WRITE = 1i64;
+fixed int64:SYS_CLOSE = 3i64;
+fixed int64:SYS_RT_SIGACTION = 13i64;
+fixed int64:SYS_SENDTO = 44i64;
+fixed int64:SYS_SOCKETPAIR = 53i64;
+fixed int64:SYS_PIPE2 = 293i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:PIPE_CLOEXEC = 524288i64;
+fixed int64:MSG_NOSIGNAL = 16384i64;
+fixed int64:SIGPIPE = 13i64;
+fixed int64:SA_FLOOR = 469762048i64;
+
+func:main = int32(cstring[]:_~argv) {
+    // 1. the disposition the floor installed at startup
+    wild int8->:prior = calloc(1i64, 32i64);
+    Result<int64>:rq = sys(SYS_RT_SIGACTION, SIGPIPE, 0i64, prior, 8i64);
+    if (rq.is_error) { exit 10i32; }
+    int64:handler = <-(#ptr_add<int64>(prior, 0i64));
+    int64:flags = <-(#ptr_add<int64>(prior, 1i64));
+    dalloc(prior);
+    if (handler == 0i64) { exit 11i32; }
+    if (handler == 1i64) { exit 12i32; }
+    if (flags != SA_FLOOR) { exit 13i32; }
+
+    // 2. a send with no flags to a socketpair whose peer is closed
+    wild int8->:sv = alloc(8i64);
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:rsp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
+    if (rsp.is_error) { exit 14i32; }
+    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
+    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
+    dalloc(sv);
+    Result<int64>:cb = sys(SYS_CLOSE, b);
+    if (cb.is_error) { exit 15i32; }
+    wild int8->:one = calloc(1i64, 8i64);
+    <-one = 120i8;
+    Result<int64>:r0 = sys(SYS_SENDTO, a, one, 1i64, 0i64, 0i64, 0i64);
+    if (!r0.is_error) { exit 16i32; }
+
+    // 3. MSG_NOSIGNAL, the floor's `write`, and the witness
+    Result<int64>:r1 = sys(SYS_SENDTO, a, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);
+    if (!r1.is_error) { exit 17i32; }
+    if (r1.err != r0.err) { exit 18i32; }
+    Result<int64>:rw = write((a =>! int32) =>! fd, one, 1i64);
+    if (!rw.is_error) { exit 19i32; }
+    if (rw.err != r0.err) { exit 20i32; }
+    wild int8->:pv = alloc(8i64);
+    Result<int64>:rp = sys(SYS_PIPE2, pv, PIPE_CLOEXEC);
+    if (rp.is_error) { exit 21i32; }
+    int64:pr = (<-(#ptr_add<int32>(pv, 0i64))) => int64;
+    int64:pw = (<-(#ptr_add<int32>(pv, 1i64))) => int64;
+    dalloc(pv);
+    Result<int64>:cr = sys(SYS_CLOSE, pr);
+    if (cr.is_error) { exit 22i32; }
+    Result<int64>:wp = sys(SYS_WRITE, pw, one, 1i64);
+    if (!wp.is_error) { exit 23i32; }
+    if (wp.err != r0.err) { exit 24i32; }
+
+    // 4. the default disposition, set by this program: MSG_NOSIGNAL alone stands between it and death
+    wild int8->:act = calloc(1i64, 32i64);
+    Result<int64>:rd = sys(SYS_RT_SIGACTION, SIGPIPE, act, 0i64, 8i64);
+    dalloc(act);
+    if (rd.is_error) { exit 25i32; }
+    Result<int64>:r4 = sys(SYS_SENDTO, a, one, 1i64, MSG_NOSIGNAL, 0i64, 0i64);
+    if (!r4.is_error) { exit 26i32; }
+    if (r4.err != r0.err) { exit 27i32; }
+
+    dalloc(one);
+    Result<int64>:ca = sys(SYS_CLOSE, a);
+    if (ca.is_error) { exit 28i32; }
+    Result<int64>:cw = sys(SYS_CLOSE, pw);
+    if (cw.is_error) { exit 29i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

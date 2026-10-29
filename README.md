@@ -22,12 +22,12 @@ every C-shaped wrapper leaves to the caller, and Nitpick makes them checkable.
 **A write to a dead peer cannot kill your process.** In C, and in every
 library that wraps `write(2)` without thinking about it, sending on a socket
 whose peer has gone raises `SIGPIPE` and the default disposition is to
-terminate. Nitpick installs no signal dispositions, so that default is live —
-and this library's answer is structural rather than advisory: **every send
-`nsockets` issues carries `MSG_NOSIGNAL`, without exception**, so the failure
-arrives as `EPIPE` in `Result.err` where the caller can see it. The compiler's
-own Bridge learned this the hard way; its source records that the first EPIPE
-schedule took the whole process down.
+terminate. Nitpick's runtime catches `SIGPIPE` with a handler that returns, so
+on it that send answers `EPIPE` — and this library does not lean on the
+runtime for it: **every send `nsockets` issues carries `MSG_NOSIGNAL`, without
+exception**, so the failure arrives as `EPIPE` in `Result.err` where the caller
+can see it, whatever the process's disposition is. Its probe 04 measures
+both.
 
 **A socket cannot outlive the scope that must close it.** Every socket is an
 `OwnedFd`, so the close *is* the drop and there is no `close` in the surface.

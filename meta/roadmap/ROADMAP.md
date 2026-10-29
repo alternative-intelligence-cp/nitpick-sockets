@@ -37,16 +37,19 @@ not resolve (`specs/BUILD.md` §1, `../OPEN_QUESTIONS.md` O-N2):
 
 And the two that shape the *design*:
 
-> **The Nitpick runtime installs no `SIGPIPE` disposition, so a plain send to a
-> dead peer kills the process** — which makes `MSG_NOSIGNAL` on every send this
-> library's headline rule (`SK-013`).
+> **A plain send to a dead peer kills a process whose `SIGPIPE` disposition is
+> the default** — the floor's runtime catches it, and a host may set it back —
+> which makes `MSG_NOSIGNAL` on every send this library's headline rule
+> (`SK-013`; SK-101 records what probe 04 measured at compiler `c9baa9e`).
 >
 > **An `OwnedFd` is refused as a channel element but may be moved into a
 > spawn** — which makes accept-then-spawn the only expressible server model
 > (`SK-035`).
 
-Both were measured in the compiler's own source, not assumed, and both are
-enforced mechanically rather than by discipline: `check_msg_nosignal` greps
+Both were read in the compiler's own source and then run, by cycle 0.0.0's
+probes 04, 09 and 10 at compiler `c9baa9e` — the first contradicted its reading
+(SK-101), the second confirmed it — and both are enforced mechanically
+rather than by discipline: `check_msg_nosignal` greps
 every send site, and the second is enforced by the compiler itself.
 
 ---
@@ -79,8 +82,9 @@ free to follow the dependencies rather than the risk.
 ### 0.0 — Foundations
 The **language probes** first: twelve small programs that ask the compiler
 whether the shapes `meta/specs/` depends on are spellable. Two of them are the
-reason this cycle exists — **probe 04 proves `SIGPIPE` is lethal** (and so that
-`SK-013` is load-bearing rather than belt-and-braces), and **probes 09 and 10
+reason this cycle exists — **probe 04 measures what `SIGPIPE` does** (at compiler
+`c9baa9e` the runtime catches it, so `SK-013` is belt-and-braces there and
+load-bearing under the default disposition, SK-101), and **probes 09 and 10
 prove the `OwnedFd` channel refusal and the spawn move**, which is `SK-035`'s
 entire foundation. Then the harness, the manifest's test table, CI, and
 `src/core/`.
@@ -187,10 +191,11 @@ contract published per module, examples, and `Q-3`'s version policy.
 ## Ordering notes
 
 - **The probes come first, in 0.0**, and two of them are load-bearing rather
-  than reassurance: `SIGPIPE`'s lethality and the `OwnedFd` channel/spawn
+  than reassurance: what `SIGPIPE` does and the `OwnedFd` channel/spawn
   asymmetry are the foundations of `SK-013` and `SK-035`, and both were read
-  out of compiler source rather than run. A probe that contradicts either
-  changes the library.
+  out of compiler source rather than run — until cycle 0.0.0 ran them: the
+  first contradicted its reading (SK-101), the second confirmed it. A probe
+  that contradicts either changes the library.
 - **The harness comes first too**, for the compiler's stated reason about
   diagnostics: it is how every later cycle is tested, and a suite written after
   the code is a suite shaped by the code.

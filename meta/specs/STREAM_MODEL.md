@@ -57,9 +57,10 @@ which is D-072's rule and the prelude's own shape — `ByteWriter`'s `flush` is
 **Rule T-5 — the `Writer` impl uses `sendto`, not the floor's `write`.**
 `SAFETY.md` S-2. This is the rule most likely to be broken by somebody copying
 `impl:ByteWriter:Writer` out of the prelude, which uses `write(2)` because it
-writes to a file. On a socket, `write(2)` raises `SIGPIPE` and terminates the
-process. **The two impls cannot share a body**, and a comment at both sites
-says so.
+writes to a file. On a socket, `write(2)` raises `SIGPIPE` — answered `EPIPE`
+by the floor's handler (probe 04), fatal under the default disposition (its
+mutant, cycle 0.0.0's block 0b) — and it has no flags word for `MSG_NOSIGNAL`.
+**The two impls cannot share a body**, and a comment at both sites says so.
 
 **Rule T-6 — the retry loop is the prelude's shape**, and only the syscall
 differs:
