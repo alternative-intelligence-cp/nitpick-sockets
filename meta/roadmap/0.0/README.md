@@ -340,7 +340,7 @@ states its own acceptance when it reaches the pin, and where the two differ, the
 - [ ] the research gate's three digests filed before any probe runs (0.0.0 gate item 7, §13)
 - [ ] `probe04_sigpipe.npk` — the floor's handler read; a send to a dead peer answers `EPIPE`, with and without `MSG_NOSIGNAL`; under `SIG_DFL` `MSG_NOSIGNAL` keeps the program alive (@@PD-159@@)
 - [ ] `refused/probe09_ownedfd_channel.npk` and `probe09b_holder_channel.npk` — `NITPICK-TYPE-057`; `probe10_ownedfd_spawn.npk` runs and `refused/probe10b_borrow_spawn.npk` is `NITPICK-BORROW-004` — `SK-035`, run as a pair
-- [ ] `probe01_sys_socket.npk`, `probe02_sockaddr_layout.npk`, `probe03_cmsg_layout.npk`, `probe12_pod_addr_array.npk` — the layouts, and `SocketAddr`'s 32 bytes (@@PD-160@@)
+- [ ] `probe01_sys_socket.npk`, `probe02_sockaddr_layout.npk`, `probe03_cmsg_layout.npk`, `probe12_pod_addr_array.npk` — the layouts, and `SocketAddr`'s 32 bytes (@@PD-160@@); `refused/probe15_unassigned_read.npk` — a read before a write, `NITPICK-ASSIGN-001` at both reads (A-22's dated note)
 - [ ] `probe05_ownedfd_drop.npk`, `probe06_reader_writer.npk` with `refused/probe06b_impl_drops_fixed.npk`, `probe14_view_codec.npk` with `refused/probe14b_view_into_plain.npk` — ownership, the traits, the view (@@PD-161@@)
 - [ ] `probe07_io_ready.npk` and `probe08_connect_inprogress.npk` forty times a leg; `probe11_scm_rights.npk`; `refused/probe13_errno_declared.npk` and `probe13b_errno_number.npk` (@@PD-162@@, @@PD-163@@)
 - [ ] every verdict in `0.0.0.md` §6 re-measured, SAME, and every consequence in `meta/specs/` and `meta/DECISIONS.md` in the commit of its verdict
@@ -661,3 +661,12 @@ question are probes of 0.0.0. No decision is taken.
   `uint8[108]` field before anything writes them, and both reads are `NITPICK-ASSIGN-001`, so the language closes the
   gate's D3 and A-22 takes a dated note; step 2's text gives the other branches. Block 0a prints each digest's sha256,
   and §10 hands the gate's currency rows to `CURRENCY.md` when 0.0.1 is re-cut (D1).
+
+Its fourth commit cut 0.0.0 into runs (the libraries' seat's ruling (iii)), on `nitpick-parse` 0.0.2's model: six
+runs, each a fresh worker — run 1 the research gate's commit and step 0, runs 2 … 5 steps 1 … 4 one each, run 6 steps
+5 and 6 — each step committed and pushed with its entry in the execution record, which is its hand-off (`0.0.0.md`
+§0). The title is committed with step 0's entry, so no run leaves the tree dirty for the next. The run's date file,
+which `apply.py` writes at step 1 and reads at steps 2 … 4, is kept between runs and removed at step 5, which sets the
+title `DONE`; step 6 sweeps after step 5's commit and closes the record with the REPORT block and this file's 0.0.0
+boxes, whose step-2 box now names probe 15. No block's command or Expect moved, and 0.0.0's blocks read `SAME` with
+the runs' commits.
