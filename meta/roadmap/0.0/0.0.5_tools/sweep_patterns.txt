@@ -1,6 +1,7 @@
 # 0.0.5's stale-claim sweep: one subject per claim the steps changed, in more than one wording, each proved on a twin
 # phrased in other words than its old text's (`tools/sweep.py`). The sweep runs over step 2's commit, before the
 # archive; the fourth subject's sites are the archive's own patch, `step2.patch`, whose hunks are its positive control.
+# A word pattern finds a claim only in the words it spells, never in other words: a twin proves it on one other wording, and `tools/twins.py`'s exact strings sweep what the corrections removed (`tools/sweep.py`).
 a cycle file's section cited by a permanent file | \b0\.0\.[0-5][a-z]?'s (?:(?:plan|block|step|facts|record|request|table)\b|§)|\b0\.0\.[0-5][a-z]?,? (step|block|§) ?\d|\bplan(\'s|,) § ?\d|\bsubcycle's (plan|record|block|step)\b|\bgate item \d|\bblock \d+[a-z]?\b|(?<!build )\bstep \d
 the opening file written at a numbered step of the close | \b0\.0\.5,? step \d|\bclose'?s? (step|block) \d|written .{0,40}at (the|cycle 0\.0's) close \(0\.0\.5, step
 the scan's shapes measured by a subcycle's mutants | \b0\.0\.\d's mutants?\b|\bmutants? (of|in) (cycle )?0\.0\.\d|\bsubcycle's mutant

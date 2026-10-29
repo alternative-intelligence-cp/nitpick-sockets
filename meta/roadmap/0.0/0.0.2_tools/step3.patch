@@ -179,7 +179,7 @@ index 9c18f5b..02f8b2d 100644
 +version as `@@PD-167@@` has it, and `CURRENCY.md`'s row says the pin waits. A new LLVM pin is a new digest, filed beside
 +this one, and the row the workflow reads names it.
 diff --git a/meta/research/CURRENCY.md b/meta/research/CURRENCY.md
-index f3550cb..348c305 100644
+index e0cae99..e0ca192 100644
 --- a/meta/research/CURRENCY.md
 +++ b/meta/research/CURRENCY.md
 @@ -11,8 +11,8 @@ are never rows here; they are read in the compiler's tree at the pinned commit.
@@ -188,7 +188,7 @@ index f3550cb..348c305 100644
  | LLVM's release asset — what CI installs | `LLVM-20.1.8-Linux-X64.tar.xz` at `llvmorg-20.1.8`; the version is the compiler's D-349, read in its tree | by the same run, which downloads it and asserts each tool's version | github.com/llvm/llvm-project/releases | @@PD-166@@ |
 -| LLVM's release asset by content — its sha256 and size | not pinned: CI fetches the asset by its version and asserts each tool's `--version` (@@PD-167@@) | not yet — cycle 0.0.2, which pins it: the asset's sha256 and size from a research digest its dispatch carries, which CI then checks every download against before unpacking it | github.com/llvm/llvm-project/releases | @@PD-167@@ |
 -| Python — the harness's interpreter | none chosen yet; the runner's version is printed by CI's first step | not yet — cycle 0.0.2, which writes the harness, names the version it needs | python.org | `SK-004` |
-+| LLVM's release asset by content — its sha256 and size | `LLVM-20.1.8-Linux-X64.tar.xz`'s sha256 and size, the one line [`llvm-20.1.8-tarball.md`](llvm-20.1.8-tarball.md) records (@@PD-172@@) | by that research digest, as of its date, from the release's own record (cycle 0.0.2's request), and by every CI run from cycle 0.0.2's push, whose install step checks the download against the line before it unpacks it | github.com/llvm/llvm-project/releases, the `llvmorg-20.1.8` release | @@PD-172@@ |
++| LLVM's release asset by content — its sha256 and size | `LLVM-20.1.8-Linux-X64.tar.xz`'s sha256 and size, the one line [`llvm-20.1.8-tarball.md`](llvm-20.1.8-tarball.md) records (@@PD-172@@) | @@DATE@@, cycle 0.0.2: by that research digest, as of the date its `As of` line gives (the digest comes with the dispatch, so that is this date or an earlier one), from the release's own record (cycle 0.0.2's request), and by every CI run from cycle 0.0.2's push, whose install step checks the download against the line before it unpacks it | github.com/llvm/llvm-project/releases, the `llvmorg-20.1.8` release | @@PD-172@@ |
 +| Python — the harness's interpreter | 3.12 or later — what the harness is run on and measured on, and refuses below (@@PD-171@@) | 2026-10-21, cycle 0.0.2: `python3 --version` on the workbench, 3.12.3; on `ubuntu-24.04` by the first CI run of the harness, whose log prints it and the record quotes | python.org | @@PD-171@@ |
  | The x86-64 socket syscall numbers (`SOCKET_MODEL.md` §1) | the fifteen in its table, "measured on the target platform on 2026-09-03", no kernel release named | not yet — cycle 0.2.0, which writes `src/sys/`, against the kernel's table at a named release; cycle 0.0.0's probes ran on them | the kernel's `arch/x86/entry/syscalls/syscall_64.tbl` | `SK-016`, `SK-007` |
  | The kernel's structure layouts (`ADDRESS_MODEL.md` §1, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |

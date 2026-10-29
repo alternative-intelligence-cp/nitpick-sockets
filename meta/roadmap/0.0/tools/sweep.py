@@ -31,6 +31,13 @@ text the steps remove; `control` reads each through the transform and requires i
 and prints `twins: <n> of <m> ...`, with `TWIN NOT MATCHED <subject>` for each miss. A twin naming no subject is a
 STOP. The removed hunks stay the positive control for the old words; the twin is the control for the subject.
 
+A WORD PATTERN CANNOT FIND AN OTHER-WORDED TWIN. It finds a claim in the words it spells and in no others, so the same
+claim written in other words than any pattern spells is outside this sweep, and a twin proves a pattern on the one
+other wording it plants, not on every wording a claim can take. `tools/twins.py` is the sweep beside it for that
+reason: it takes the exact strings a correction removed, needs no pattern, and finds each repeat of them whatever
+the words around it; it too finds only what a correction removed, so a claim in other words, or a passage a
+correction left understated, is for a reviewer's eye.
+
 `run` reads every file `git ls-files` lists plus every untracked file the steps added (`--others --exclude-standard`),
 but the cycle 0.0 plans, the patches, the `.npk` sources, `LICENSE`, and the research digests -- a file whose first
 line is a digest's heading, `# <topic> — research digest` (the workbench research skill's §5): a digest is dated and

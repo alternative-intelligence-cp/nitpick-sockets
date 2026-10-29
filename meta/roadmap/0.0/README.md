@@ -420,11 +420,15 @@ cycle 0.0 met every other clause of its gate at a close its audit refused (its `
 **Fix round 2** (T7fix2, 2026-10-25) answered the final plan verification's findings 1, 2, 3, 4, 5, 6, 9 and 13 at
 their sources, and built the two checks its rulings asked for. Both are kept in [`tools/`](tools/), so any later pass
 re-runs them at its tip: (a) `lines.py`, every file:line citation of the plan resolved against the tree it names, and
-(b) `twins.py`, every correction's twins swept by the exact strings it changed. Each runs its controls first and prints
-its denominator. Both skip this section by its heading. In a clone outside the workbench each takes `--wb <workbench>
+(b) `twins.py`, every correction's twins swept by the exact strings it changed. Each has a `control`, which plants the
+cases it must catch and the cases it must not, and a `run`, which prints its denominator; **`run` does not run its
+control**, so a later pass runs both, control first, as the block below lists them. Both skip this section by its
+heading. In a clone outside the workbench each takes `--wb <workbench>
 --npk <compiler clone>`. Beside the exact strings, 0.0.4's sweep gains the subject *what the call-edge scan reads*,
 with its twin, and 0.0.5's first subject reads every line that cites a cycle file's plan, section, gate item, step or
-block.
+block. **A word pattern finds a claim only in the words it spells, and cannot find an other-worded twin of it**: that
+is why the exact-string sweep (b) exists beside the patterns, and why each pattern is proved on a twin line that
+plants one other wording, no more (`tools/sweep.py`, and the header of each `sweep_patterns.txt`).
 
 ```text
 python3 -B meta/roadmap/0.0/tools/lines.py control "$REPO"

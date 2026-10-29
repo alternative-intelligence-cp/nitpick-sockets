@@ -1,4 +1,5 @@
 # 0.0.0's stale-claim sweep: one subject per claim the steps changed, in more than one wording. `tools/sweep.py`.
+# A word pattern finds a claim only in the words it spells, never in other words: a twin proves it on one other wording, and `tools/twins.py`'s exact strings sweep what the corrections removed (`tools/sweep.py`).
 no disposition installed | installs no (signal|SIGPIPE) dispositions?|no rt_sigaction|SIGPIPE.{0,30}default is live|runtime installs no
 SIGPIPE kills the process | SIGPIPE.{0,60}(terminates|kills|lethal)|dead peer (kills|terminates)|whole process down|terminates the (process|runtime)
 death by signal 13 | expect-signal|died? of signal 13|death by signal|dies of 13

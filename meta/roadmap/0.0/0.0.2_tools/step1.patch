@@ -160,7 +160,7 @@ index 0000000..2db34b4
 +};
 diff --git a/harness/build.py b/harness/build.py
 new file mode 100644
-index 0000000..98a3382
+index 0000000..f0acde2
 --- /dev/null
 +++ b/harness/build.py
 @@ -0,0 +1,152 @@
@@ -187,9 +187,9 @@ index 0000000..98a3382
 +runtime's, and nothing else.
 +
 +`npkc`'S EXIT ALPHABET, which nothing documents (`PLAYBOOK.md` §6): 0 accepted; 1 REFUSED,
-+with diagnostics; 2 could not proceed and judged nothing, with an empty stderr; 3 the
-+compiler's own `failsafe` trap. Only 0 and 1 are verdicts; 2, 3 and anything else are a
-+broken run, printed with the code itself.
++with diagnostics; 2 could not proceed and judged nothing (at the pin: a missing or directory
++root, no output; a malformed command line, its usage on stderr); 3 the compiler's `failsafe`
++trap. Only 0 and 1 are verdicts; the rest are a broken run, printed with the code itself.
 +"""
 +import os
 +import re

@@ -1,5 +1,6 @@
 # 0.0.3's stale-claim sweep: one subject per claim the steps changed, in more than one wording, each proved on a twin
 # phrased in other words than its old text's (`tools/sweep.py`).
+# A word pattern finds a claim only in the words it spells, never in other words: a twin proves it on one other wording, and `tools/twins.py`'s exact strings sweep what the corrections removed (`tools/sweep.py`).
 the accept stage | accepted by tools/check|accept \| tests/conformance|\baccept\b.{0,12}(stage|in silence)|compiles in a program that only imports it
 the compiler's tools as judges | tools/parse_check|tools/check\b|refused by the frontend|built once per run from the pinned|(built|build).{0,30}from the pinned (compiler )?checkout
 a check described as a grep | \bgreps\b|\ba grep\b|\bgrep (with|for|every)\b|searches? the (source )?text

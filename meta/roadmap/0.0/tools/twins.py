@@ -118,6 +118,8 @@ def record_lines(plan):
     """The README's lines of the section recording the two checks' output: (first, last), or None."""
     p = os.path.join(plan, "README.md")
     lines = open(p, encoding="utf-8").read().split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()     # the newline that ends the last line begins no line of its own: `wc -l` counts the file's lines
     a = next((i for i, x in enumerate(lines, 1) if L.RECORD_HEADING.match(x)), None)
     if a is None:
         return None
@@ -453,8 +455,19 @@ def control(argv):
     print("exit statuses: %d of 4 as planted -- a restored stale text %d, an unclassed hit %d, a classed earlier one %d, "
           "a stale hit beside an unclassed one %d" % (sum(a == b for a, b in zip(codes, [3, 1, 0, 1])), *codes))
     ok = ok and codes == [3, 1, 0, 1]
+    # the record's range as `run` prints it: a README of four lines whose record heading is the third -- the range
+    # ends at the file's own last line, not one past it
+    pd = os.path.join(repo, ".internal", "w00", "twins", "plan")
+    os.makedirs(pd, exist_ok=True)
+    with open(os.path.join(pd, "README.md"), "w", encoding="utf-8") as fh:
+        fh.write("# A planted README\n\n## Fix round 2: the two checks' record\nA line of the record.\n")
+    span = record_lines(pd)
+    print("record range: a planted README of 4 lines, its record's heading the third -> lines %s, as planted: 3-4" % (
+        "%d-%d" % span if span else "none"))
+    ok = ok and span == (3, 4)
     print("control: %s" % ("every row's provenance holds, the planted twin is found and its correction is not, the "
-                           "classes read as written and each exit status is the one planted" if ok else "FAILED"))
+                           "classes read as written, each exit status is the one planted and the record's range is "
+                           "the file's own" if ok else "FAILED"))
     return 0 if ok else 1
 
 

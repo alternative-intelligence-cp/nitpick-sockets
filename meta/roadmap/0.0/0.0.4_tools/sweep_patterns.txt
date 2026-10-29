@@ -1,5 +1,6 @@
 # 0.0.4's stale-claim sweep: one subject per claim the steps changed, in more than one wording, each proved on a twin
 # phrased in other words than its old text's (`tools/sweep.py`).
+# A word pattern finds a claim only in the words it spells, never in other words: a twin proves it on one other wording, and `tools/twins.py`'s exact strings sweep what the corrections removed (`tools/sweep.py`).
 no library code yet | no library code( yet| exists| so far)?|library code (does not exist|is not (yet )?written)|nothing under src/ but placeholders
 the nine NSOCK names and the deadline defaults | NSOCK_(ADDR_MAX|DEFAULT_BACKLOG|CONNECT_TIMEOUT|ACCEPT_TIMEOUT|IO_TIMEOUT)|deadline defaults?|default (connect|accept|io|read|write) (timeout|deadline)s?
 the value rule | none of these numbers appears|nor a value (that|the) file declares|no (bound|limit)'?s? (number|value) (appears|is written) (anywhere|elsewhere)|every literal equal to a bound

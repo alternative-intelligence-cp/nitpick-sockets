@@ -1,4 +1,5 @@
 # 0.0.1's stale-claim sweep: one subject per claim the steps changed, in more than one wording. `tools/sweep.py`.
+# A word pattern finds a claim only in the words it spells, never in other words: a twin proves it on one other wording, and `tools/twins.py`'s exact strings sweep what the corrections removed (`tools/sweep.py`).
 LLVM 20.1.2 | 20\.1\.2|llvm 20\.1(?!\.8)
 llvm-config as the version check | llvm-config
 the four surprises | four things that will surprise|four things

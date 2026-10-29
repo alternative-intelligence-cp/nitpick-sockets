@@ -1,5 +1,6 @@
 # 0.0.2's stale-claim sweep: one subject per claim the steps changed, in more than one wording, each proved on a twin
 # phrased in other words than its old text's (`tools/sweep.py`).
+# A word pattern finds a claim only in the words it spells, never in other words: a twin proves it on one other wording, and `tools/twins.py`'s exact strings sweep what the corrections removed (`tools/sweep.py`).
 the harness's stub | stub until (cycle )?0\.0\.2|run\.py is a stub|cycle 0\.0\.1.s stub|(stub|placeholder) that (builds|judges|runs) (nothing|no)|judges nothing until
 probes run by hand | probes (are|were) run by hand|probes? (is|are) run by hand|(compiled|built) and (run|executed) manually
 a library object linked in | build/nsockets\.(o|ll|opt\.ll)|nsockets\.o\b|one build of the library|a library object|library.s (single |one )?(compiled )?object

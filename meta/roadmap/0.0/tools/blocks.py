@@ -15,8 +15,12 @@ goes to `$REPO/.internal/w00/blocks/<subcycle>-<id>.out`.
 
 Its EXPECTED output is the fenced `text` block whose first line is `# expect <id>`. The comparison masks what
 legitimately varies from run to run -- a run's seconds (`in 91.2 s`), the machine's free memory (`available GiB:`),
-a calendar date, and `check_refs`'s file counts, which every later plan of the cycle moves -- and nothing else; a line the plan writes as `# (any)` matches any one line. It prints `SAME <id>`
-or the lines that differ, and exits 1 if any block differs.
+a calendar date, and `check_refs`'s file counts, which every later plan of the cycle moves -- and what an editor may
+change, the white space at the end of a line (`mask()` ends with `.rstrip()`, on a run's lines and an Expect's alike)
+and the blank lines at the end of the whole output; and nothing else, but that a line the plan writes as `# (any)`
+matches any one line. A date is masked whatever it says, so a stale one is no difference to this comparator: a block
+that must refuse an old date prints a count of what is fresh (`research_fresh`, `tools/env.sh`). It prints
+`SAME <id>` or the lines that differ, and exits 1 if any block differs.
 
 A DECISION NUMBER PAST THE BASE IS READ AS ITS LABEL. The plan never writes those numbers out: they are the review's
 to give (`decisions.txt`), and a block that prints one -- the decision log's highest, say -- prints whatever the review
