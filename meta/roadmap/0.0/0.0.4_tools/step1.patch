@@ -1,8 +1,8 @@
 diff --git a/harness/selfcheck.py b/harness/selfcheck.py
-index ac2fac2..e969036 100644
+index f56f705..460b8ed 100644
 --- a/harness/selfcheck.py
 +++ b/harness/selfcheck.py
-@@ -268,6 +268,22 @@ SYSMOD = ("mod:sys;\n\npub fixed int64:SYS_SOCKET = 41i64;\npub fixed int64:SYS_
+@@ -269,6 +269,22 @@ SYSMOD = ("mod:sys;\n\npub fixed int64:SYS_SOCKET = 41i64;\npub fixed int64:SYS_
            "pub fixed int64:MSG_NOSIGNAL = 16384i64;\npub fixed int64:AF_INET = 2i64;\n")
  
  
@@ -25,7 +25,7 @@ index ac2fac2..e969036 100644
  def _sock(body):
      return "mod:socket;\n\n// MAY IMPORT: `option`, `addr`, `sys` and `core`\nuse \"../sys/sys.npk\".*;\n\n" + body
  
-@@ -320,15 +336,24 @@ def _tree_cases(c):
+@@ -321,15 +337,24 @@ def _tree_cases(c):
      c.tree("constants-outside-sys", treecheck.check_constants_named,
             {SYS: SYSMOD, "src/socket/socket.npk": _sock("fixed int64:AF_UNIX = 1i64;\n")}, "a kernel constant outside",
             {SYS: SYSMOD + "pub fixed int64:AF_UNIX = 1i64;\n", "src/socket/socket.npk": _sock("// fixed int64:AF_UNIX = 1i64;\n")})

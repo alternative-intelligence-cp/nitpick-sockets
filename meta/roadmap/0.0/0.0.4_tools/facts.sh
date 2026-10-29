@@ -287,7 +287,8 @@ for v in "i64_max|fixed int64:I64_MAX = 9223372036854775807i64;" "i64_min|fixed 
 done
 
 # §1.9 -- every obligation made live, one at a time, each module compiled alone
-python3 -B "$T4/obligations.py" "$NPKC" "$F/obligations" "$d/src/core/vec.npk" "$d/src/core/bytes.npk" | sed 's/^/§1.9 /'
+python3 -B "$T4/obligations.py" "$NPKC" "$F/obligations" "$d/src/core/vec.npk" "$d/src/core/bytes.npk" > "$F/obligations.out" 2>&1; rc=$?
+sed 's/^/§1.9 /' "$F/obligations.out"; echo "§1.9 obligations.py: exit $rc"
 
 # §1.10 -- the generic instances: a module compiled alone emits none of its generics; the instantiating unit, each
 ( cd "$d/src/core" && "$NPKC" vec.npk -o "$F/vec.ll" )

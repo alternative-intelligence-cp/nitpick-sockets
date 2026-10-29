@@ -705,10 +705,10 @@ index 4483891..1e98191 100644
  
 diff --git a/harness/selfcheck.py b/harness/selfcheck.py
 new file mode 100644
-index 0000000..af80d97
+index 0000000..f56f705
 --- /dev/null
 +++ b/harness/selfcheck.py
-@@ -0,0 +1,436 @@
+@@ -0,0 +1,437 @@
 +#!/usr/bin/env python3
 +"""The self-check -- the harness handed faults and required to CATCH each one, beside a control it must pass
 +(`meta/specs/TESTING.md` V-14, V-15; `BUILD.md` B-9; @@PD-174@@). It runs in every full run after the first build
@@ -842,7 +842,8 @@ index 0000000..af80d97
 +
 +    def sweep_case(self):
 +        d = os.path.join(self.w, "parse-not-parsing")
-+        _write(os.path.join(d, "noparse.npk"), "mod:noparse;\n\n" + NO_PARSE + "\n" + FLOOR)
++        # the hit is under a NESTED build/, which the sweep reads: only the entry's own build/ is set aside
++        _write(os.path.join(d, "sub", "build", "noparse.npk"), "mod:noparse;\n\n" + NO_PARSE + "\n" + FLOOR)
 +        st = _Quiet(d, self.ctx, self.floor_bin)
 +        v, said = _verdict(st, d, {"name": "selfcheck", "stage": "parse", "path": ".", "recursive": True})
 +        c = os.path.join(self.w, "parse-not-parsing-control")
@@ -1146,7 +1147,7 @@ index 0000000..af80d97
 +    return good == len(got), (f"the self-check: {good} of {len(got)} live cases caught, each beside its control; "
 +                              f"{len(PENDING)} pending")
 diff --git a/harness/stages.py b/harness/stages.py
-index 1be50ab..c90221a 100644
+index a97efdf..8b7c066 100644
 --- a/harness/stages.py
 +++ b/harness/stages.py
 @@ -1,21 +1,41 @@
@@ -1188,11 +1189,11 @@ index 1be50ab..c90221a 100644
 +judges both names: the compiler's `check` is its `tools/check`, an `.npk` source at the pin that
 +nothing here builds, so `npkc` judges a `check` unit as it judges a `compile`/`negative` one.
 +
-+`parse`, THE SWEEP: every `.npk` under the entry's path, `.git`, `build` and `.internal` aside,
-+each compiled as a root by `npkc` -- which has no parse-only mode at the pin -- and judged by its
-+diagnostics' FAMILY: it parses unless a `NITPICK-LEX-` or `NITPICK-PARSE-` code is reported or
-+`npkc` could not proceed (exit 2 or 3). A file refused for its types, its borrows or its names
-+parses: `tests/probe/refused/` holds such files on purpose. One verdict for the whole sweep.
++`parse`, THE SWEEP: every `.npk` under the entry's path but the `.git`, `build` and `.internal`
++directly under it, each compiled as a root by `npkc` -- which has no parse-only mode at the pin --
++and judged by its diagnostics' FAMILY: it parses unless a `NITPICK-LEX-` or `NITPICK-PARSE-` code is
++reported or `npkc` could not proceed (exit 2 or 3). A file refused for its types, its borrows or its
++names parses: `tests/probe/refused/` holds such files on purpose. One verdict for the whole sweep.
 +
 +`loopback` IS NEVER SKIPPED (B-5): before its first unit the stage binds a TCP socket to port 0
 +on `127.0.0.1` and on `::1`, what its programs run over, and closes it; if either cannot be
@@ -1328,15 +1329,16 @@ index 1be50ab..c90221a 100644
          shown = ", ".join(f"{k} {self._show(v)}" for k, v in exits.items())
          if all(x == e.exit for v in exits.values() for x in v):
              return self._say("PASS", suite, rel, pre + shown)
-@@ -138,6 +200,26 @@ class Stage:
+@@ -138,6 +200,27 @@ class Stage:
              return self._say("FAIL", suite, rel, f"npkc 1 -- {got}; " + "; ".join(parts) + " (B-8)")
          return self._say("PASS", suite, rel, f"npkc 1 -- {got}")
  
 +    def _sweep(self, entry):
 +        files = []
 +        for rel in (entry["paths"] if "paths" in entry else [entry["path"]]):
-+            for d, dirs, fs in os.walk(os.path.join(self.root, rel)):
-+                dirs[:] = sorted(x for x in dirs if x not in SWEEP_SKIP)
++            top = os.path.join(self.root, rel)
++            for d, dirs, fs in os.walk(top):
++                dirs[:] = sorted(x for x in dirs if d != top or x not in SWEEP_SKIP)
 +                files += [os.path.join(d, f) for f in sorted(fs) if f.endswith(".npk")]
 +        bad = []
 +        for src in files:
@@ -1797,10 +1799,10 @@ index 0000000..7f0c816
 +LATER = [("check_failsafe_arms", "cycle 0.2, the first module that raises an identity -- each module's bill read from "
 +          "the compiler's own `NITPICK-REACH-003` list, a root importing it with no `failsafe` (SAFETY.md S-9)")]
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index 02f8b2d..5b6ee41 100644
+index 886753e..9b1856a 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -958,3 +958,124 @@ the first; **the version alone** — `@@PD-167@@`'s pin, which a re-uploaded asset p
+@@ -958,3 +958,124 @@ the first; **the version alone** — `@@PD-167@@`'s pin, which a re-uploaded ass
  waits: the install step's check of the digest's line and the `LLVM_DIGEST` row go, CI fetches the tarball by its
  version as `@@PD-167@@` has it, and `CURRENCY.md`'s row says the pin waits. A new LLVM pin is a new digest, filed beside
  this one, and the row the workflow reads names it.
@@ -1822,15 +1824,15 @@ index 02f8b2d..5b6ee41 100644
 +a file of the escape analysis's references written beside the IR, so still no mode that stops after the parser.)*
 +
 +*So:* the runner judges a `check` entry as it judges a `compile`/`negative` one — one function, the exact-code rule
-+(B-7, B-8). A `parse` entry over the whole tree is the sweep: every `.npk` but those under `.git`, `build` and
-+`.internal`, each compiled as a root by `npkc` and judged by its codes' family — a `NITPICK-LEX-` or
-+`NITPICK-PARSE-` code, or an exit other than 0 or 1, fails it — and the runner refuses a manifest without that entry,
-+by name. `accept` is struck from `BUILD.md` §3 and `TESTING.md` §1. A `loopback` entry binds both loopback addresses at
++(B-7, B-8). A `parse` entry over the whole tree is the sweep: every `.npk` but those under the entry's own `.git`,
++`build` and `.internal`, each compiled as a root by `npkc` and judged by its codes' family — a `NITPICK-LEX-` or
++`NITPICK-PARSE-` code, or an exit other than 0 or 1, fails it — and the runner refuses a manifest without that entry, by
++name. `accept` is struck from `BUILD.md` §3 and `TESTING.md` §1. A `loopback` entry binds both loopback addresses at
 +port 0 before its first unit, and when it cannot, fails every unit by name: it is never skipped (B-5). A `network`
-+entry's units run only when the caller names the outside host, `--network HOST:PORT`, the peer each unit's one
-+argument; otherwise each is a `SKIP` line of its own saying why, counted as skipped and never as passed (V-2). A
-+directory with no unit has no entry, so `tests/rejection/`, `tests/unit/`, `tests/unit/net/` and `tests/unit/extern/`
-+gain theirs with their first units, and every full run names each such stage on a `later` line until then.
++entry's units run only when the caller names the outside host, `--network HOST:PORT`, the peer each unit's one argument;
++otherwise each is a `SKIP` line of its own saying why, counted as skipped and never as passed (V-2). A directory with no
++unit has no entry, so `tests/rejection/`, `tests/unit/`, `tests/unit/net/` and `tests/unit/extern/` gain theirs with
++their first units, and every full run names each such stage on a `later` line until then.
 +
 +*Alternatives declined:* **the compiler's `tools/parse_check` and `tools/check`** — sources a run would build from the
 +compiler's tree, which nothing here builds; **the compiler's fixture rule for `check`**, a file with no

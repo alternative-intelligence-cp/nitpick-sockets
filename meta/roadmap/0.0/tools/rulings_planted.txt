@@ -1,8 +1,11 @@
 mod:rulings_planted;
-// Every shape `rulings.py` counts, once each, IN CODE. A lexical fixture: never compiled.
+// Every shape `rulings.py` counts, once each, IN CODE, and the two module-level qualifiers the pin's grammar spells
+// beside `fixed` (`wild`, `stack`). A lexical fixture: never compiled.
 fixed int64:KEEP = 1i64;
 int64:counter;
 int64:plain = 0i64;
+wild int8->:g3;
+stack int32:scoped = 1i32;
 comptime func:twice = int32(int32:x) { pass x; };
 impl:Elsewhere:Other = { };
 func:f = NIL() {

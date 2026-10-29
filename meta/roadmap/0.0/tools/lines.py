@@ -17,7 +17,8 @@ docstrings and comments with the rest of their text). The forms, each counted on
   * `line N of path`, `lines N–M of path`;
   * `path`'s line N, `path` line N, `path` from line N;
   * a named file's line: `its line N` (the file named last before it in the same unit), `probe NN's line N`
-    (`tests/probe/NN*.npk`), `the X.Y roadmap's line N` (`meta/roadmap/X.Y/README.md`);
+    (`tests/probe/NN*.npk`), `the X.Y roadmap's line N` (`meta/roadmap/X.Y/README.md`) -- and, in these two forms,
+    `Line N of path`, `Its line N`, `Probe NN's line N`, `The X.Y roadmap's line N`, as a sentence opens;
   * `path` N -- a file in backticks and a bare number, with its list (`7, 22 … 26, 102 and 125`, `15 ×2`): the sweep
     tables' form; a number followed by a unit (`B`, `bytes`, `files`, `lines` ...) is not one;
   * a bare `:N` or `:N–M` after a file named earlier in the same unit.
@@ -82,12 +83,12 @@ UNIT = (r"(?:B|KiB|MiB|GiB|bytes?|files?|lines?|tracked|programs?|words?|identit
 NUMLIST = (N + r"(?:\s?×\s?\d+)?(?:(?:,\s|\sand\s|\s?(?:…|\.\.\.)\s?|" + DASH + r")" + N + r"(?:\s?×\s?\d+)?)*")
 FORMS = [
     ("path:N", re.compile(r"`?(?P<f>" + FILE + r")`?:(?P<a>" + N + r")(?:" + DASH + r":?(?P<b>" + N + r"))?(?![\d:])")),
-    ("line N of path", re.compile(r"\blines? (?P<a>" + N + r")(?:" + DASH + r"(?P<b>" + N + r"))? (?:of|in) `?(?P<f>"
-                                  + FILE + r")")),
+    ("line N of path", re.compile(r"\b(?i:lines?) (?P<a>" + N + r")(?:" + DASH + r"(?P<b>" + N
+                                  + r"))? (?:of|in) `?(?P<f>" + FILE + r")")),
     ("path's line N", re.compile(r"`(?P<f>" + FILE + r")`(?:'s)? (?:from )?lines? (?P<a>" + N + r")(?:" + DASH
                                  + r"(?P<b>" + N + r"))?\b")),
-    ("named line N", re.compile(r"\b(?P<who>probe \d\d[a-z]?|the \d\.\d+ roadmap|its)(?:'s)? lines? (?P<a>" + N
-                                + r")(?:" + DASH + r"(?P<b>" + N + r"))?\b")),
+    ("named line N", re.compile(r"\b(?P<who>(?i:probe) \d\d[a-z]?|(?i:the) \d\.\d+ (?i:roadmap)|(?i:its))(?:'s)? "
+                                + r"(?i:lines?) (?P<a>" + N + r")(?:" + DASH + r"(?P<b>" + N + r"))?\b")),
     ("`path` N", re.compile(r"`(?P<f>" + FILE + r")` (?P<list>" + NUMLIST + r")(?![\d.,/:]\d|\.\d| ?" + UNIT
                             + r"|-)")),
     ("bare :N", re.compile(r"(?<=[\s(])(?P<colon>:)(?P<a>" + N + r")(?:" + DASH + r"(?P<b>" + N + r"))?(?![\d:])")),
@@ -391,7 +392,7 @@ def citations(text):
                 lines = [(x, 1) for x in range(a, b + 1)]
                 if b > a:
                     lines = [(a, -(b - a))]          # a range: one citation of lines a..b
-            who = g.get("who")
+            who = (g.get("who") or "").lower() or None     # a sentence's first word is capitalised: `Its line N`
             path = g.get("f")
             if form == "bare :N":
                 prev = [x for x in FILE_ANY.finditer(text[:s]) if s - x.end() < 120]
@@ -864,6 +865,10 @@ def control(argv):
         ("`path` N", '`meta/DECISIONS.md` %d, "%s".' % (n, words)),
         ("bare :N", 'The file `meta/DECISIONS.md` says it (:%d, "%s").' % (n, words)),
         ("path:N", 'the comment at `src/frontend/types.npk:%d` reads "cross a spawn".' % m),
+        ("line N of path", 'Line %d of `meta/DECISIONS.md` reads "%s".' % (n, words)),
+        ("named line N", 'A look at `meta/DECISIONS.md`. Its line %d reads "%s".' % (n, words)),
+        ("named line N", 'Probe 04\'s line %d reads "%s".' % (pn, pw)),
+        ("named line N", 'The 0.1 roadmap\'s line %d reads "%s".' % (rn, rw)),
     ]
     stales = [
         ("path:N", 'the log at `meta/DECISIONS.md:%d` says "%s".' % (stale, words)),
@@ -874,6 +879,10 @@ def control(argv):
         ("named line N", 'probe 04\'s line %d reads "%s".' % (pn + 1 if strip(pl[pn]) and pw.lower() not in
                                                                    strip(pl[pn]).lower() else pn + 2, pw)),
         ("nothing", 'the comment at `src/frontend/types.npk:%d`, unquoted.' % m),
+        ("line N of path", 'Line %d of `meta/DECISIONS.md` reads "%s".' % (stale, words)),
+        ("named line N", 'A look at `meta/DECISIONS.md`. Its line %d reads "%s".' % (stale, words)),
+        ("named line N", 'Probe 04\'s line %d reads "%s".' % (pn + 1 if strip(pl[pn]) and pw.lower() not in
+                                                                   strip(pl[pn]).lower() else pn + 2, pw)),
     ]
     ok = True
     scratch = os.path.join(repo, ".internal", "w00", "lines", "plants.md")

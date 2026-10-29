@@ -2,6 +2,7 @@
 """Cycle 0.0 -- apply one subcycle step's patch, all-or-nothing, and say which of three states the tree was in.
 
     python3 -B apply.py "$REPO" <subcycle> <step>        e.g.  apply.py "$REPO" 0.0.0 2
+    python3 -B apply.py selftest                         the dated-line reading, planted in a temp dir
 
 The patch is `meta/roadmap/0.0/<subcycle>_tools/step<step>.patch` BESIDE THIS SCRIPT -- the plan's own, whatever tree
 it is applied to -- a `git diff` of the design chain the plan was cut from, and the review surface: a worker may tighten a text, never change what it says, and amends THE PATCH, never
@@ -39,8 +40,12 @@ from one step's worker to the next, kept between steps; the subcycle's record re
 any day while the file holds the run's date. In a CONTEXT or REMOVED line, `@@DATE@@` is the date the tree already holds
 on that line -- the run's own, written by an earlier step, or an earlier subcycle's, written by its run on a day this plan
 cannot know: each such line is found in the file it belongs to, the placeholder read as any date, and the one date the
-tree holds there is written in; a line found with no date, or with two different dates, is a STOP. A file the patches
-touch must not hold `@@DATE@@` itself before they are applied, and no added line names a date the run did not write.
+tree holds there is written in. A line that cannot be read to one date is a STOP, by its own name: found `nowhere`; on
+more than one line of the file, with different dates (`with more than one date`); or on one line that holds two
+different dates, for a line with two placeholders (`with two different dates on the one line`). `selftest` plants each
+in a temp dir (under TMPDIR), reads the date from a sound line, and exits 0 when each is as planted, 1 when one is not.
+A file the patches touch must not hold `@@DATE@@` itself before they are applied, and no added line names a date the
+run did not write.
 """
 import datetime
 import glob
@@ -94,10 +99,12 @@ def tree_dates(root, sub, step, text, strict=True):
             if not strict and len(found) != 1:
                 out.append(line)
                 continue
-            if len(found) != 1 or len(set(found.pop())) != 1:
+            if len(found) != 1 or len(set(next(iter(found)))) != 1:
+                why = ("nowhere" if not found else "with more than one date" if len(found) > 1
+                       else "with two different dates on the one line")
                 raise SystemExit("STOP %s step%s: %s holds the dated context line %r %s" % (
-                    sub, step, cur, line[1:80], "nowhere" if not found else "with more than one date"))
-            day = next(m.group(1) for m in (rx.match(t) for t in cache[cur]) if m)
+                    sub, step, cur, line[1:80], why))
+            day = next(iter(found))[0]
             line = line.replace(DATE_PLACEHOLDER, day)
         out.append(line)
     return "\n".join(out)
@@ -195,7 +202,37 @@ def text_of(sub, step):
     return PLACEHOLDER.sub(lambda m: table[m.group(1)], raw)
 
 
+def selftest():
+    """Plant a file of dated lines and a patch reading them; True when each case is read or stopped on as planted."""
+    import tempfile
+    files = ["dated 2026-10-18 line", "only 2026-10-18 and 2026-10-19 here", "same 2026-10-18 and 2026-10-18 here",
+             "two 2026-10-18 lines", "two 2026-10-19 lines"]
+    cases = [(" dated @@DATE@@ line", True, "dated 2026-10-18 line"),
+             (" same @@DATE@@ and @@DATE@@ here", True, "same 2026-10-18 and 2026-10-18 here"),
+             (" missing @@DATE@@ line", True, "nowhere"),
+             (" two @@DATE@@ lines", True, "with more than one date"),
+             (" only @@DATE@@ and @@DATE@@ here", True, "with two different dates on the one line"),
+             (" missing @@DATE@@ line", False, " missing @@DATE@@ line")]
+    good = 0
+    with tempfile.TemporaryDirectory() as root:
+        with open(os.path.join(root, "planted.md"), "w", encoding="utf-8") as fh:
+            fh.write("\n".join(files) + "\n")
+        for line, strict, want in cases:
+            patch = "--- a/planted.md\n+++ b/planted.md\n@@ -1,1 +1,1 @@\n%s" % line
+            try:
+                got = tree_dates(root, "planted", "1", patch, strict).split("\n")[-1].lstrip()
+                good += got == want.lstrip()
+            except SystemExit as e:
+                good += str(e).endswith(want) and strict
+    print("selftest: %d of %d dated context lines as planted -- a date read, the same date twice on one line read, "
+          "`nowhere`, `with more than one date` and `with two different dates on the one line` each a STOP, and a missing "
+          "line left as it is when not strict" % (good, len(cases)))
+    return good == len(cases)
+
+
 def main(argv):
+    if argv[1:] == ["selftest"]:
+        return 0 if selftest() else 1
     if len(argv) != 4:
         print(__doc__)
         return 2

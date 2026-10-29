@@ -84,6 +84,7 @@ python3 -B "$TL/shapes.py" --sites $(sed "s|^|$d/|" "$F/added/list") | sed "s|$d
   | grep -E '^  (a plain|exit operand: (`|a cast))' | tr -s ' '
 echo "§1.6 the rulings' planted control:"; python3 -B "$TL/rulings.py" "$TL/rulings_planted.txt" | tail -n +2
 echo "§1.6 the rulings' clean control:"; python3 -B "$TL/rulings.py" "$TL/rulings_clean.txt" | tail -n +2
+rs=$(python3 -B "$TL/rulings.py" --selftest); echo "§1.6 the rulings' STOP control, exit $?: $rs"
 echo "§1.6 the rulings over the added files:"; python3 -B "$TL/rulings.py" $(sed "s|^|$d/|" "$F/added/list") | tail -n +2
 
 # §1.7 -- every declared name against the pin's keyword table (landing 113), the scanner proved first

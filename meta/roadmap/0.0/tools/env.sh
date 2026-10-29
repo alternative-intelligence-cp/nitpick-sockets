@@ -186,3 +186,23 @@ heading() {
 first = open(sys.argv[2], encoding="utf-8").readline() if os.path.isfile(sys.argv[2]) else ""
 print("first line %sa digest heading" % ("" if sweep.DIGEST.match(first.rstrip("\n")) else "NOT "))' "$TOOLS" "$1"
 }
+
+# Each research digest's `As of` date and whether its first line is a digest's heading, one line a digest, then how
+# many are within 90 days of today -- a security digest is stale after 90 days (its `sensitivity:` line). The
+# comparator masks dates, so on a stale digest it is this count that differs; the function returns non-zero when a
+# digest is stale or has no `As of` line. A name is a file of `meta/research/` (`security-defects`), a path is used
+# as it stands; a digest dated exactly 90 days ago is fresh.
+#     research_fresh <name or path>...
+research_fresh() {
+  local f p d n=0 m=0 cut
+  cut=$(date -d "90 days ago" +%F)
+  for f in "$@"; do
+    case $f in */*) p=$f ;; *) p=$REPO/meta/research/$f.md ;; esac
+    d=$(grep -m1 -oE 'As of [0-9]{4}-[0-9]{2}-[0-9]{2}' "$p" 2>/dev/null)
+    echo "research: $(basename "$p") ${d:-MISSING}; $(heading "$p")"
+    m=$((m + 1))
+    if [ -n "$d" ] && [[ ! "${d#As of }" < "$cut" ]]; then n=$((n + 1)); fi
+  done
+  echo "research: digests within 90 days of today: $n of $m"
+  [ "$n" = "$m" ]
+}

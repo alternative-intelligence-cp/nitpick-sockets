@@ -159,10 +159,10 @@ index 14b013a..7bcc322 100644
  
  
 diff --git a/harness/selfcheck.py b/harness/selfcheck.py
-index e969036..9028249 100644
+index 460b8ed..e7b4d21 100644
 --- a/harness/selfcheck.py
 +++ b/harness/selfcheck.py
-@@ -162,6 +162,32 @@ class Cases:
+@@ -163,6 +163,32 @@ class Cases:
              hit = [f for f in (found or []) if f" -- {facet}" in f]
              self.add(case, bool(hit), hit[0] if hit else (why or "no finding"), cpass, csaid)
  
@@ -195,7 +195,7 @@ index e969036..9028249 100644
      def failsafe_case(self):
          d = os.path.join(self.w, "failsafe-allowance")
          src = _write(os.path.join(d, "waits.npk"), "mod:waits;\n\n" + LIB_SHAPES.split("\n\npub func:core_pid")[0] + "\n")
-@@ -409,6 +435,7 @@ def cases(ctx, root, floor_bin, floor_edges):
+@@ -410,6 +436,7 @@ def cases(ctx, root, floor_bin, floor_edges):
      c.undefined_case()
      c.failsafe_case()
      c.scan_cases()
