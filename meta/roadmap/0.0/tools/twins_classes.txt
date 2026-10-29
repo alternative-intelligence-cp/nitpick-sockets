@@ -52,6 +52,11 @@ EARLIER | tree@0.0.2,0.0.3:harness/irscan.py | review and the tree checks do. ""
 EARLIER | patch:0.0.2_tools/step2.patch | builds and scans every module under src/, judges every suite
 EARLIER | tree@0.0.2,0.0.3:CLAUDE.md | builds and scans every module under src/, judges every suite
 
+# EARLIER -- B-2's drawing as 0.0.2 wrote it, in the trees before 0.0.4's step 2 extends its call-edge clause to the one
+# test (fix round 3, T7v4's 1)
+EARLIER | patch:0.0.2_tools/step1.patch | a root — a program, or one module under src/ compiled alone
+EARLIER | tree@0.0.2,0.0.3:meta/specs/BUILD.md | a root — a program, or one module under src/ compiled alone
+
 # EARLIER -- CLAUDE.md's status before 0.0.1's step 6, and the pattern that sweeps it
 EARLIER | tip:meta/roadmap/0.0/0.0.1_tools/sweep_patterns.txt | no library code exists yet
 EARLIER | tree@0.0.0:CLAUDE.md | no library code exists yet

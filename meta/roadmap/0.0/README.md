@@ -433,6 +433,13 @@ python3 -B meta/roadmap/0.0/tools/twins.py control "$REPO"
 python3 -B meta/roadmap/0.0/tools/twins.py run "$REPO"
 ```
 
+**The exit statuses, one meaning each, which a later pass reads: it never reads the printed tally alone.** `lines.py`:
+0, every citation resolves and holds; 1, a HIT; 2, a usage error. `twins.py run`: 0, every hit EARLIER or LOG; 1, a stop
+— an UNCLASSED hit, a data file not in its form, or, from `control`, a check that failed; 2, a usage error; 3, a hit
+classed STALE and none UNCLASSED — a text the plan fixed at its source has come back, or `--before` found the sites a
+round fixes. A STALE hit beside an UNCLASSED one is 1, and the counts say both. `control` exits 0 when every check holds
+and 1 when one fails, and plants each case it proves.
+
 **(a) The citation check.** Its control plants 13 sound citations, one per form and the pin's O-N3 comment, and each
 holds. It plants 7 stale or empty ones, and each is a HIT. It reads 61 files of the plan: the subcycle files, this
 README, every patch's added and context lines, and every tool. The checks' data and the other tools' planted and clean
@@ -466,7 +473,10 @@ rows of 115 holds, each old string more often before its commit than at it, and 
 why; a planted twin is found and its correction is not; and the classes' self-test reads 6 of 6 as planted. It sweeps
 the plan's 46 files at the tip, the 21 patches' added and context lines, and the distinct file texts of the six trees
 the subcycles leave, 217 at `fd47ba3` and 219 here. It also reads the decision log's lines that cite a cycle file's
-section, by 0.0.5's first sweep subject.
+section, by 0.0.5's first sweep subject. **Its scope is what a correction removed.** A passage a correction leaves
+understated, by an addition that says more than the passage does, has no old string to find: it needs a check of its own
+or a reviewer's eye, and the table takes its row by hand when one is found (fix round 3's B-2 drawing, the call-edge
+clause that 0.0.4's step 2 extends to one test).
 
 - **At `fd47ba3`** (`run --before`) it finds 108 hits:
   - **STALE 61**, every one a site this round fixed at its source: finding 1's O-N3 note and its twins 11, finding 2's

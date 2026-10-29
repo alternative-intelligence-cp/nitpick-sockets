@@ -4,8 +4,8 @@ correction the plan records as made, and each this round makes, is swept for its
 strings it changed, over every surface the plan's text reaches.
 
     python3 -B twins.py run     "$REPO"     # every old string's hits, each classed; an UNCLASSED hit is a stop
-    python3 -B twins.py run     "$CLONE" --before   # a clone at the round's base, fd47ba3, with these tools copied
-                                            # in: a hit of the round's own rows that no line classes is STALE
+    python3 -B twins.py run     "$CLONE" --before   # a clone at the round's base, with these tools copied in: a
+                                            # hit of the round's own rows that no line classes is STALE
     python3 -B twins.py control "$REPO"     # each row's provenance; a planted twin found and its new string not;
                                             # the classes' self-test
 
@@ -34,7 +34,13 @@ tree that holds the line is one of those named; `log` for the section citations)
 sentence holds the fragment, read through the same transform, case ignored (`re:` before a fragment makes it a regular
 expression over that text). Three classes: STALE, a twin fix round 2 fixes at its source (so found only before the fix);
 EARLIER, a statement about an earlier cut, a pin, a date or a run, said as such; LOG, a record the decision log keeps
-by its rule. A hit no line classes is UNCLASSED, and an UNCLASSED hit is a stop: exit 1.
+by its rule. A hit no line classes is UNCLASSED, and an UNCLASSED hit is a stop.
+
+THE EXIT STATUS, one meaning each, which a later pass reads (it never reads the printed tally alone): `run` exits 0
+when every hit is classed EARLIER or LOG; 1, a stop, when a hit is UNCLASSED, a data file is not in its form, or
+`control` fails; 3 when a hit is classed STALE and none is UNCLASSED -- a text this plan fixes at its source has been
+restored, or `--before` found the sites the round fixes; 2 on a usage error. Both a STALE and an UNCLASSED hit give 1,
+and the counts say both. `control` exits 0 when every check holds, 1 when one fails, and plants each of the cases above.
 """
 import fnmatch
 import os
@@ -236,6 +242,22 @@ def section_lines(trees, cls):
 
 # --------------------------------------------------------------------------------------------------------- run --
 
+def tally_of(hits, sec):
+    """{class: count} over every row's hits and the decision log's section citations."""
+    tally = {c: 0 for c in CLASSES + ("UNCLASSED",)}
+    for hs in hits.values():
+        for h in hs:
+            tally[h[0]] += 1
+    for x in sec:
+        tally[x[0]] += 1
+    return tally
+
+
+def status(tally):
+    """The exit status of `run`: 1 a stop (an UNCLASSED hit), 3 a STALE hit and no stop, 0 clean."""
+    return 1 if tally["UNCLASSED"] else 3 if tally["STALE"] else 0
+
+
 def layout(argv):
     repo, wb, npk = L.layout(argv)
     trees = L.Trees(repo, wb, npk)
@@ -257,18 +279,16 @@ def run(argv):
               "%d–%d" % rec if rec else "(none yet)"))
     hits = sweep(rows, texts, cls)
     if "--before" in argv:
-        print("before: the round's base -- a hit of a row of fix round 2's own (`fd47ba3..`, or a step's correction "
-              "whose note gives it to fix round 2) that no class line classes is a site the round fixes at its source: "
-              "STALE")
+        print("before: the round's base -- a hit of a row of the round's own (a commit ending in `..`, or a step's "
+              "correction whose note begins `fix round`) that no class line classes is a site the round fixes at its "
+              "source: STALE")
         for i, r in enumerate(rows):
-            if r[2] == "fd47ba3.." or r[3].startswith("fix round 2"):
+            if r[2].endswith("..") or r[3].startswith("fix round"):
                 hits[i] = [("STALE",) + h[1:5] + ("base",) + h[6:] if h[0] == "UNCLASSED" else h for h in hits[i]]
-    tally = {c: 0 for c in CLASSES + ("UNCLASSED",)}
     for i, r in enumerate(rows):
         hs = hits[i]
         print("%s  ->  %s  [%s]: %d hit(s)" % (r[0], r[1], r[2], len(hs)))
         for c, surface, path, line, subs, cn, sent in hs:
-            tally[c] += 1
             tag = " [classes:%d]" % cn if isinstance(cn, int) else (" [the round's own site]" if cn else "")
             print("  %-9s %s:%s:%d%s%s" % (c, surface, path, line, " (trees of %s)" % ", ".join(subs) if subs else "",
                                            tag))
@@ -279,14 +299,18 @@ def run(argv):
     print("section citations in the decision log, the tree the last patch leaves: %d match(es) on %d line(s)" % (
         len(sec), nl))
     for c, line, txt, cn, sent in sec:
-        tally[c] += 1
         print("  %-9s meta/DECISIONS.md:%d %r%s" % (c, line, txt, " [classes:%d]" % cn if cn else ""))
         if c == "UNCLASSED":
             print("            %r" % sent[:240])
+    tally = tally_of(hits, sec)
     print("result: %d row(s), %d hit(s) -- %s; and %d section citation(s) on %d line(s) of the decision log" % (
         len(rows), sum(len(v) for v in hits.values()), ", ".join("%s %d" % (c, tally[c]) for c in tally), len(sec),
         nl))
-    return 1 if tally["UNCLASSED"] else 0
+    code = status(tally)
+    print("exit %d: %s" % (code, {0: "clean -- every hit is EARLIER or LOG",
+                                  1: "a stop -- an UNCLASSED hit",
+                                  3: "a hit is classed STALE, a text this plan fixes at its source"}[code]))
+    return code
 
 
 # ----------------------------------------------------------------------------------------------------- control --
@@ -416,8 +440,21 @@ def control(argv):
           "trees its line names and in one more, a regular expression and a near miss: %s" % (
               sum(a == b for a, b in zip(got, want)), len(want), ", ".join(got)))
     ok = ok and got == want
-    print("control: %s" % ("every row's provenance holds, the planted twin is found and its correction is not, and the "
-                           "classes read as written" if ok else "FAILED"))
+    # the exit statuses, through the functions `run` reports with: a restored stale text, an unclassed hit, a classed
+    # earlier one, and a stale hit beside an unclassed one
+    row = ("a stale claim", "its correction", "-", "planted", 0, False)
+    sentences = ["A planted sentence, restored: a stale claim, as it was.", "Another planted sentence: a stale claim, a plain one."]
+
+    def planted(lines, *lines_classes):
+        cls_ = [(c, "tip:planted.md", norm(f), k + 1) for k, (c, f) in enumerate(lines_classes)]
+        return status(tally_of(sweep([row], [("tip", "planted.md", lines, None)], cls_), []))
+    codes = [planted(sentences[:1], ("STALE", "restored")), planted(sentences[:1]),
+             planted(sentences[:1], ("EARLIER", "restored")), planted(sentences, ("STALE", "restored"))]
+    print("exit statuses: %d of 4 as planted -- a restored stale text %d, an unclassed hit %d, a classed earlier one %d, "
+          "a stale hit beside an unclassed one %d" % (sum(a == b for a, b in zip(codes, [3, 1, 0, 1])), *codes))
+    ok = ok and codes == [3, 1, 0, 1]
+    print("control: %s" % ("every row's provenance holds, the planted twin is found and its correction is not, the "
+                           "classes read as written and each exit status is the one planted" if ok else "FAILED"))
     return 0 if ok else 1
 
 

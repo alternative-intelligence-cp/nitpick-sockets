@@ -285,9 +285,18 @@ index 44df30c..aaa3438 100644
 +site (Z-1a); a consumer that needs a view of `Bytes` takes a frozen range by a decision that names it; and `put_uint` by
 +division comes back with a decision that its consumers owe the two arms already.
 diff --git a/meta/specs/BUILD.md b/meta/specs/BUILD.md
-index 8eabd30..2deefd8 100644
+index 8a091c3..4710048 100644
 --- a/meta/specs/BUILD.md
 +++ b/meta/specs/BUILD.md
+@@ -46,7 +46,7 @@ a root — a program, or one module under src/ compiled alone — and every modu
+    → npkc              →  <root>.ll              ONE module: the root and all it imports
+    → target rows       →  held to the manifest   (B-1a)
+    → llc               →  <root>.o               at the manifest's llc-flags
+-   → undefined-symbol scan, and for a module under src/ the call-edge scan  (B-2, B-2a)
++   → undefined-symbol scan, and for a module under src/ or tests/unit/generic_instances.npk the call-edge scan  (B-2, B-2a)
+    → ld.lld -static    →  <program>              the program's one object + npkrt.o
+ and the check leg, every program: the same <root>.ll → opt → llc -O2 → the scan → ld.lld (B-3)
+ ```
 @@ -113,6 +113,10 @@ the scan must leave unflagged in the syscaller and flag in the floor-writer's
  `main` — so a scan gone blind, or one that denies the library's own facets,
  reddens the run rather than passing, or failing, everything.

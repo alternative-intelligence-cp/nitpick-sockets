@@ -121,3 +121,4 @@ thirty-seven files	thirty-nine files	fd47ba3..	fix round 2, finding 2: 0.0.4 ste
 step1 4; step2 10; step3 1	step1 4; step2 11; step3 1	fd47ba3..	fix round 2, finding 2: the same, 0.0.4's block 0b Expect, retaken
 holds 65 files	holds 69 files	fd47ba3..	fix round 2, checks (a) and (b): the plan folder gains four tools; 0.0.5's block 5 Expect, retaken
 hunks that remove prose: 16; matched by a pattern: 6	hunks that remove prose: 19; matched by a pattern: 9	fd47ba3..	fix round 2, finding 2: 0.0.4's block 5 control, the new subject's three hunks
+and for a module under src/ the call-edge scan	and for a module under src/ or tests/unit/generic_instances.npk the call-edge scan	step:0.0.4/2	fix round 3, T7v4's 1: B-2's drawing in BUILD.md, whose clause 0.0.4's step 2 extends to the one test the call-edge scan also reads
