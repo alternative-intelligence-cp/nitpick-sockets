@@ -156,7 +156,10 @@ descriptors (`STREAM_MODEL.md` §9).
 
 **Rule N-13.** `SOL_SOCKET` (1) / `SCM_CREDENTIALS` (2), payload a
 `struct ucred`: **12 bytes**, `pid` at 0, `uid` at 4, `gid` at 8, each an
-`int32`/`uint32`.
+`int32`/`uint32` — measured by cycle 0.0's probe 03, whose Nitpick mirror names
+the fields `cpid`, `cuid` and `cgid`: `pid`, `uid` and `gid` are keywords at the
+pin, and a keyword declared as a name of any kind is `NITPICK-PARSE-001`
+(SK-102). The library's `Ucred` uses the same three names.
 
 **Rule N-14 — the receiver must have set `SO_PASSCRED` (16) first**, or no
 credentials arrive. It is not automatic and there is no error to tell you: the
@@ -180,7 +183,7 @@ several senders. The documentation says which is which, because reaching for
 the wrong one produces an authorisation check that is correct in testing and
 wrong under load.
 
-**Rule N-17 — a pid is not a capability.** A `ucred.pid` may have exited and
+**Rule N-17 — a pid is not a capability.** A `ucred`'s `cpid` may have exited and
 been reused by the time the receiver acts on it. `uid` and `gid` do not have
 that problem. The library states this where `ucred` is documented, because
 "check the pid against a list of allowed processes" is a natural and wrong

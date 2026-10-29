@@ -1,0 +1,141 @@
+// expect-exit: 0
+//
+// PROBE 02 -- THE `sockaddr` LAYOUTS, THROUGH THE KERNEL.
+//
+// ASKS: `sockaddr_in`, `sockaddr_in6` and `sockaddr_un`, declared as Nitpick structs and laid over a
+// 64- or 128-byte `wild` block whose bytes past the structure hold a sentinel (0x5A): each is
+// filled, `bind`ed on loopback to port 0 (an `AF_UNIX` socket autobinds into the abstract
+// namespace), and read back with `getsockname` -- the length the kernel returns, the family, a
+// non-zero port, the loopback address, and the sentinel untouched. `#size_of` of each struct, and
+// of a 128-byte `sockaddr_storage`, is asserted beside it.
+// DEPENDS ON THE ANSWER: SK-016 and `ADDRESS_MODEL.md` §2's tables (A-4): a size or an offset the
+// kernel disagrees with is a table that is wrong, and the kernel wins.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 59 are the assertions.
+mod:probe02_sockaddr_layout;
+
+fixed int64:SYS_CLOSE = 3i64;
+fixed int64:SYS_SOCKET = 41i64;
+fixed int64:SYS_BIND = 49i64;
+fixed int64:SYS_GETSOCKNAME = 51i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:AF_INET = 2i64;
+fixed int64:AF_INET6 = 10i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed uint8:SENTINEL = 90u8;
+
+struct:SockaddrIn = { uint16:family; uint16:port_be; uint8[4]:addr; uint8[8]:zero; };
+struct:SockaddrIn6 = { uint16:family; uint16:port_be; uint32:flow_be; uint8[16]:addr; uint32:scope; };
+struct:SockaddrUn = { uint16:family; uint8[108]:path; };
+struct:SockaddrStorage = { uint16:family; uint8[126]:rest; };
+
+// A socket of `family`, bound to what `blk` holds (its first `len` bytes), and read back into `blk`
+// by `getsockname` with room for 64: the length the kernel wrote, or a code below 0.
+func:bind_back = int64(int64:family, wild int8->:blk, int64:len) never fails {
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:rs = sys(SYS_SOCKET, family, kind, 0i64);
+    if (rs.is_error) { pass 0i64 - 1i64; }
+    Result<int64>:rb = sys(SYS_BIND, rs.value, blk, len);
+    if (rb.is_error) {
+        Result<int64>:c0 = sys(SYS_CLOSE, rs.value);
+        if (c0.is_error) { pass 0i64 - 2i64; }
+        pass 0i64 - 2i64;
+    }
+    wild int8->:lenp = calloc(1i64, 8i64);
+    <-(#ptr_add<int32>(lenp, 0i64)) = 64i32;
+    Result<int64>:rg = sys(SYS_GETSOCKNAME, rs.value, blk, lenp);
+    int64:got = (<-(#ptr_add<int32>(lenp, 0i64))) => int64;
+    dalloc(lenp);
+    Result<int64>:c1 = sys(SYS_CLOSE, rs.value);
+    if (rg.is_error) { pass 0i64 - 3i64; }
+    if (c1.is_error) { pass 0i64 - 4i64; }
+    pass got;
+};
+
+// Every byte of `blk` from `from` up to its 64th still holds the sentinel.
+func:untouched = bool(wild int8->:blk, int64:from) never fails {
+    for (int64:k in from...64i64) {
+        if ((<-(#ptr_add<uint8>(blk, k))) != SENTINEL) { pass false; }
+    }
+    pass true;
+};
+
+func:fill = NIL(wild int8->:blk) never fails {
+    for (int64:k in 0i64...64i64) { <-(#ptr_add<uint8>(blk, k)) = SENTINEL; }
+    pass NIL;
+};
+
+func:main = int32(cstring[]:_~argv) {
+    if (#size_of<SockaddrIn>() != 16i64) { exit 10i32; }
+    if (#size_of<SockaddrIn6>() != 28i64) { exit 11i32; }
+    if (#size_of<SockaddrUn>() != 110i64) { exit 12i32; }
+    if (#size_of<SockaddrStorage>() != 128i64) { exit 13i32; }
+
+    // sockaddr_in: 127.0.0.1, port 0
+    wild int8->:b4 = alloc(64i64);
+    drop fill(b4);
+    wild SockaddrIn->:s4 = b4 =>! wild SockaddrIn->;
+    s4.family = 2u16;
+    s4.port_be = 0u16;
+    s4.addr[0i64] = 127u8;
+    s4.addr[1i64] = 0u8;
+    s4.addr[2i64] = 0u8;
+    s4.addr[3i64] = 1u8;
+    for (int64:k in 0i64...8i64) { s4.zero[k] = 0u8; }
+    int64:n4 = raw bind_back(AF_INET, b4, 16i64);
+    if (n4 != 16i64) { exit 20i32; }
+    if (s4.family != 2u16) { exit 21i32; }
+    if (s4.port_be == 0u16) { exit 22i32; }
+    if (s4.addr[0i64] != 127u8) { exit 23i32; }
+    if (s4.addr[3i64] != 1u8) { exit 24i32; }
+    if (!(raw untouched(b4, 16i64))) { exit 25i32; }
+    dalloc(b4);
+
+    // sockaddr_in6: ::1, port 0
+    wild int8->:b6 = alloc(64i64);
+    drop fill(b6);
+    wild SockaddrIn6->:s6 = b6 =>! wild SockaddrIn6->;
+    s6.family = 10u16;
+    s6.port_be = 0u16;
+    s6.flow_be = 0u32;
+    for (int64:k in 0i64...15i64) { s6.addr[k] = 0u8; }
+    s6.addr[15i64] = 1u8;
+    s6.scope = 0u32;
+    int64:n6 = raw bind_back(AF_INET6, b6, 28i64);
+    if (n6 != 28i64) { exit 30i32; }
+    if (s6.family != 10u16) { exit 31i32; }
+    if (s6.port_be == 0u16) { exit 32i32; }
+    if (s6.addr[15i64] != 1u8) { exit 33i32; }
+    if (s6.addr[0i64] != 0u8) { exit 34i32; }
+    if (!(raw untouched(b6, 28i64))) { exit 35i32; }
+    dalloc(b6);
+
+    // sockaddr_un: the family alone, which autobinds a unique abstract name -- 2 + 1 + 5 bytes
+    wild int8->:bu = alloc(64i64);
+    drop fill(bu);
+    wild SockaddrUn->:su = bu =>! wild SockaddrUn->;
+    su.family = 1u16;
+    int64:nu = raw bind_back(AF_UNIX, bu, 2i64);
+    if (nu != 8i64) { exit 40i32; }
+    if (su.family != 1u16) { exit 41i32; }
+    if (su.path[0i64] != 0u8) { exit 42i32; }
+    if (!(raw untouched(bu, 8i64))) { exit 43i32; }
+    dalloc(bu);
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (OutOfBounds)       { exit 94i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

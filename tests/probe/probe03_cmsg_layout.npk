@@ -1,0 +1,107 @@
+// expect-exit: 0
+//
+// PROBE 03 -- `msghdr`, `iovec`, `cmsghdr` AND `ucred`.
+//
+// ASKS: `#size_of` of the Nitpick structs mirroring each kernel structure -- 56, 16, 16 and 12
+// bytes -- and a `sendmsg`/`recvmsg` round trip over a `socketpair` through them, one `iovec` and
+// NO control payload: the bytes arrive whole and `msg_flags` comes back zero. `ucred`'s fields are
+// `cpid`, `cuid` and `cgid`, because `pid`, `uid` and `gid` are keywords at the pin (landing 113:
+// a keyword declared as a name of any kind is `NITPICK-PARSE-001`).
+// DEPENDS ON THE ANSWER: `ANCILLARY_MODEL.md` §1's layouts, and SK-016. The compiler's Bridge
+// (`lib/nbridge.npk`) depends on the same numbers; this measures them independently.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
+mod:probe03_cmsg_layout;
+
+fixed int64:SYS_CLOSE = 3i64;
+fixed int64:SYS_SENDMSG = 46i64;
+fixed int64:SYS_RECVMSG = 47i64;
+fixed int64:SYS_SOCKETPAIR = 53i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:MSG_NOSIGNAL = 16384i64;
+
+// `msg_namelen` and `msg_flags` as one 8-byte word each, covering the `int32` and its padding (N-1).
+struct:MsgHdr = {
+    wild int8->:name; int64:namelen;
+    wild int8->:iov; uint64:iovlen;
+    wild int8->:control; uint64:controllen;
+    int64:flags;
+};
+struct:IoVec = { wild int8->:base; uint64:len; };
+struct:CmsgHdr = { uint64:len; int32:level; int32:ctype; };
+struct:Ucred = { int32:cpid; uint32:cuid; uint32:cgid; };
+
+func:main = int32(cstring[]:_~argv) {
+    if (#size_of<MsgHdr>() != 56i64) { exit 10i32; }
+    if (#size_of<IoVec>() != 16i64) { exit 11i32; }
+    if (#size_of<CmsgHdr>() != 16i64) { exit 12i32; }
+    if (#size_of<Ucred>() != 12i64) { exit 13i32; }
+
+    wild int8->:sv = alloc(8i64);
+    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
+    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, kind, 0i64, sv);
+    if (rp.is_error) { exit 14i32; }
+    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
+    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
+    dalloc(sv);
+
+    // send five bytes, "hello"
+    wild int8->:out = calloc(1i64, 8i64);
+    <-(#ptr_add<uint8>(out, 0i64)) = 104u8;
+    <-(#ptr_add<uint8>(out, 1i64)) = 101u8;
+    <-(#ptr_add<uint8>(out, 2i64)) = 108u8;
+    <-(#ptr_add<uint8>(out, 3i64)) = 108u8;
+    <-(#ptr_add<uint8>(out, 4i64)) = 111u8;
+    wild int8->:sblk = calloc(1i64, 72i64);
+    wild MsgHdr->:sm = sblk =>! wild MsgHdr->;
+    wild IoVec->:siv = (#ptr_add<int8>(sblk, 56i64)) =>! wild IoVec->;
+    siv.base = out;
+    siv.len = 5u64;
+    sm.iov = #ptr_add<int8>(sblk, 56i64);
+    sm.iovlen = 1u64;
+    Result<int64>:rs = sys(SYS_SENDMSG, a, sblk, MSG_NOSIGNAL);
+    dalloc(sblk);
+    dalloc(out);
+    if (rs.is_error) { exit 15i32; }
+    if (rs.value != 5i64) { exit 16i32; }
+
+    // receive into sixteen, with no room for control
+    wild int8->:inb = calloc(1i64, 16i64);
+    wild int8->:rblk = calloc(1i64, 72i64);
+    wild MsgHdr->:rm = rblk =>! wild MsgHdr->;
+    wild IoVec->:riv = (#ptr_add<int8>(rblk, 56i64)) =>! wild IoVec->;
+    riv.base = inb;
+    riv.len = 16u64;
+    rm.iov = #ptr_add<int8>(rblk, 56i64);
+    rm.iovlen = 1u64;
+    rm.flags = 7i64;
+    Result<int64>:rr = sys(SYS_RECVMSG, b, rblk, 0i64);
+    if (rr.is_error) { exit 17i32; }
+    if (rr.value != 5i64) { exit 18i32; }
+    if (rm.flags != 0i64) { exit 19i32; }
+    if ((<-(#ptr_add<uint8>(inb, 0i64))) != 104u8) { exit 20i32; }
+    if ((<-(#ptr_add<uint8>(inb, 4i64))) != 111u8) { exit 21i32; }
+    if (rm.controllen != 0u64) { exit 22i32; }
+    dalloc(rblk);
+    dalloc(inb);
+    Result<int64>:ca = sys(SYS_CLOSE, a);
+    Result<int64>:cb = sys(SYS_CLOSE, b);
+    if (ca.is_error) { exit 23i32; }
+    if (cb.is_error) { exit 24i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

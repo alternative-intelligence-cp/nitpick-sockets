@@ -1,0 +1,107 @@
+// expect-exit: 32
+//
+// PROBE 12 -- A POD ADDRESS ARRAY.
+//
+// ASKS: `ADDRESS_MODEL.md` §1's address types, declared as written and derived `Copy`, at their
+// MEASURED sizes; then a `Vec`-shaped `wild` array of 4 096 `SocketAddr` values -- filled
+// alternately `V4` and `V6`, read back through a `pick`, copied whole into a second array by
+// value, compared, and freed -- and a generic `T: Copy` read of one (the bound `src/core/`'s
+// `Vec<T: Copy>` will take).
+// DEPENDS ON THE ANSWER: SK-022 (A-1: every address type is a plain value with no owning field,
+// precisely so this works) and `ADDRESS_MODEL.md` §1's declarations. A `#size_of` is measured,
+// never summed (`PLAYBOOK.md` §2).
+// EXPECTED: exit 32 -- `#size_of<SocketAddr>()`, the probe's subject -- at -O0 and through
+// `opt -O2`. Codes 10 ... 29 are the assertions, the other sizes among them: `Ipv4Addr` 4,
+// `Ipv6Addr` 20, `IpAddr` 24, `SocketAddrV4` 6, `SocketAddrV6` 28, `UnixAddr` 110.
+mod:probe12_pod_addr_array;
+
+#[derive(Copy)]
+struct:Ipv4Addr = { uint8[4]:octets; };
+#[derive(Copy)]
+struct:Ipv6Addr = { uint8[16]:octets; uint32:scope; };
+#[derive(Copy)]
+enum:IpAddr = { V4(Ipv4Addr); V6(Ipv6Addr); };
+#[derive(Copy)]
+struct:SocketAddrV4 = { Ipv4Addr:ip; uint16:port; };
+#[derive(Copy)]
+struct:SocketAddrV6 = { Ipv6Addr:ip; uint16:port; uint32:flow; };
+#[derive(Copy)]
+enum:SocketAddr = { V4(SocketAddrV4); V6(SocketAddrV6); };
+#[derive(Copy)]
+struct:UnixAddr = { uint8[108]:path; uint8:len; uint8:kind; };
+
+fixed int64:COUNT = 4096i64;
+
+func:same<T: Copy> = T(T:x) never fails {
+    pass x;
+};
+
+// The address the array holds at `k`: even k a V4 on port k, odd k a V6 on port k with flow k.
+func:addr_at = SocketAddr(int64:k) never fails {
+    uint16:port = (k =>! int32) =>! uint16;
+    if ((k & 1i64) == 0i64) {
+        Ipv4Addr:v4 = Ipv4Addr{ octets: [127u8, 0u8, 0u8, 1u8] };
+        pass SocketAddr.V4(SocketAddrV4{ ip: v4, port: port });
+    }
+    Ipv6Addr:v6 = Ipv6Addr{ octets: [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 1u8], scope: 0u32 };
+    pass SocketAddr.V6(SocketAddrV6{ ip: v6, port: port, flow: (k =>! int32) =>! uint32 });
+};
+
+// The port `a` carries, and whether its family is the one `k`'s parity names: the port, or -1.
+func:port_of = int64(SocketAddr:a, int64:k) never fails {
+    pick (a) {
+        (SocketAddr.V4(s)) {
+            if ((k & 1i64) != 0i64) { pass 0i64 - 1i64; }
+            pass s.port => int64;
+        },
+        (SocketAddr.V6(s)) {
+            if ((k & 1i64) == 0i64) { pass 0i64 - 1i64; }
+            if ((s.flow => int64) != k) { pass 0i64 - 1i64; }
+            pass s.port => int64;
+        }
+    }
+};
+
+func:main = int32(cstring[]:_~argv) {
+    if (#size_of<Ipv4Addr>() != 4i64) { exit 10i32; }
+    if (#size_of<Ipv6Addr>() != 20i64) { exit 11i32; }
+    if (#size_of<IpAddr>() != 24i64) { exit 12i32; }
+    if (#size_of<SocketAddrV4>() != 6i64) { exit 13i32; }
+    if (#size_of<SocketAddrV6>() != 28i64) { exit 14i32; }
+    if (#size_of<UnixAddr>() != 110i64) { exit 15i32; }
+
+    int64:width = #size_of<SocketAddr>();
+    wild SocketAddr->:first = (alloc(COUNT * width)) =>! wild SocketAddr->;
+    wild SocketAddr->:second = (alloc(COUNT * width)) =>! wild SocketAddr->;
+    for (int64:k in 0i64...COUNT) {
+        <-(#ptr_add<SocketAddr>(first, k)) = raw addr_at(k);
+    }
+    for (int64:k in 0i64...COUNT) {
+        SocketAddr:one = <-(#ptr_add<SocketAddr>(first, k));
+        SocketAddr:copy = one;
+        <-(#ptr_add<SocketAddr>(second, k)) = copy;
+        if ((raw port_of(one, k)) != k) { exit 16i32; }
+    }
+    for (int64:k in 0i64...COUNT) {
+        SocketAddr:back = raw same(<-(#ptr_add<SocketAddr>(second, k)));
+        if ((raw port_of(back, k)) != k) { exit 17i32; }
+    }
+    dalloc(first);
+    dalloc(second);
+    exit (width =>! int32);
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (OutOfBounds)       { exit 94i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

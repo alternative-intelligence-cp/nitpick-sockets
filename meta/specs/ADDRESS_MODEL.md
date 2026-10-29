@@ -6,28 +6,41 @@ with no kernel at all, and the only module besides `src/sys/` that a program can
 import without owning a socket.
 
 **Every offset and size in this document was measured on the target platform on
-2026-09-03** and is re-asserted by a running program in cycle 0.0's probe 03
-(`SK-016`).
+2026-09-03** and is re-asserted by a running program: the kernel structures by
+cycle 0.0's probe 02, the address types' own sizes by its probe 12 (`SK-016`,
+SK-102). *(Corrected 2026-10-29: this said probe 03, which measures the
+message structures of `ANCILLARY_MODEL.md` §1.)*
 
 ---
 
 ## 1. The types
 
 ```nitpick
+#[derive(Copy)]
 pub struct:Ipv4Addr = { uint8[4]:octets; };                      // 4 bytes
+#[derive(Copy)]
 pub struct:Ipv6Addr = { uint8[16]:octets; uint32:scope; };       // 20 bytes
-pub enum:IpAddr     = { V4(Ipv4Addr); V6(Ipv6Addr); };
+#[derive(Copy)]
+pub enum:IpAddr     = { V4(Ipv4Addr); V6(Ipv6Addr); };           // 24 bytes: an int32 tag, then the payload
 
-pub struct:SocketAddrV4 = { Ipv4Addr:ip; uint16:port; };
-pub struct:SocketAddrV6 = { Ipv6Addr:ip; uint16:port; uint32:flow; };
-pub enum:SocketAddr     = { V4(SocketAddrV4); V6(SocketAddrV6); };
+#[derive(Copy)]
+pub struct:SocketAddrV4 = { Ipv4Addr:ip; uint16:port; };          // 6 bytes
+#[derive(Copy)]
+pub struct:SocketAddrV6 = { Ipv6Addr:ip; uint16:port; uint32:flow; };  // 28 bytes
+#[derive(Copy)]
+pub enum:SocketAddr     = { V4(SocketAddrV4); V6(SocketAddrV6); };  // 32 bytes
 
-pub struct:UnixAddr = {
+#[derive(Copy)]
+pub struct:UnixAddr = {     // 110 bytes
     uint8[108]:path;   // the kernel's sun_path, verbatim
     uint8:len;         // bytes of `path` that are significant, 0..108
     uint8:kind;        // 0 unnamed, 1 pathname, 2 abstract
 };
 ```
+
+Each size is `#size_of`, **measured by probe 12** at compiler `c9baa9e`, never summed from field widths
+(`SK-102`). Each type derives `Copy`, so a container bounded `T: Copy` holds it and a generic read copies it
+(probe 12 reads one through `func:same<T: Copy>`).
 
 **Rule A-1 (SK-022) — every address type is a plain value with no owning
 field.** No
@@ -252,6 +265,12 @@ Unbracketed IPv6 with a port is `ESockAddr`.
 **Rule A-22 — a parser is a pure function over `uint8[]`** and allocates
 nothing. It takes a byte slice, not a `string`, so a caller parsing out of a
 buffer does not build one first.
+
+*(2026-10-29, cycle 0.0.0: measured at compiler `2e1cb4a` — an element of a `uint8` array declared without an
+initialiser, a local of sixteen (an IPv6 result's size) or a struct's field of 108 (`UnixAddr`'s `path`), cannot be
+read before it is written: each read is `NITPICK-ASSIGN-001` (`tests/probe/refused/probe15_unassigned_read.npk`).
+So no parser's result can carry a byte its path never wrote, and the research gate's D3, a result's bytes on the
+IPv4-in-IPv6 path (`meta/research/security-defects.md`), is closed by the language.)*
 
 ---
 

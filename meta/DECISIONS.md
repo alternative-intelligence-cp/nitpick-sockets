@@ -130,6 +130,10 @@ a task suspension, and a blocking descriptor in the reactor parks the thread.
 The one place `fcntl` appears is `sock_adopt` (`SOCKET_MODEL.md` K-9), where a
 descriptor arrived from outside and there is nothing atomic to do.
 
+*(2026-10-29, cycle 0.0.0: RUN at compiler `2e1cb4a` — a TCP socket, an IPv6 datagram socket and a `socketpair`, each
+created with `SOCK_NONBLOCK | SOCK_CLOEXEC` in the creating call, read back non-blocking and close-on-exec by
+`fcntl` with no follow-up call (`tests/probe/probe01_sys_socket.npk`). This decision holds as written.)*
+
 ### SK-013 — every send carries `MSG_NOSIGNAL`, without exception
 > **SUPERSEDED IN PART by SK-101 (2026-10-29): its stated fact.** At compiler `2e1cb4a` the floor catches
 > `SIGPIPE` with a handler that returns (probe 04); the rule stands, with its reason restated there.
@@ -216,6 +220,12 @@ bytes. The socket equivalents are `sockaddr_un` (110, not 128) and `cmsghdr`'s
 `CMSG_LEN` versus `CMSG_SPACE`. A comment stating a size is a comment; a
 program that round-trips it through the kernel is a measurement.
 
+*(2026-10-29, cycle 0.0.0, SK-102: the running programs exist — `sockaddr_in` 16, `sockaddr_in6` 28,
+`sockaddr_un` 110 and `sockaddr_storage` 128 laid out as Nitpick structs and round-tripped through `bind` and
+`getsockname` with a sentinel past each end (probe 02), `msghdr` 56, `iovec` 16, `cmsghdr` 16 and `ucred` 12 through
+`sendmsg` and `recvmsg` (probe 03), and the address types' own sizes (probe 12) — every one as the specifications
+state it.)*
+
 ### SK-017 — byte-order conversion lives in one module
 **2026-09-03.** `src/addr/order.npk`, four functions, and every port, every
 IPv4 word and every `sin6_flowinfo` goes through one of them. Nothing else in
@@ -285,6 +295,10 @@ refuse it as a channel element (TYPE-057), so a `Vec<SocketAddr>` would be a
 container of moves and an address could not be sent to another task. Addresses
 are small, fixed-size and copied constantly; inlining 108 bytes is the cheap
 answer to all of it.
+
+*(2026-10-29, cycle 0.0.0, SK-102: measured at compiler `2e1cb4a` — 4 096 `SocketAddr` values in a `wild` array,
+filled, read back through a `pick`, copied whole by value and read through a generic `T: Copy` function, with every
+address type derived `Copy` (probe 12). This decision holds as written.)*
 
 ### SK-023 — `UnixAddr` is not a `Path`
 **2026-09-03.** The prelude's `Path` (D-051, D-054) requires an **absolute**
@@ -532,3 +546,33 @@ and a marker with no subject of its own is a marker nobody keeps working.
 disposition as `SIG_DFL`, before any send — red on that pin's first run, as the probe started under `SIG_DFL` exits
 11 at this one (a third mutant); there a send with no flags dies by signal 13, as the no-flags mutant does here; and
 a decision restores `SK-013`'s premise and the marker, with probe 04 its consumer.
+
+### SK-102 — the kernel layouts and the address types at their measured sizes; the names the pin refuses are not used
+**2026-10-29, cycle 0.0.0 step 2, probes 01, 02, 03 and 12.**
+
+*What was measured* at compiler `c9baa9e`, at `-O0` and through `opt -O2`: the kernel structures, declared as
+Nitpick structs with natural alignment, are the kernel's sizes and round-trip through it — `sockaddr_in` 16,
+`sockaddr_in6` 28, `sockaddr_un` 110 (an `AF_UNIX` socket autobinds into the abstract namespace, 2 + 1 + 5 bytes),
+`sockaddr_storage` 128 (probe 02); `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 (probe 03). The address types
+of `ADDRESS_MODEL.md` §1, each derived `Copy`, measure `Ipv4Addr` 4 and `Ipv6Addr` 20 as stated there, and — stated
+nowhere until now — `IpAddr` 24, `SocketAddrV4` 6, `SocketAddrV6` 28, `SocketAddr` 32 and `UnixAddr` 110: a
+payload enum is an `int32` tag and then its widest payload (probe 12). And three of `ucred`'s field names, `pid`,
+`uid` and `gid`, are keywords at the pin — landing 113 refuses a keyword declared as a name of any kind,
+`NITPICK-PARSE-001` — as are `old`, `result`, `release`, `range` and the rest `specs/BUILD.md` §7 now lists; a name
+the prelude declares, such as `O_CLOEXEC`, is `NITPICK-RESOLVE-001` when declared again.
+
+*(Re-measured at `2e1cb4a`, 2026-10-23, in the adoption: the same.)*
+
+*So:* `ADDRESS_MODEL.md` §1 states each address type's measured size and derives `Copy` on each; probe 02 and probe
+12, not probe 03, are the programs that assert them (its first sentence said probe 03); the library's `Ucred` names
+its fields `cpid`, `cuid` and `cgid`; and `specs/BUILD.md` §7 is the measured table, `channel` struck from it (it is
+not a keyword).
+
+*Alternatives declined:* **sum the sizes from field widths** — `PLAYBOOK.md` §2's rule, and the enum's tag is
+exactly what a sum leaves out; **keep the kernel's C names for `ucred` with a prefix applied only where the compiler
+objects** — a public type whose fields are named by exception is a type every reader re-learns; **state no sizes in
+the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, and probe 12 asserts each.
+
+*Reversal:* none for the sizes, which are measurements — a later pin that moves one reddens probe 02, 03 or 12 on its
+first run, and the specification follows. If a later compiler frees `pid`, `uid` or `gid` as names, the fields keep
+the names they have, since renaming a public field is a major version.

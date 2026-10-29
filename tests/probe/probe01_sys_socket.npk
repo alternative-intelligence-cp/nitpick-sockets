@@ -1,0 +1,90 @@
+// expect-exit: 0
+//
+// PROBE 01 -- `socket` AND `socketpair` WITH THE ATOMIC FLAGS.
+//
+// ASKS: `sys(41, AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP)`, the same for an
+// `AF_INET6` datagram socket, and `sys(53, AF_UNIX, SOCK_STREAM | ..., 0, sv)` with an 8-byte `wild`
+// block for the two descriptors. Each descriptor is >= 3, `fcntl(F_GETFL)` reports `O_NONBLOCK`
+// and `fcntl(F_GETFD)` reports `FD_CLOEXEC` -- set by the creating call, with no follow-up `fcntl`.
+// It is also this library's first `sys` call with a pointer argument (D-192's trampoline).
+// DEPENDS ON THE ANSWER: SK-012 (`SAFETY.md` S-18). Refused or unflagged, the fallback -- `socket`
+// then two `fcntl`s -- reopens the `execve` window SK-012 closes.
+// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 43 are the assertions.
+mod:probe01_sys_socket;
+
+fixed int64:SYS_CLOSE = 3i64;
+fixed int64:SYS_SOCKET = 41i64;
+fixed int64:SYS_SOCKETPAIR = 53i64;
+fixed int64:SYS_FCNTL = 72i64;
+fixed int64:AF_UNIX = 1i64;
+fixed int64:AF_INET = 2i64;
+fixed int64:AF_INET6 = 10i64;
+fixed int64:SOCK_STREAM = 1i64;
+fixed int64:SOCK_DGRAM = 2i64;
+fixed int64:SOCK_NONBLOCK = 2048i64;
+fixed int64:SOCK_CLOEXEC = 524288i64;
+fixed int64:IPPROTO_TCP = 6i64;
+fixed int64:IPPROTO_UDP = 17i64;
+fixed int64:F_GETFD = 1i64;
+fixed int64:F_GETFL = 3i64;
+fixed int64:FD_CLOEXEC = 1i64;
+fixed int64:FL_NONBLOCK = 2048i64;
+
+// 0 when the descriptor is >= 3, non-blocking and close-on-exec; else the first failed check, 1 ... 4.
+func:flagged = int32(int64:descr) never fails {
+    if (descr < 3i64) { pass 1i32; }
+    Result<int64>:fl = sys(SYS_FCNTL, descr, F_GETFL);
+    if (fl.is_error) { pass 2i32; }
+    if ((fl.value & FL_NONBLOCK) == 0i64) { pass 3i32; }
+    Result<int64>:fd_flags = sys(SYS_FCNTL, descr, F_GETFD);
+    if (fd_flags.is_error) { pass 2i32; }
+    if ((fd_flags.value & FD_CLOEXEC) == 0i64) { pass 4i32; }
+    pass 0i32;
+};
+
+func:main = int32(cstring[]:_~argv) {
+    int64:atomic_flags = SOCK_NONBLOCK | SOCK_CLOEXEC;
+    int64:tcp_kind = SOCK_STREAM | atomic_flags;
+    Result<int64>:r4 = sys(SYS_SOCKET, AF_INET, tcp_kind, IPPROTO_TCP);
+    if (r4.is_error) { exit 10i32; }
+    int32:v4 = raw flagged(r4.value);
+    if (v4 != 0i32) { exit 10i32 + v4; }
+    int64:udp_kind = SOCK_DGRAM | atomic_flags;
+    Result<int64>:r6 = sys(SYS_SOCKET, AF_INET6, udp_kind, IPPROTO_UDP);
+    if (r6.is_error) { exit 20i32; }
+    int32:v6 = raw flagged(r6.value);
+    if (v6 != 0i32) { exit 20i32 + v6; }
+    wild int8->:sv = alloc(8i64);
+    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, tcp_kind, 0i64, sv);
+    if (rp.is_error) { exit 30i32; }
+    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
+    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
+    dalloc(sv);
+    int32:va = raw flagged(a);
+    if (va != 0i32) { exit 30i32 + va; }
+    int32:vb = raw flagged(b);
+    if (vb != 0i32) { exit 35i32 + vb; }
+    Result<int64>:c1 = sys(SYS_CLOSE, r4.value);
+    Result<int64>:c2 = sys(SYS_CLOSE, r6.value);
+    Result<int64>:c3 = sys(SYS_CLOSE, a);
+    Result<int64>:c4 = sys(SYS_CLOSE, b);
+    if (c1.is_error) { exit 40i32; }
+    if (c2.is_error) { exit 41i32; }
+    if (c3.is_error) { exit 42i32; }
+    if (c4.is_error) { exit 43i32; }
+    exit 0i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};

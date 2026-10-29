@@ -218,10 +218,19 @@ The compiler's list, filtered to the ones a socket library reaches for:
 | `any` | the type — and `INADDR_ANY` is a thing |
 | `on` | a keyword |
 | `error` | the declaration keyword; `Result`'s field is `.err` |
-| `thread`, `channel`, `atomic`, `joins`, `gives` | concurrency keywords |
+| `thread`, `atomic`, `joins`, `gives` | concurrency keywords (`channel` is not one: the keyword is the type, `Channel`) |
 | `unit` | the unit-declaration keyword |
 | `oflags`, `prot`, `mflags`, `fmode` | the four flag-family type keywords |
 | `is`, `is_err`, `defaults`, `as`, `with`, `where`, `never`, `fails` | keywords |
+| `pid`, `uid`, `gid`, `tid` | keywords — and `ucred`'s three fields want the first three (`cpid`, `cuid`, `cgid`) |
+| `old`, `result`, `release`, `acquire`, `range`, `stack`, `cfg`, `arena`, `hidden`, `sealed`, `decreases`, `unbounded` | keywords — `old` is the name a saved disposition reaches for (`prior`) |
+
+*(Measured 2026-10-29 at compiler `2e1cb4a`, SK-102: every word in this table checked against the pin's
+`src/frontend/keywords.npk`, 170 words, the same at `7e91730`; from the compiler's landing 113 a keyword declared as
+a name of ANY kind — a field, a parameter, a module — is `NITPICK-PARSE-001`. The row naming `channel` among the
+keywords was wrong: it is not one.)* **A name the prelude declares cannot be declared again** —
+`fixed int64:O_CLOEXEC = …;` is `NITPICK-RESOLVE-001` — so the prelude's `O_*`, `S_*`, `MAP_*` and `PROT_*`
+names are not this library's to define, and a constant that wants one takes another (`PIPE_CLOEXEC`).
 
 **The names this library uses instead**, fixed here so they are used
 consistently: `descr` for a raw descriptor number; `sock` for a `Sock`; `sink`

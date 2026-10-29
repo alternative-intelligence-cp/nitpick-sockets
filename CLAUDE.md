@@ -95,8 +95,9 @@ Full statement in `meta/specs/SAFETY.md` §1. The ones that bite hardest here:
 
 `meta/specs/BUILD.md` §7 has the table. The ones this domain wants most:
 `fd`, `raw`, `in`, `any`, `buffer`, `move`, `end`, `limit`, `error`, `on`,
-`thread`, `channel`, `atomic`, `is`, `is_err`, `never`, `fails`, `with`,
-`where`, `as`, `mod`, `unit`, `oflags`, `prot`, `mflags`, `fmode`.
+`thread`, `atomic`, `is`, `is_err`, `never`, `fails`, `with`, `where`, `as`,
+`mod`, `unit`, `oflags`, `prot`, `mflags`, `fmode`, and `pid`, `uid`, `gid`,
+`old`, `result`, `release` (SK-102; `channel` is not one).
 
 **The substitutes this library uses**, so the tree stays consistent: `descr`
 for a raw descriptor number; `sock` for a `Sock`; `sink`/`src` for a byte

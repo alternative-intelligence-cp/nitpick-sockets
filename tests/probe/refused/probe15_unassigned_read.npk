@@ -1,0 +1,39 @@
+// expect-error: NITPICK-ASSIGN-001
+// expect-error: NITPICK-ASSIGN-001
+//
+// PROBE 15 -- AN ARRAY ELEMENT READ BEFORE IT IS WRITTEN.
+//
+// ASKS: may a program read an element of a `uint8` array it declared without an initialiser -- a
+// local of sixteen, as an IPv6 parser's result is, and a struct's field of 108, as `UnixAddr`'s
+// `path` is -- before anything writes it; and if it may, does the read see zero, or stale bytes?
+// DEPENDS ON THE ANSWER: ADDRESS_MODEL.md A-22, and the research gate's D3 (a result's bytes
+// initialised on the IPv4-in-IPv6 path), in meta/research/security-defects.md.
+// EXPECTED: refused, `NITPICK-ASSIGN-001` at each of the two reads, and nothing else: a byte no path
+// wrote cannot be read, so a parser's result cannot carry one.
+mod:probe15_unassigned_read;
+
+struct:UnixPath = { uint8[108]:path; uint8:len; };
+
+func:main = int32(cstring[]:_~argv) {
+    uint8[16]:octets;
+    UnixPath:holder;
+    uint8:b0 = octets[0i64];
+    uint8:b107 = holder.path[107i64];
+    if (b0 == b107) { exit 0i32; }
+    exit 10i32;
+};
+
+func:failsafe = int32(Error:e) {
+    pick (e) {
+        (HeapBadRequest)    { exit 91i32; },
+        (HeapOom)           { exit 92i32; },
+        (IntOverflow)       { exit 93i32; },
+        (OutOfBounds)       { exit 94i32; },
+        (Unreachable)       { exit 95i32; },
+        (WildLeak)          { exit 96i32; },
+        (StackExhausted)    { exit 106i32; },
+        (MachineFault)      { exit 107i32; },
+        (*)                 { exit 99i32; }
+    }
+    exit 9i32;
+};
