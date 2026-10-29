@@ -15,7 +15,7 @@ The shapes, each with the landing or the row that moves it:
   a `NIL`-typed field            112 (DEF-232)
   `opaque`                       113 (DEF-236 (e))
   an attribute name              113 (DEF-236 (d): an unknown one ignored at `7e91730`, `DERIVE-007` at `c9baa9e`) -- listed by name
-  a builtin named, not called    107 (DEF-243)
+  a builtin named, not called    107 (DEF-243); a `mod:` line's name, `mod:sys;`, is a module's, and not counted
   `exit` operands, by form       104 (DEF-249: the operand is held to `int32`)
   `#wild_slice`                  the read-only view rule (no untied view of a managed header, D-341)
   a plain `uint8[]`              the read-only view rule -- listed, because a probe may need one on purpose
@@ -25,12 +25,18 @@ The shapes, each with the landing or the row that moves it:
   a trait default calling a sibling on `self`   118 (DEF-254: it never links before)
   `#ptr_add`                     landing 121 (D-361, in the pin `2e1cb4a`): a wild value enters a plain pointer slot only
                                  through `=>! T->` there, so the sites are kept few and listed, never confined by hand
+
+Exit 3 when the files hold a shape a plan must not write -- any above but the four listed for reading: an attribute,
+by name; an `exit` operand, by form; a plain `uint8[]`; and `#ptr_add` -- and 0 when they hold none: a later pass
+reads the status, never the counts alone. 1 is a STOP: no file given, or a file it cannot read.
 """
 import re
 import sys
 
 BUILTINS = ["alloc", "ralloc", "dalloc", "mcpy", "buffer_new", "string_concat", "int_to_string", "string_bytes",
             "string_from_bytes", "arena_make", "to_cstring", "sys", "discard"]
+# The shapes `main` reads for reading alone, each a line it lists; every other shape `scan` finds is a finding.
+LISTED = ("attribute ", "exit operand: ", "a plain `uint8[]`", "`#ptr_add`")
 
 
 def blank(src):
@@ -91,6 +97,8 @@ def scan(path):
                 hit("attribute %s" % name, k)
         for b in BUILTINS:
             for m in re.finditer(r"\b%s\b" % b, line):
+                if re.fullmatch(r"\s*mod:", line[:m.start()]):
+                    continue
                 rest = line[m.end():]
                 if not re.match(r"\s*(\(|::<)", rest):
                     hit("a builtin named, not called", k)
@@ -141,6 +149,8 @@ def _braced(text, at):
 def main(argv):
     sites = "--sites" in argv
     files = [a for a in argv[1:] if a != "--sites"]
+    if not files:
+        raise SystemExit("STOP: shapes.py reads one file or more -- given none")
     total = {}
     for f in files:
         for shape, where in scan(f).items():
@@ -148,7 +158,7 @@ def main(argv):
     print("%d file(s) read" % len(files))
     for shape in sorted(total):
         print("  %s: %d%s" % (shape, len(total[shape]), ("  " + " ".join(total[shape])) if sites else ""))
-    return 0
+    return 3 if any(not shape.startswith(LISTED) for shape in total) else 0
 
 
 if __name__ == "__main__":

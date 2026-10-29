@@ -14,6 +14,14 @@ PROCEED` line), cut at 200 characters, or its summary when nothing failed. Three
 removed at the end. Each mutant breaks ONE facet of one check, so the line names the check that saw it, and the
 one control the other way ends GREEN, saying what it skipped (`0.0.3.md` §5). Cycle 0.0.2's `mutants.py`, with the
 planting of a new file added.
+
+    python3 -B mutants.py selftest      the statuses `main` gives, each planted through `verdict`
+
+Exit 0 when every row ends its way: the unchanged tree and each control the other way GREEN (`GREEN` below, which
+the table's header names), and every other mutant red, a non-zero exit; 3 when one does not -- a mutant that must be
+red exits 0 (it survives), or a GREEN row does not; 1 on a STOP, a mutant not run, which outranks a 3, or on an error
+the tool does not catch. A later pass reads the status, never the lines alone. `selftest` exits 0 when each planted
+set of outcomes gives its status, and 1 when one does not.
 """
 import concurrent.futures
 import os
@@ -22,6 +30,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# The rows that must end GREEN beside the unchanged tree: this table's controls the other way, its header names each.
+GREEN = ("network-unit-skipped",)
 
 
 def table():
@@ -48,13 +58,13 @@ def one(tree, base, name, edits):
         p = os.path.join(d, f)
         if old == "<new file>":
             if os.path.exists(p):
-                return f"{name}: STOP -- {f} exists already, and the row plants it"
+                return f"{name}: STOP -- {f} exists already, and the row plants it", None
             os.makedirs(os.path.dirname(p), exist_ok=True)
             open(p, "w", encoding="utf-8").write(new)
             continue
         s = open(p, encoding="utf-8").read()
         if s.count(old) != 1:
-            return f"{name}: STOP -- the text to replace occurs {s.count(old)} times in {f}"
+            return f"{name}: STOP -- the text to replace occurs {s.count(old)} times in {f}", None
         open(p, "w", encoding="utf-8").write(s.replace(old, new))
     r = subprocess.run([sys.executable, "-B", os.path.join(d, "harness", "run.py")], cwd=d,
                        capture_output=True, text=True)
@@ -63,10 +73,35 @@ def one(tree, base, name, edits):
            or next((x.strip() for x in lines if x.startswith("  failed:")), None)
            or next((x for x in lines if "CANNOT PROCEED" in x), None)
            or (lines[-1] if lines else "no output"))
-    return f"{name}: exit {r.returncode} -- {key[:200]}"
+    return f"{name}: exit {r.returncode} -- {key[:200]}", r.returncode
+
+
+def verdict(results):
+    """The status `main` exits with, from each row's (name, exit), an exit of None being a STOP: the mutant not run."""
+    if any(code is None for _, code in results):
+        return 1
+    if any((code == 0) != (name == "unchanged" or name in GREEN) for name, code in results):
+        return 3
+    return 0
+
+
+def selftest():
+    """Each planted set of outcomes through `verdict`; 0 when each gives the status planted, 1 when one does not."""
+    cases = [("every row its way", [("unchanged", 0), ("a-mutant", 1)], 0),
+             ("a mutant that survives", [("unchanged", 0), ("a-mutant", 0)], 3),
+             ("the unchanged tree red", [("unchanged", 1), ("a-mutant", 1)], 3)]
+    cases += [("a control the other way red", [("unchanged", 0), (g, 1), ("a-mutant", 1)], 3) for g in GREEN]
+    cases += [("a STOP", [("unchanged", 0), ("a-mutant", None)], 1),
+              ("a STOP beside a survivor", [("unchanged", 0), ("b-mutant", 0), ("a-mutant", None)], 1)]
+    ok = sum(verdict(rows) == want for _, rows, want in cases)
+    print("selftest: %d of %d planted outcome sets as planted -- %s" % (
+        ok, len(cases), "; ".join("%s %d" % (what, want) for what, _, want in cases)))
+    return 0 if ok == len(cases) else 1
 
 
 def main(argv):
+    if argv[1:] == ["selftest"]:
+        return selftest()
     tree = os.path.realpath(argv[1])
     base = os.path.join(os.environ["A"], "mut")
     shutil.rmtree(base, ignore_errors=True)
@@ -74,10 +109,10 @@ def main(argv):
     jobs = [("unchanged", [])] + [(n, rows[n]) for n in order]
     with concurrent.futures.ThreadPoolExecutor(3) as ex:
         results = list(ex.map(lambda j: one(tree, base, *j), jobs))
-    for line in results:
+    for line, _ in results:
         print(line)
     shutil.rmtree(base, ignore_errors=True)
-    return 0
+    return verdict([(name, code) for (name, _), (_, code) in zip(jobs, results)])
 
 
 if __name__ == "__main__":

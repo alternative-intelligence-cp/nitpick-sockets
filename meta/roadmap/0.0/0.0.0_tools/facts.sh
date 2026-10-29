@@ -75,6 +75,8 @@ echo "§1.5 probe 04 started under SIG_DFL, as a runtime with no handler leaves 
 # §1.6 -- the shapes, over every `.npk` the patches add, comments and strings blanked; the scanners proved first
 echo "§1.6 the planted control:"; python3 -B "$TL/shapes.py" "$TL/shapes_planted.txt" | tail -n +2
 echo "§1.6 the clean control:"; python3 -B "$TL/shapes.py" "$TL/shapes_clean.txt" | tail -n +2
+python3 -B "$TL/shapes.py" "$TL/shapes_planted.txt" > /dev/null; e=$?
+python3 -B "$TL/shapes.py" "$TL/shapes_clean.txt" > /dev/null; echo "§1.6 the shapes' exits: the planted control $e, the clean control $?"
 mkdir -p "$F/added"
 for s in 1 2 3 4 5; do grep -oE '^\+\+\+ b/.*\.npk$' "$T0/step$s.patch" | sed 's|^+++ b/||' >> "$F/added/list"; done
 echo "§1.6 the $(wc -l < "$F/added/list") .npk file(s) the patches add:"
@@ -90,6 +92,8 @@ echo "§1.6 the rulings over the added files:"; python3 -B "$TL/rulings.py" $(se
 # §1.7 -- every declared name against the pin's keyword table (landing 113), the scanner proved first
 echo "§1.7 the names' planted control: $(python3 -B "$TL/names.py" "$F/keywords.npk" "$TL/names_planted.txt" | head -1)"
 echo "§1.7 the names' clean control: $(python3 -B "$TL/names.py" "$F/keywords.npk" "$TL/names_clean.txt" | head -1)"
+python3 -B "$TL/names.py" "$F/keywords.npk" "$TL/names_planted.txt" > /dev/null; e=$?
+python3 -B "$TL/names.py" "$F/keywords.npk" "$TL/names_clean.txt" > /dev/null; echo "§1.7 the names' exits: the planted control $e, the clean control $?"
 echo "§1.7 the added files: $(python3 -B "$TL/names.py" --count "$F/keywords.npk" $(sed "s|^|$d/|" "$F/added/list") | head -1)"
 
 # §1.8 -- the placeholders: no file the patches touch holds one before they apply, and every one has a number
@@ -102,6 +106,14 @@ echo "§1.8 numbered by decisions.txt: $(python3 -B -c "
 import sys; sys.path.insert(0, '$TL'); import apply
 t = apply.numbers(); print(' '.join('%s=base+%d' % (k, int(t[k].split('-')[1]) - apply.base_number()) for k in sorted(t) if k <= 'PD-163'))")"
 
-# §1.9 -- every rule and section the added lines cite exists in the tree the patches leave
+# §1.9 -- every rule and section the added lines cite exists in the tree the patches leave; first its controls, a
+# patch citing a rule no specification defines and a section no file holds, and one citing S-1 and its section
+mkdir -p "$F/ptr/planted" "$F/ptr/clean"
+printf '%s\n' '+++ b/planted.md' '+the rule Z-99 and `STREAM_MODEL.md` §99' > "$F/ptr/planted/step1.patch"
+printf '%s\n' '+++ b/clean.md' '+the rule S-1 and `SAFETY.md` §1' > "$F/ptr/clean/step1.patch"
+for c in planted clean; do
+  python3 -B "$TL/pointers.py" "$d" "$F/ptr/$c" > "$F/ptr/$c.out"; e=$?
+  echo "§1.9 the pointers' $c control, exit $e: $(grep -E '^§1\.8 (undefined|sections that do not resolve):' "$F/ptr/$c.out" | sed 's/^§1\.8 //' | paste -sd ';' | sed 's/;/; /g')"
+done
 python3 -B "$TL/pointers.py" "$d" "$T0" | sed "s|$d/||g; s/^§1\.8/§1.9/"
 rm -rf "${d:?}" "${F:?}"

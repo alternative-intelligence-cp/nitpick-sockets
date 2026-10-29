@@ -54,7 +54,8 @@ candidates" -- cites every candidate its subject's pattern finds. It is resolved
 THE BLOCKS. A citation in a fenced block -- a command, or an Expect, which is a run's output -- is counted by form and
 resolved by the block comparator, `blocks.py compare`, when the blocks are run: not here.
 
-Exit 0 when every citation resolves and holds, 1 when one is a HIT, 2 on a usage error.
+Exit 0 when every citation resolves and holds; 1 when one is a HIT, on a STOP (a command it runs fails, or a step's
+patch does not apply to the tree it builds) or, from `control`, when a check fails; 2 on a usage error.
 """
 import os
 import re

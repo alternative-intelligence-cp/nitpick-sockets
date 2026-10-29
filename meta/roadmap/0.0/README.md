@@ -438,7 +438,8 @@ python3 -B meta/roadmap/0.0/tools/twins.py run "$REPO"
 ```
 
 **The exit statuses, one meaning each, which a later pass reads: it never reads the printed tally alone.** `lines.py`:
-0, every citation resolves and holds; 1, a HIT; 2, a usage error. `twins.py run`: 0, every hit EARLIER or LOG; 1, a stop
+0, every citation resolves and holds; 1, a HIT, a STOP (a command it runs fails, or a step's patch does not apply to
+the tree it builds) or, from `control`, a check that failed; 2, a usage error. `twins.py run`: 0, every hit EARLIER or LOG; 1, a stop
 — an UNCLASSED hit, a data file not in its form, or, from `control`, a check that failed; 2, a usage error; 3, a hit
 classed STALE and none UNCLASSED — a text the plan fixed at its source has come back, or `--before` found the sites a
 round fixes. A STALE hit beside an UNCLASSED one is 1, and the counts say both. `control` exits 0 when every check holds
@@ -590,3 +591,42 @@ section: `lines.py` reads each heading afresh, so a heading inside the record wo
 - **Left for 0.0.0's execution**: `STREAM_MODEL.md`:143's `EMFILE|ENFILE`, which sockets' own question N-5 renames
   `TooManyOpenFiles|FileTableFull`. 0.0.0's block 6 reads the line, and a scratch sweep with the rename moves its "an
   unnamed errno compared" count from 20 to 18 and its §7 row; step 4's dated note under T-12 names the same errno rows.
+
+**Round (i) of 0.0.0's amendments** (T15, continued by T15c, 2026-10-29) answered the libraries' seat's ruling (1):
+the seven checks that printed a finding and exited 0 now exit non-zero on everything they report as wrong, one meaning
+per status, and each has a planted control that the old code passed with 0 and the new one refuses. **A later pass
+reads each status, never the printed tally alone.**
+
+- **`tools/names.py`**: 0, no declared name is a keyword; 3, a keyword-named declaration, each listed; 1, a STOP — a
+  missing argument or a file it cannot read. 0.0.0's block 0b (§1.7) prints the statuses of its planted and clean
+  controls: 3 and 0, where the old code gave 0 and 0.
+- **`tools/pointers.py`**: 0, every rule the added lines cite is defined and every section they cite resolves; 3, one
+  does not, named on its `undefined:` or `sections that do not resolve:` line; 1, a STOP — a missing argument, a tools
+  dir holding no `step*.patch`, or a file it cannot read. It had no control: 0.0.0's block 0b (§1.9) plants a patch
+  citing `Z-99` and `STREAM_MODEL.md` §99, which exits 3 (the old code 0), and one citing S-1 and `SAFETY.md` §1, which
+  exits 0.
+- **`tools/shapes.py`**: 0, no shape a plan must not write; 3, one, by its count; 1, a STOP — no file given, or a file
+  it cannot read. The four it lists for reading are not findings: an attribute, an `exit` operand, a plain `uint8[]`
+  and `#ptr_add`. It no longer reads a `mod:` line's name as a builtin named, not called: `mod:sys;`, a module's name,
+  was that shape's 1 line in 0.0.1's added files and its 16 in the self-check's fixtures, so the line leaves 0.0.1's
+  block 0b, 0.0.3's block 1 and 0.0.4's block 3; its clean control gains a `mod:sys;` line, which the old code counted
+  as the shape. 0.0.0's block 0b (§1.6) prints the statuses of its planted and clean controls: 3 and 0, where the old
+  code gave 0 and 0.
+- **`0.0.2_tools/mutants.py`, `0.0.3_tools/mutants.py` and `0.0.4_tools/mutants.py`**: 0, every row ended its way — the
+  unchanged tree and each control the other way GREEN (0.0.2's `library-shapes-allowed`, 0.0.3's
+  `network-unit-skipped`; 0.0.4 has none), every other mutant red; 3, one did not: a mutant that must be red exited 0,
+  so it survived, or a GREEN row was red; 1, a STOP, a mutant not made and not run, which outranks a 3, or an error the
+  tool does not catch. Each has a `selftest`, which its block (0.0.2's 4m, 0.0.3's 3m, 0.0.4's 4m) runs first: it
+  plants the outcome sets through the function `main` reports with, a survivor, a red GREEN row, a STOP and a STOP
+  beside a survivor among them, and reads each status as planted, where the old code returned 0 for every set.
+- **`tools/sweep.py`**, by the libraries' seat's D2: `run` exits 0 when it has listed the candidates, and **0 means
+  listed, never clean**. A candidate is not a finding (`0.0.0.md` §4's step 6): the plan's sweep table gives each its
+  verdict, and the block's Expect holds every candidate line, so a new or a lost one is a DIFF, and a DIFF is a stop.
+  `run`'s last line counts them, `listed: <n> candidate(s) from <m> pattern(s)`, and `control` prints its plant's
+  line, so each subcycle's sweep block gains those two lines. Both modes exit 1 on a STOP: a missing argument, where
+  the old code exited 2; or an input they cannot read — a root that is not a checkout's top, where the old code listed
+  nothing or a part and exited 0 (over a tree exported without its `.git`: 0 files, every pattern 0, exit 0), or a
+  patterns file missing, holding no pattern or holding one the transform makes unmatchable. `control` exits 0 when
+  every check holds and 1 when one fails, and plants the root that is not a checkout's top, its `meta/`.
+- **`tools/lines.py`** keeps its code (T7v5's finding 1): its 1 has three causes, a HIT, a STOP and a failed control,
+  which its docstring and the exit statuses above now name.

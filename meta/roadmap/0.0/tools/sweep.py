@@ -43,7 +43,15 @@ but the cycle 0.0 plans, the patches, the `.npk` sources, `LICENSE`, and the res
 line is a digest's heading, `# <topic> — research digest` (the workbench research skill's §5): a digest is dated and
 never edited, so every sentence in it is history as of its date. It prints, per pattern, `<subject>: <n>
 candidate(s) in <m> file(s)`, then `<file>:<line>` for each, the line counted in the ORIGINAL file. The denominator
-line comes first.
+line comes first, and last `listed: <n> candidate(s) from <m> pattern(s)`, the patterns' counts summed.
+
+THE EXIT STATUSES (the libraries' seat's D2, 2026-10-29). `run` exits 0 when it has listed the candidates: 0 means
+LISTED, never clean. A candidate is not a finding -- the plan's sweep table gives each its verdict, and the block's
+Expect holds every candidate line, so a new or a lost one is a DIFF, and a DIFF is a stop. Both modes exit 1 on a
+STOP: a missing argument; an input they cannot read -- a root that is not a checkout's top, where `git ls-files` lists
+nothing or a part, or a patterns file missing, holding no pattern or holding one the transform makes unmatchable; and,
+in `control`, a twin line not in its form or naming no subject, or a check that fails. `control` exits 0 when every
+check holds, and plants the root that is not a checkout's top.
 
 `control` then reads the patches' REMOVED lines, hunk by hunk, and reports the hunks whose old text no pattern
 matches -- each is a kind of sentence the sweep cannot see, which the plan names (`PLAYBOOK.md` §12: a stale-claim
@@ -123,6 +131,8 @@ def patterns(root, sub):
                 raise SystemExit("STOP: %s's pattern `%s` holds %s, which the transform removes -- it can never match"
                                  % (sub, subj.strip(), why))
             out.append((subj.strip(), re.compile(rx.strip(), re.I)))
+    if not out:
+        raise SystemExit("STOP: %s's sweep_patterns.txt holds no pattern -- the sweep would list nothing" % sub)
     return out
 
 
@@ -179,6 +189,9 @@ def selftest():
 
 
 def files(root):
+    top = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    if top.returncode or os.path.realpath(top.stdout.strip()) != os.path.realpath(root):
+        raise SystemExit("STOP: %s is not a checkout's top -- the sweep would read no file, or a part of them" % root)
     out = subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True).stdout.split()
     out += subprocess.run(["git", "-C", root, "ls-files", "--others", "--exclude-standard"],
                           capture_output=True, text=True).stdout.split()
@@ -198,6 +211,7 @@ def run(root, sub):
     fs = sorted(texts)
     print("denominator: %d file(s) -- every tracked or added file but the cycle 0.0 plans, patches, sources, LICENSE "
           "and the research digests" % len(fs))
+    total = 0
     for subj, rx in pats:
         hits = []
         for f in fs:
@@ -208,11 +222,22 @@ def run(root, sub):
         print("%s: %d candidate(s) in %d file(s)" % (subj, len(hits), nf))
         for h in hits:
             print("  " + h)
+        total += len(hits)
+    print("listed: %d candidate(s) from %d pattern(s)" % (total, len(pats)))
     return 0
 
 
 def control(root, sub):
     ok = selftest()
+    # the input `run` cannot read: a root that is not a checkout's top -- its `meta/` here -- is a STOP in `files`, where
+    # the code before 2026-10-29 returned what `git ls-files` listed there, a part of the tree, as if it were the whole
+    try:
+        files(os.path.join(root, "meta"))
+        stopped = False
+    except SystemExit:
+        stopped = True
+    print("a root that is not a checkout's top, its meta/: %s" % ("a STOP" if stopped else "READ, NOT A STOP"))
+    ok = ok and stopped
     pats = patterns(root, sub)
     by_subject = dict(pats)
     planted = twins(root, sub)
@@ -269,6 +294,6 @@ def control(root, sub):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4 or sys.argv[1] not in ("run", "control"):
-        print(__doc__)
-        sys.exit(2)
+        print(__doc__, file=sys.stderr)
+        sys.exit(1)
     sys.exit((run if sys.argv[1] == "run" else control)(os.path.realpath(sys.argv[2]), sys.argv[3]))

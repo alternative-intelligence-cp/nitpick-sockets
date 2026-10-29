@@ -8,6 +8,9 @@ count of them.
     python3 -B names.py <keywords.npk> <file>...            each declared name that is a keyword
     python3 -B names.py --count <keywords.npk> <file>...    and the count of declared names read
 
+Exit 0 when no declared name is a keyword, and 3 when one is, each listed: a later pass reads the status, never the
+count alone. 1 is a STOP: a missing argument -- the keyword table, or every file -- or a file it cannot read.
+
 The keyword table is the pin's own `src/frontend/keywords.npk` (`git show <pin>:...`, byte-identical at
 `7e91730`, `c9baa9e` and `2e1cb4a`, which the
 caller writes to a file): every word its `keyword_kind_of` compares against. The rule, as landing
@@ -79,6 +82,9 @@ def _lines(text):
 def main(argv):
     count = "--count" in argv
     args = [a for a in argv[1:] if a != "--count"]
+    if len(args) < 2:
+        raise SystemExit("STOP: names.py reads the keyword table and one file or more -- given %d argument(s)"
+                         % len(args))
     kw, files = keywords(args[0]), args[1:]
     total, hits = 0, []
     for f in files:
@@ -90,7 +96,7 @@ def main(argv):
           f"keyword-named declarations: {len(hits)}")
     for h in hits:
         print("  " + h)
-    return 0
+    return 3 if hits else 0
 
 
 if __name__ == "__main__":

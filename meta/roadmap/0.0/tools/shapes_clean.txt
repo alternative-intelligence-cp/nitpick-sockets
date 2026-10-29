@@ -1,4 +1,6 @@
 mod:shapes_clean;
+// A module named for a builtin: its `mod:` line names the module, which is no shape (0.0.1's `src/sys/sys.npk`).
+mod:sys;
 // The same shapes, ONLY in comments and strings, and one ordinary program around them:
 // enum:Mixed = { A; B = 3i32; }; macro:twice; NIL:nothing; opaque struct; #[derive(Bogus)]
 // uint8[]:plain; int32->:p = @x; give 1i32; fall; frac; alloc; #wild_slice; #ptr_add; stack; a.is_error || b.is_error

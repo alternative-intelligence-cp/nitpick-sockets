@@ -12,6 +12,10 @@ Reads the `+` lines of every `step*.patch` in the tools dir, and reports:
   * every section they cite as `` `<FILE>.md` §<n> `` with the file it resolves to and whether that file has a
     heading `## <n>.`, or `NO SUCH SECTION`. A section of a document outside this repository (the compiler's, the
     workbench's) is listed as such, unresolved here and read by the plan's §1.
+
+Exit 0 when every rule it reads is defined and every section resolves, and 3 when one does not, named on its
+`undefined:` or `sections that do not resolve:` line: a later pass reads the status, never the lines alone. 1 is a
+STOP: a missing argument, a tools dir holding no `step*.patch`, or a file it cannot read.
 """
 import glob
 import os
@@ -28,7 +32,10 @@ OUTSIDE = {"PLAYBOOK.md", "TYPE_REFERENCE.md", "MEMORY_REFERENCE.md", "TRAITS_RE
 def main(argv):
     tree, tools = argv[1], argv[2]
     added = []
-    for p in sorted(glob.glob(os.path.join(tools, "step*.patch"))):
+    patches = sorted(glob.glob(os.path.join(tools, "step*.patch")))
+    if not patches:
+        raise SystemExit("STOP: %s holds no step*.patch -- pointers.py would read nothing" % tools)
+    for p in patches:
         cur = None
         for line in open(p, encoding="utf-8"):
             if line.startswith("+++ b/"):
@@ -58,7 +65,7 @@ def main(argv):
             missing.append("%s §%s" % (f, n))
     print("§1.8 sections cited: %d -- %s" % (len(secs), "; ".join(out)))
     print("§1.8 sections that do not resolve: %s" % (" ".join(missing) or "none"))
-    return 0
+    return 3 if bad or missing else 0
 
 
 if __name__ == "__main__":
