@@ -337,14 +337,14 @@ The 0.0.1 … 0.0.5 items are the re-derivation's targets, drawn from the owed i
 states its own acceptance when it reaches the pin, and where the two differ, the file at the pin governs.
 
 ### 0.0.0 — the probes
-- [ ] the research gate's three digests filed before any probe runs (0.0.0 gate item 7, §13)
-- [ ] `probe04_sigpipe.npk` — the floor's handler read; a send to a dead peer answers `EPIPE`, with and without `MSG_NOSIGNAL`; under `SIG_DFL` `MSG_NOSIGNAL` keeps the program alive (@@PD-159@@)
-- [ ] `refused/probe09_ownedfd_channel.npk` and `probe09b_holder_channel.npk` — `NITPICK-TYPE-057`; `probe10_ownedfd_spawn.npk` runs and `refused/probe10b_borrow_spawn.npk` is `NITPICK-BORROW-004` — `SK-035`, run as a pair
-- [ ] `probe01_sys_socket.npk`, `probe02_sockaddr_layout.npk`, `probe03_cmsg_layout.npk`, `probe12_pod_addr_array.npk` — the layouts, and `SocketAddr`'s 32 bytes (@@PD-160@@); `refused/probe15_unassigned_read.npk` — a read before a write, `NITPICK-ASSIGN-001` at both reads (A-22's dated note)
-- [ ] `probe05_ownedfd_drop.npk`, `probe06_reader_writer.npk` with `refused/probe06b_impl_drops_fixed.npk`, `probe14_view_codec.npk` with `refused/probe14b_view_into_plain.npk` — ownership, the traits, the view (@@PD-161@@)
-- [ ] `probe07_io_ready.npk` and `probe08_connect_inprogress.npk` forty times a leg; `probe11_scm_rights.npk`; `refused/probe13_errno_declared.npk` and `probe13b_errno_number.npk` (@@PD-162@@, @@PD-163@@)
-- [ ] every verdict in `0.0.0.md` §6 re-measured, SAME, and every consequence in `meta/specs/` and `meta/DECISIONS.md` in the commit of its verdict
-- [ ] `tests/probe/README.md`; block 6's sweep read
+- [x] the research gate's three digests filed before any probe runs (0.0.0 gate item 7, §13)
+- [x] `probe04_sigpipe.npk` — the floor's handler read; a send to a dead peer answers `EPIPE`, with and without `MSG_NOSIGNAL`; under `SIG_DFL` `MSG_NOSIGNAL` keeps the program alive (@@PD-159@@)
+- [x] `refused/probe09_ownedfd_channel.npk` and `probe09b_holder_channel.npk` — `NITPICK-TYPE-057`; `probe10_ownedfd_spawn.npk` runs and `refused/probe10b_borrow_spawn.npk` is `NITPICK-BORROW-004` — `SK-035`, run as a pair
+- [x] `probe01_sys_socket.npk`, `probe02_sockaddr_layout.npk`, `probe03_cmsg_layout.npk`, `probe12_pod_addr_array.npk` — the layouts, and `SocketAddr`'s 32 bytes (@@PD-160@@); `refused/probe15_unassigned_read.npk` — a read before a write, `NITPICK-ASSIGN-001` at both reads (A-22's dated note)
+- [x] `probe05_ownedfd_drop.npk`, `probe06_reader_writer.npk` with `refused/probe06b_impl_drops_fixed.npk`, `probe14_view_codec.npk` with `refused/probe14b_view_into_plain.npk` — ownership, the traits, the view (@@PD-161@@)
+- [x] `probe07_io_ready.npk` and `probe08_connect_inprogress.npk` forty times a leg; `probe11_scm_rights.npk`; `refused/probe13_errno_declared.npk` and `probe13b_errno_number.npk` (@@PD-162@@, @@PD-163@@)
+- [x] every verdict in `0.0.0.md` §6 re-measured, SAME, and every consequence in `meta/specs/` and `meta/DECISIONS.md` in the commit of its verdict
+- [x] `tests/probe/README.md`; block 6's sweep read
 
 ### 0.0.1 — the skeleton
 - [ ] `BUILD.md` B-18 as a table of what each module may import (@@PD-164@@); the generic option form's file `src/option/sockopt.npk` (@@PD-165@@, EC7)
