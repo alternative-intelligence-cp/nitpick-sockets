@@ -340,16 +340,17 @@ index f3d6112..6ea5841 100644
  5. **`EINTR`** — the handshake continues in the background. Do **not** re-call
     `connect`; go to step 3. A second `connect` on a socket already connecting
     returns `EALREADY`, and a loop that retries on `EINTR` by re-calling
-@@ -145,6 +153,13 @@ loop:
+@@ -145,6 +153,14 @@ loop:
      otherwise                -> fail r.err
  ```
  
 +*(@@DATE@@, @@PD-162@@: the `Interrupted` and `WouldBlock` rows compare — they
 +are the prelude's; at compiler `2e1cb4a` nothing names `ECONNABORTED`,
 +`EMFILE` or `ENFILE` that a program can compare an error with (probes 13 and
-+13b), and `ConnAborted` is no identity the prelude declares, so the loop
-+cannot tell those two rows from `otherwise`. They, and T-13's retry, wait on
-+the compiler's answer to O-N5, as `SOCKET_MODEL.md` K-19's rows do.)*
++13b), and `ConnAborted`, `TooManyOpenFiles` and `FileTableFull` are no
++identities the prelude declares, so the loop cannot tell those two rows from
++`otherwise`. They, and T-13's retry, wait on the compiler's answer to O-N5, as
++`SOCKET_MODEL.md` K-19's rows do.)*
 +
  **Rule T-13 — `ECONNABORTED` is not an error about the listener.** The peer
  sent a SYN and then reset before the accept. Failing the accept loop on it kills

@@ -590,7 +590,8 @@ section: `lines.py` reads each heading afresh, so a heading inside the record wo
   find an other-worded twin.
 - **Left for 0.0.0's execution**: `STREAM_MODEL.md`:143's `EMFILE|ENFILE`, which sockets' own question N-5 renames
   `TooManyOpenFiles|FileTableFull`. 0.0.0's block 6 reads the line, and a scratch sweep with the rename moves its "an
-  unnamed errno compared" count from 20 to 18 and its §7 row; step 4's dated note under T-12 names the same errno rows.
+  unnamed errno compared" count from 20 to 18 and its §7 row; step 4's dated note under T-12 names the same errno rows. Round (i) took
+  it instead, below.
 
 **Round (i) of 0.0.0's amendments** (T15, continued by T15c, 2026-10-29) answered the libraries' seat's ruling (1):
 the seven checks that printed a finding and exited 0 now exit non-zero on everything they report as wrong, one meaning
@@ -630,3 +631,12 @@ reads each status, never the printed tally alone.**
   every check holds and 1 when one fails, and plants the root that is not a checkout's top, its `meta/`.
 - **`tools/lines.py`** keeps its code (T7v5's finding 1): its 1 has three causes, a HIT, a STOP and a failed control,
   which its docstring and the exit statuses above now name.
+
+Its second commit made the rename sockets' own question N-5 asked for, with the names the compiler settled
+(nitpick-libs_27's ruling of 2026-10-25): `STREAM_MODEL.md`:143, T-12's sketch, reads `TooManyOpenFiles|FileTableFull`
+where it read `EMFILE|ENFILE`, its arrow at column 47, and stays spec text, since no `.npk` names the five before
+DEF-286's re-pin reaches sockets. Step 4's dated note under T-12 names the two new identities beside `ConnAborted` as
+none the prelude declares at the pin, a line longer. 0.0.0's block 6 loses T-12's two `EMFILE|ENFILE` candidates, "an
+unnamed errno compared" going from 20 to 18 and its `listed:` total from 54 to 52, so its Expect is retaken, 104 lines
+to 102, and §7's count and row move with it; the other five sweeps read the same. No hunk of any patch carries
+`STREAM_MODEL.md`:143 as context.

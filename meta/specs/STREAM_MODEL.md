@@ -140,7 +140,7 @@ loop:
     if r.err == Interrupted  -> retry immediately
     if r.err == ConnAborted  -> retry immediately          // not our problem
     if r.err == WouldBlock   -> io_ready(listener, EPOLLIN, rem); retry
-    if r.err == EMFILE|ENFILE-> fail it: the caller backs off (K-19.1)
+    if r.err == TooManyOpenFiles|FileTableFull-> fail it: the caller backs off (K-19.1)
     otherwise                -> fail r.err
 ```
 
