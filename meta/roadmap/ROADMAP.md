@@ -83,17 +83,19 @@ free to follow the dependencies rather than the risk.
 ## What each cycle produces
 
 ### 0.0 — Foundations
-The **language probes** first: twelve small programs that ask the compiler
-whether the shapes `meta/specs/` depends on are spellable. Two of them are the
+The **language probes** first: small programs that ask the compiler whether
+the shapes `meta/specs/` depends on are spellable, and the kernel whether its
+layouts are the tables'. Two of them are the
 reason this cycle exists — **probe 04 measures what `SIGPIPE` does** (at compiler
 `c9baa9e` the runtime catches it, so `SK-013` is belt-and-braces there and
 load-bearing under the default disposition, SK-101), and **probes 09 and 10
-prove the `OwnedFd` channel refusal and the spawn move**, which is `SK-035`'s
-entire foundation. Then the harness, the manifest's test table, CI, and
-`src/core/`.
+run the `OwnedFd` channel refusal and the spawn move**, with their twins 09b and
+10b, which is `SK-035`'s entire foundation — confirmed. Then the harness, the
+manifest's test table, CI, and `src/core/`.
 
 **The cycle's own gate:** every probe has a recorded verdict, and the harness
-self-check proves it can fail seven ways.
+self-check proves it can fail in every live way it names (cycle 0.0.3 counts
+them).
 
 ### 0.1 — Addresses
 `src/addr/`: the five types, the kernel encoders and decoders with every offset
