@@ -11,7 +11,7 @@ index f6f9b39..d7e34bc 100644
  **2026-09-03.** There is no `setsockopt` in the public surface; the generic
  form is confined to `src/option/raw.npk` and is not re-exported.
  
-@@ -680,3 +682,48 @@ the wildcard's 99** — a test could not tell a deadline from any other trap.
+@@ -686,3 +688,48 @@ the wildcard's 99** — a test could not tell a deadline from any other trap.
  
  *Reversal:* none for the bills, which are measurements a later pin re-takes; the codes move by a later decision if
  `PLAYBOOK.md` §3 item 8 assigns these identities others, every `failsafe` that names them following.
@@ -227,7 +227,7 @@ diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
 index a9ccb0c..4e8f025 100644
 --- a/meta/specs/TESTING.md
 +++ b/meta/specs/TESTING.md
-@@ -133,10 +133,10 @@ run on every full invocation.
+@@ -139,10 +139,10 @@ run on every full invocation.
  |---|---|
  | `check_error_budget` | the count and names of public `error:` declarations against `SAFETY.md` §3's table — four, and the names |
  | `check_failsafe_arms` | the generated per-module arm list against a program that imports each module and compiles its `failsafe` |

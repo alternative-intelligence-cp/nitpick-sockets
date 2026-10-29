@@ -102,7 +102,7 @@ index 56f54e7..d902e7f 100644
  ### SK-036 — address parsing is strict, `inet_pton`-shaped and not `inet_aton`-shaped
  **2026-09-03.** `ipv4_parse` accepts exactly four decimal octets, 0–255, with
  **no leading zeros**, and refuses `127.1`, `0177.0.0.1`, `0x7f.0.0.1` and
-@@ -469,3 +478,51 @@ in this ecosystem has the same rule, and five libraries each phrasing it
+@@ -475,3 +484,51 @@ in this ecosystem has the same rule, and five libraries each phrasing it
  slightly differently would be five chances for one of them to phrase it wrong.
  
  Where a future library needs a different policy, it says so against this one.
@@ -406,7 +406,7 @@ index 66cc96a..c462328 100644
  
  ---
  
-@@ -172,7 +179,7 @@ expectations and requires it to report every one as a failure:
+@@ -190,7 +197,7 @@ expectations and requires it to report every one as a failure:
  - a `check` case expecting a code the compiler does not report;
  - a `check` case that reports a code no expectation names (the D-237 rule);
  - a `loopback` case that leaves a socket open at exit (D-151 should trap it);

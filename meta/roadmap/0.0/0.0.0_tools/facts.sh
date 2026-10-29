@@ -46,11 +46,21 @@ printf '%s\n' 'mod:unraised_shape;' '' 'pub error:ESockCapacity;' 'pub func:same
   '    pass n;' '};' > "$F/bill/unraised_shape.npk"
 printf '%s\n' 'mod:decoder_shape;' '' 'pub func:family_of = int64(fixed uint8[]:src) never fails {' \
   '    if (src.len < 2i64) { pass 0i64 - 1i64; }' '    pass (src[0i64] => int64) | ((src[1i64] => int64) << 8i64);' '};' \
+  '' 'pub func:payload_len = uint64(uint64:cmsg_len) never fails {' '    pass cmsg_len - 16u64;' '};' \
   > "$F/bill/decoder_shape.npk"
 printf '%s\n' 'mod:wait_shape;' '' 'pub async func:readable = NIL(int32:descr) {' \
   '    Result<NIL>:w = await io_ready(descr, 1i32, raw duration_ms(10i64));' '    if (w.is_error) { fail w.err; }' \
   '    pass NIL;' '};' > "$F/bill/wait_shape.npk"
 for m in forward_shape identity_shape private_shape unraised_shape decoder_shape wait_shape; do echo "§1.4 $(bill "$F/bill/$m.npk")"; done
+# ... and the research gate's P1': the decoder's `uint64` subtraction below zero, `cmsg_len - 16` for a `cmsg_len` of 15,
+# traps as `IntOverflow` -- the failsafe's 93 -- at both legs; a wrap would exit 11 (`ANCILLARY_MODEL.md` N-19)
+printf '%s\n' 'mod:payload_15;' '' 'use "./decoder_shape.npk".*;' '' 'func:main = int32(cstring[]:_~argv) {' \
+  '    uint64:n = raw payload_len(15u64);' '    if (n == 0u64) { exit 10i32; }' '    exit 11i32;' '};' '' \
+  'func:failsafe = int32(Error:e) {' '    pick (e) {' '        (HeapBadRequest) { exit 91i32; },' \
+  '        (HeapOom) { exit 92i32; },' '        (IntOverflow) { exit 93i32; },' '        (OutOfBounds) { exit 94i32; },' \
+  '        (Unreachable) { exit 95i32; },' '        (WildLeak) { exit 96i32; },' '        (StackExhausted) { exit 106i32; },' \
+  '        (MachineFault) { exit 107i32; },' '        (*) { exit 99i32; }' '    }' '    exit 9i32;' '};' > "$F/bill/payload_15.npk"
+echo "§1.4 a uint64 subtraction below zero, payload_len(15u64): $(run4 "$F/bill/payload_15.npk" | sed 's/^payload_15: //')"
 
 # The patched tree: the five steps applied to a throwaway clone of HEAD, which §1.5 to §1.9 read
 d=$A/facts/tree; rm -rf "${d:?}"; git clone -q --shared "$REPO" "$d"

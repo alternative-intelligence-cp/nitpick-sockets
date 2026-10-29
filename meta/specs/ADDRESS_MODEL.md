@@ -223,19 +223,26 @@ refuses:
 |---|---|
 | `127.1` | the "short form" a `inet_addr` accepts and nobody means |
 | `0177.0.0.1` | leading zeros are **octal** in `inet_aton`, and `010.0.0.1` is `8.0.0.1` — a real source of allowlist bypasses |
+| `010.0.0.1` | a leading zero within three digits: POSIX.1-2024's `inet_pton` accepts it as 10, `inet_aton` reads 8 |
+| `1.2.3.04` | the same, in the last octet |
 | `0x7f.0.0.1` | hex octets, same family of bug |
 | `1.2.3.4.5`, `1.2.3.` | wrong shape |
 | `+1.2.3.4`, ` 1.2.3.4` | sign, whitespace |
 
-This is the `inet_pton` behaviour rather than the `inet_aton` behaviour, and
-the difference between them has produced CVEs in more than one language's
-standard library. A parser that accepts more than one spelling of an address is
-a parser that lets a validator and a connector disagree.
+This is glibc's `inet_pton` behaviour (measured at 2.39) and RFC 3986 §3.2.2's
+`dec-octet` grammar, rather than `inet_aton`'s, and it is deliberately stricter
+than POSIX.1-2024, whose `inet_pton` allows a leading zero within three digits
+(Austin Group Defect 1573). The difference between the `inet_pton` and
+`inet_aton` behaviours has produced CVEs in more than one language's standard
+library. A parser that accepts more than one spelling of an address is a parser
+that lets a validator and a connector disagree.
 
 **Rule A-20 — `ipv6_parse` implements RFC 4291 §2.2 exactly**: eight
 colon-separated groups of one to four hex digits, at most one `::`, an optional
 trailing IPv4 dotted-quad form for the last 32 bits, and an optional `%scope`
-suffix. Uppercase and lowercase hex both accepted; nothing else.
+suffix. Uppercase and lowercase hex both accepted; nothing else. The
+dotted-quad is read by A-19's rules, so `::ffff:010.0.0.1` is refused, as RFC
+3986's `IPv4address` and glibc's `inet_pton` refuse it.
 
 **Rule A-21 — `socket_addr_parse` takes the bracketed form for IPv6**:
 `1.2.3.4:80` and `[::1]:80`. `::1:80` is ambiguous — it is a valid IPv6 address

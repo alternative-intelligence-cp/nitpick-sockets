@@ -192,7 +192,7 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 1c58fed..0c7f7a4 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -1079,3 +1079,42 @@ report nobody reads is the backlog cycle 0.10's checklist would have to drain.
+@@ -1085,3 +1085,42 @@ report nobody reads is the backlog cycle 0.10's checklist would have to drain.
  
  *Reversal:* none for the key; a new identity, or a declaring module the table does not name, is a change to
  `SAFETY.md` §3 by a decision, which the check then reads.
@@ -278,7 +278,7 @@ diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
 index ceff822..227ac74 100644
 --- a/meta/specs/TESTING.md
 +++ b/meta/specs/TESTING.md
-@@ -141,7 +141,7 @@ run on every full invocation.
+@@ -147,7 +147,7 @@ run on every full invocation.
  | `check_msg_nosignal` | **every `sys` call in `src/` whose number is `sendto`'s or `sendmsg`'s by `SOCKET_MODEL.md` K-1's table names `MSG_NOSIGNAL` in its flags word** — the mechanical enforcement of S-1, and the most valuable check in this list |
  | `check_no_floor_write` | no call of the floor's `write`, and no `ByteWriter`, anywhere in `src/` (S-2) — the source half; build step 2's call-edge scan (`BUILD.md` B-2a) is the other |
  | `check_no_raw_setsockopt` | no `sys` call whose number is `setsockopt`'s or `getsockopt`'s outside `src/option/sockopt.npk` (P-1, @@PD-165@@) |
@@ -287,7 +287,7 @@ index ceff822..227ac74 100644
  | `check_struct_sizes` | every structure size a specification states — a heading's, a declaration's comment's, N-13's `ucred` — asserted by a probe, by a comparison of `#size_of` or by its exit |
  | `check_no_hardcoded_port` | no non-zero integer literal bound or initialised to a name whose word is `port` in `tests/` (V-3) |
  | `check_specs_current` | **fails the run**: a `<SPEC>.md` rule or section a file under `src/`, `tests/` or `harness/` cites that this repository's specification does not define |
-@@ -155,6 +155,12 @@ included; `check_layering` reads each module's header line and B-19's cycles bes
+@@ -161,6 +161,12 @@ included; `check_layering` reads each module's header line and B-19's cycles bes
  `check_no_floor_write` is the source half of S-2's enforcement; and `check_specs_current` reported and never failed
  — a citation that no longer resolves fails the run (the planning guide's G20).)*
  

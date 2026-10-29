@@ -1427,7 +1427,7 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 151ee71..9c18f5b 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -821,3 +821,112 @@ research skill read one.
+@@ -827,3 +827,112 @@ research skill read one.
  *Reversal:* to let cycle 0.0's probes run before the research, move the gate to cycle 0.1: cycle 0.0.0's gate item 7
  and block 0a's research lines go, the three rows wait for their digests, and `0.1/0.1.0.md`'s gate names them; to
  count the library routine, strike `CURRENCY.md`'s research section and its three rows, and the gate with them.

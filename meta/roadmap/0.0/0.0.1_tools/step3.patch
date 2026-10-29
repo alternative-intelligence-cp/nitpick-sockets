@@ -34,7 +34,7 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index d7e34bc..e618144 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -727,3 +727,30 @@ names the call it bans. `OPTION_MODEL.md` P-1, `TESTING.md`'s check row, `ROADMA
+@@ -733,3 +733,30 @@ names the call it bans. `OPTION_MODEL.md` P-1, `TESTING.md`'s check row, `ROADMA
  what the form lacks, not what it holds.
  
  *Reversal:* a rename, by a later decision; no rule moves.
@@ -61,8 +61,8 @@ index d7e34bc..e618144 100644
 +*Alternatives declined:* **the version and no target rows** — the compiler's runners refuse that manifest by name;
 +**"the compiler's pin" and no number** — a manifest row is a number the harness asserts the tools against; **the
 +consumer under `accept`** — the compiler's `tools/check` judges it, built from the compiler's source, and it neither
-+links nor runs a program; **one probe entry** — one entry judges every file it reads one way, and seven of cycle
-+0.0.0's nineteen probes are refusals.
++links nor runs a program; **one probe entry** — one entry judges every file it reads one way, and eight of cycle
++0.0.0's twenty probes are refusals.
 +
 +*Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
 diff --git a/nitpick.toml b/nitpick.toml

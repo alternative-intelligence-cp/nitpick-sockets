@@ -442,6 +442,12 @@ produced CVEs in more than one language's standard library. The refusal table
 is a **test corpus**, not a comment (`TESTING.md` V-9), because an untested
 security claim is a comment.
 
+*(2026-10-29, cycle 0.0's research gate: "`inet_pton`-shaped" is glibc's `inet_pton`, measured at 2.39, and RFC
+3986 §3.2.2's `dec-octet` grammar, which both refuse a leading zero at any length. That is deliberately stricter than
+POSIX.1-2024, whose `inet_pton` allows a leading zero within three digits (Austin Group Defect 1573), so the refusal
+table gains `010.0.0.1` and `1.2.3.04`, the spellings where this decision and POSIX part (`ADDRESS_MODEL.md` A-19),
+and A-20 reads its dotted-quad tail by the same rules. The decision holds as written.)*
+
 ### SK-037 — IPv4-mapped IPv6 addresses are never silently converted
 **2026-09-03.** A dual-stack listener reports an IPv4 peer as
 `SocketAddr.V6` holding `::ffff:a.b.c.d`, exactly as the kernel reported it.

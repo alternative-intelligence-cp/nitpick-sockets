@@ -2,7 +2,7 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 4da12d4..8b089ff 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -786,3 +786,33 @@ currency row for cycle 0.0.2.
+@@ -792,3 +792,33 @@ currency row for cycle 0.0.2.
  
  *Reversal:* to cache, or to use any action, name it by full commit sha with its release beside it, as a currency row
  checked at the action's own repository on a named date, and restore the cached steps `nitpick-regex`'s workflow has.

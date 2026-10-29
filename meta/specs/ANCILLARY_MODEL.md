@@ -71,6 +71,34 @@ own limit is `SCM_MAX_FD` = 253; sixteen is this library's, it is a named
 constant, and it is chosen so the control buffer bound in N-4 is comfortable
 rather than exact. A request for more is `ESockCapacity` before the syscall.
 
+**Rule N-19 — the `cmsghdr` walk checks before it subtracts.** A received
+control buffer is walked one header at a time over N-4's array, and every
+length in the walk is a `uint64`, whose subtraction below zero traps as
+`IntOverflow` rather than wrapping (`SAFETY.md` §1, D-210). So the order of the
+checks is what keeps a legitimate buffer from trapping and a hostile one from
+being read past `msg_controllen`. At each header, with `rem` the bytes from it
+to `msg_controllen`:
+
+- `rem < 16` ends the walk: no header fits in what remains.
+- `cmsg_len < 16` is `ESockProtocol`, and so is `cmsg_len > rem`; each closes
+  what the receive has wrapped (N-9). Both compare with `rem` and never form
+  `offset + cmsg_len`, a sum that a `cmsg_len` near 2⁶⁴ would overflow.
+- The payload is `cmsg_len − 16` bytes, a subtraction those two checks make
+  safe.
+- The step to the next header is `min(align8(cmsg_len), rem)`. The last
+  header's tail padding may be absent — a 20-byte buffer carries one
+  descriptor with none, as the kernel delivers it into a buffer that size —
+  and an aligned length is never subtracted from a smaller remainder.
+  `align8` cannot wrap, since `cmsg_len ≤ rem ≤ 256`.
+- A header whose `cmsg_len` is 16 and which ends exactly at `msg_controllen`
+  is visited, never skipped. Its empty payload is no decoded type's: an
+  `SCM_RIGHTS` payload is a positive multiple of 4 bytes and an
+  `SCM_CREDENTIALS` payload exactly 12 (N-13), so either is `ESockProtocol`,
+  and a header of another level or type is N-11's.
+- The header is decoded by indexing the byte array — `cmsg_len` the eight
+  bytes at its offset 0, `cmsg_level` and `cmsg_type` the four at 8 and 12 —
+  never through a struct view laid over the bytes.
+
 ---
 
 ## 3. `SCM_RIGHTS` — passing descriptors

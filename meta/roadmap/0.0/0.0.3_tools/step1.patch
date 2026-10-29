@@ -1802,7 +1802,7 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 886753e..9b1856a 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -958,3 +958,124 @@ the first; **the version alone** — `@@PD-167@@`'s pin, which a re-uploaded ass
+@@ -964,3 +964,124 @@ the first; **the version alone** — `@@PD-167@@`'s pin, which a re-uploaded ass
  waits: the install step's check of the digest's line and the `LLVM_DIGEST` row go, CI fetches the tarball by its
  version as `@@PD-167@@` has it, and `CURRENCY.md`'s row says the pin waits. A new LLVM pin is a new digest, filed beside
  this one, and the row the workflow reads names it.
@@ -2013,7 +2013,7 @@ index fe64540..539727f 100644
  
  **Rule V-4 — every Unix-domain test uses the abstract namespace.** No
  filesystem entry, nothing to unlink, nothing left behind by a test that
-@@ -133,21 +135,33 @@ run on every full invocation.
+@@ -139,21 +141,33 @@ run on every full invocation.
  
  | Check | Diffs |
  |---|---|
@@ -2057,7 +2057,7 @@ index fe64540..539727f 100644
  
  ---
  
-@@ -180,13 +194,24 @@ expectations and requires it to report every one as a failure:
+@@ -198,13 +212,24 @@ expectations and requires it to report every one as a failure:
  - a `program` case with the wrong `expect-exit`;
  - a `check` case expecting a code the compiler does not report;
  - a `check` case that reports a code no expectation names (the D-237 rule);

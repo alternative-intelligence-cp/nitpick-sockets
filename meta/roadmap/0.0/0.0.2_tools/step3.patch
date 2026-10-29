@@ -139,7 +139,7 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 9c18f5b..02f8b2d 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -761,6 +761,8 @@ links nor runs a program; **one probe entry** — one entry judges every file it
+@@ -767,6 +767,8 @@ links nor runs a program; **one probe entry** — one entry judges every file it
  *Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
  
  ### @@PD-167@@ — CI runs no third-party action; it pins the compiler by commit, LLVM by version and the runner image by name
@@ -148,7 +148,7 @@ index 9c18f5b..02f8b2d 100644
  **@@DATE@@, cycle 0.0.1 step 4.**
  
  *What was read* — the early ecosystem audit's EK2, re-checked on 2026-10-15: the two libraries with a workflow,
-@@ -930,3 +932,29 @@ retired; **unknown markers ignored** — an expectation nobody checks.
+@@ -936,3 +938,29 @@ retired; **unknown markers ignored** — an expectation nobody checks.
  
  *Reversal:* none for the rule; each marker the runner does not read yet joins the judged ones with the stage that
  needs it, and a pending marker comes by a decision the day a unit is correct and red on a pinned defect.

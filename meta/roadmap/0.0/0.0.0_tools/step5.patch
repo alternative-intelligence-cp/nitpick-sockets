@@ -33,7 +33,7 @@ new file mode 100644
 index 0000000..2093221
 --- /dev/null
 +++ b/tests/probe/README.md
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,44 @@
 +# `tests/probe/` — the language and kernel probes
 +
 +Small programs, one question each, asking the compiler whether a shape `meta/specs/` depends on is spellable and
@@ -74,3 +74,7 @@ index 0000000..2093221
 +  spelled without naming `EINPROGRESS` (probe 08) and two accept-loop rows wait on the compiler (@@PD-162@@, O-N5).
 +- **Every layout and size is the specifications'** (probes 01, 02, 03, 12), the address types' sizes now stated
 +  (@@PD-160@@); and **every slot a reader's bytes reach is the read-only view** (probes 06, 06b, 14, 14b, @@PD-161@@).
++- **No byte is read before it is written** (probe 15): an element of an array declared without an initialiser is
++  `NITPICK-ASSIGN-001` where it is read, once for each of the probe's two reads, so its first two lines state the
++  code twice; a parser's result carries no byte its path never wrote (`meta/specs/ADDRESS_MODEL.md` A-22's dated
++  note).

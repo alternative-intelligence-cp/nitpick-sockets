@@ -39,7 +39,7 @@ index 77f4198..f6f9b39 100644
  ### SK-032 — `SO_REUSEADDR` on by default for listeners; `SO_REUSEPORT` never
  **2026-09-03.** Without `SO_REUSEADDR`, a server restarted within the
  `TIME_WAIT` window fails `EADDRINUSE` — the most common surprise in socket
-@@ -615,3 +622,61 @@ edge** — a copy per call to undo a type the compiler hands out.
+@@ -621,3 +628,61 @@ edge** — a copy per call to undo a type the compiler hands out.
  *Reversal:* if a later compiler lets `string_bytes` fill a plain slot, nothing need move: a `fixed` parameter takes a
  plain view too (probe 14). If it removes the read-only view, the parameters return to `uint8[]` by a later decision,
  probe 14 reddening first.

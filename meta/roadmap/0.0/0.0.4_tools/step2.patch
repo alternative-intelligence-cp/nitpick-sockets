@@ -207,7 +207,7 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index 44df30c..aaa3438 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -857,6 +857,9 @@ the drawing and a library object come back by a decision; and when a library mod
+@@ -863,6 +863,9 @@ the drawing and a library object come back by a decision; and when a library mod
  other than the runtime's and `npk_failsafe`, B-2 names it, and a new allowance is a decision, never an edit.
  
  ### @@PD-170@@ — the call-edge scan holds the library to the runtime facets its rules give it, from a table of the whole runtime
@@ -217,7 +217,7 @@ index 44df30c..aaa3438 100644
  **@@DATE@@, cycle 0.0.2 step 1.** `specs/BUILD.md` B-2a.
  
  *What was read and measured* — the workbench's `PLAYBOOK.md` §6: an undefined-symbol scan cannot see a syscall,
-@@ -1077,6 +1080,11 @@ call-edge scan alone** — the scan cannot see a generic function no root instan
+@@ -1083,6 +1086,11 @@ call-edge scan alone** — the scan cannot see a generic function no root instan
  will be; **`check_specs_current` reporting only** — a citation that no longer resolves is a stale document, and a
  report nobody reads is the backlog cycle 0.10's checklist would have to drain.
  
@@ -229,7 +229,7 @@ index 44df30c..aaa3438 100644
  *Reversal:* none for the key; a new identity, or a declaring module the table does not name, is a change to
  `SAFETY.md` §3 by a decision, which the check then reads.
  
-@@ -1118,3 +1126,54 @@ value rule** — 256 is a number no kernel value shares, and a literal 256 under
+@@ -1124,3 +1132,54 @@ value rule** — 256 is a number no kernel value shares, and a literal 256 under
  *Reversal, for the author:* `NSOCK_POLLSET_MAX` joins the file at the value its consumer's cycle states; a struck bound
  returns with a rule that states its value, in the cycle that needs it; and a bound whose number a specification comes to
  state as a kernel value too moves to the by-name list, which every run's line prints.
@@ -348,7 +348,7 @@ diff --git a/meta/specs/TESTING.md b/meta/specs/TESTING.md
 index dbcf969..34b9ef2 100644
 --- a/meta/specs/TESTING.md
 +++ b/meta/specs/TESTING.md
-@@ -139,7 +139,7 @@ run on every full invocation.
+@@ -145,7 +145,7 @@ run on every full invocation.
  | `check_failsafe_arms` | the generated per-module arm list against a program that imports each module and compiles its `failsafe` — from cycle 0.2, its bill read from `NITPICK-REACH-003`'s own list |
  | `check_layering` | every `use` edge between modules under `src/`, read where the code holds it, against the importer's row of `BUILD.md` B-18's table (@@PD-164@@); every module's `// MAY IMPORT:` header line against its row; and no cycle among the files' imports (B-19) |
  | `check_msg_nosignal` | **every `sys` call in `src/` whose number is `sendto`'s or `sendmsg`'s by `SOCKET_MODEL.md` K-1's table names `MSG_NOSIGNAL` in its flags word** — the mechanical enforcement of S-1, and the most valuable check in this list |

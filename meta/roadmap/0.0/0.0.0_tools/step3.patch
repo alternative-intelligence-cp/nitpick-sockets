@@ -39,7 +39,7 @@ index 4525d2b..77f4198 100644
  ### SK-028 — `IPV6_V6ONLY` is set explicitly, never left to the sysctl
  **2026-09-03.** Every IPv6 socket sets it to whatever the caller asked for.
  The builder's default is **v6only on**.
-@@ -570,3 +586,32 @@ the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, a
+@@ -576,3 +592,32 @@ the specification** — a `Vec<SocketAddr>`'s memory is a sum a consumer does, a
  *Reversal:* none for the sizes, which are measurements — a later pin that moves one reddens probe 02, 03 or 12 on its
  first run, and the specification follows. If a later compiler frees `pid`, `uid` or `gid` as names, the fields keep
  the names they have, since renaming a public field is a major version.
@@ -110,7 +110,7 @@ index aff9b8b..d4f380c 100644
  
  ### 0.1.3 — parsing
 @@ -70,7 +70,7 @@ scope id? recommendation: yes).
- - [ ] **every spelling in A-19's refusal table is a rejection test** — `127.1`, `0177.0.0.1`, `0x7f.0.0.1`, `1.2.3.4.5`, `1.2.3.`, `+1.2.3.4`, leading whitespace — because an untested security claim is a comment
+ - [ ] **every spelling in A-19's refusal table is a rejection test** — `127.1`, `0177.0.0.1`, `010.0.0.1`, `1.2.3.04`, `0x7f.0.0.1`, `1.2.3.4.5`, `1.2.3.`, `+1.2.3.4`, leading whitespace — because an untested security claim is a comment
  - [ ] `ipv6_parse` per RFC 4291 §2.2: eight groups, at most one `::`, the trailing dotted-quad form, the `%scope` suffix
  - [ ] `socket_addr_parse` with the bracketed IPv6 form; unbracketed IPv6-with-port refused (A-21)
 -- [ ] every parser takes `uint8[]`, not `string`, and allocates nothing (A-22)
@@ -188,7 +188,7 @@ index 6724d76..652f9ee 100644
  callers who genuinely have an absolute path and want the check.
  
  **Rule A-15 — an unnamed address is a real answer.** `getsockname` on a
-@@ -255,9 +256,12 @@ suffix. Uppercase and lowercase hex both accepted; nothing else.
+@@ -262,9 +263,12 @@ dotted-quad is read by A-19's rules, so `::ffff:010.0.0.1` is refused, as RFC
  in its own right — and the bracket form is what every RFC and every tool uses.
  Unbracketed IPv6 with a port is `ESockAddr`.
  
@@ -202,8 +202,8 @@ index 6724d76..652f9ee 100644
 +`NITPICK-TYPE-007` (probe 14b), while the view takes both (probe 14;
 +@@PD-161@@). The encoders' `dest` stays a plain `uint8[]`: they write.
  
- ---
- 
+ *(@@DATE@@, cycle 0.0.0: measured at compiler `2e1cb4a` — an element of a `uint8` array declared without an
+ initialiser, a local of sixteen (an IPv6 result's size) or a struct's field of 108 (`UnixAddr`'s `path`), cannot be
 diff --git a/meta/specs/ANCILLARY_MODEL.md b/meta/specs/ANCILLARY_MODEL.md
 index 893eb93..5605690 100644
 --- a/meta/specs/ANCILLARY_MODEL.md
@@ -217,7 +217,7 @@ index 893eb93..5605690 100644
  (`SAFETY.md` S-22), sized `NSOCK_CMSG_MAX` = 256 bytes. That holds
  `SCM_RIGHTS` for up to 60 descriptors, or `SCM_CREDENTIALS`, or both. It takes
  no `wild` bytes, so the ancillary path cannot trip D-151 on any exit path.
-@@ -178,7 +178,7 @@ its own decision. The `msghdr` layer is built so that adding one is a
+@@ -206,7 +206,7 @@ its own decision. The `msghdr` layer is built so that adding one is a
  - **O-Y1 — whether `SCM_RIGHTS` should cap at 16 or expose the kernel's 253.**
    Sixteen is a named constant chosen for a comfortable control buffer.
    **Recommendation:** keep 16 at 1.0 and raise it with a measurement if a

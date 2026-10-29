@@ -107,7 +107,13 @@ would pass a formatter that consistently emitted the same wrong thing.
 **Rule V-9 — the strict-parser corpus is a rejection corpus.** Every spelling
 in `ADDRESS_MODEL.md` A-19's refusal table is a test that asserts `ESockAddr`,
 because "we refuse octal octets" is a security claim and an untested security
-claim is a comment.
+claim is a comment. The IPv6 parser and the pathname encoder have their own,
+each beside the boundary it must still accept:
+
+- A-20: nine groups (`1:2:3:4:5:6:7:8:9`), `1::2::3`, `:::` and `12345::1` are
+  each `ESockAddr`; `::` and `1:2:3:4:5:6:7::` are accepted.
+- A-13: a 108-byte pathname is `ESockAddr`, its length in the message; a
+  107-byte one is accepted.
 
 **Rule V-10 — the encode/decode round trip over the kernel.** For each family:
 encode an address, `bind` a socket to it, `getsockname` it back, decode, and
@@ -153,6 +159,18 @@ zero.
 - **the `cmsghdr` reader** — random control buffers, asserting: never traps,
   never reads past `msg_controllen`, never returns a descriptor it did not
   receive, and closes every descriptor on every refusal path (N-10, N-11).
+  Beside the random ones, fixed buffers pin N-19's walk, each with its
+  verdict:
+  - one header filling the buffer exactly (`cmsg_len` and `msg_controllen`
+    both 24, two descriptors): both received, and the walk ends;
+  - `cmsg_len` 2⁶⁴ − 1: `ESockProtocol`, with no trap;
+  - after a 24-byte header, exactly 16 bytes left: the next header is
+    visited, and its `cmsg_len` of 16 makes it the empty one below; 15 bytes
+    left: the walk ends, the first header's descriptor received;
+  - `cmsg_len` 15: `ESockProtocol`; `cmsg_len` 16, ending at
+    `msg_controllen`: visited, then `ESockProtocol` for its empty payload;
+  - the kernel's one-descriptor buffer, 20 bytes with no tail padding: one
+    descriptor received, then the walk ends.
 
 The second is the important one. It is the library's only parser of
 attacker-adjacent binary data, and its failure mode is a leaked or

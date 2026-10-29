@@ -242,8 +242,8 @@ diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
 index e618144..4da12d4 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
-@@ -754,3 +754,35 @@ links nor runs a program; **one probe entry** — one entry judges every file it
- 0.0.0's nineteen probes are refusals.
+@@ -760,3 +760,35 @@ links nor runs a program; **one probe entry** — one entry judges every file it
+ 0.0.0's twenty probes are refusals.
  
  *Reversal:* none for the rows; a re-pin moves the LLVM row only if a landing moves the compiler's D-349.
 +

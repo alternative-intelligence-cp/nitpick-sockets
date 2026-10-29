@@ -67,7 +67,7 @@ scope id? recommendation: yes).
 
 ### 0.1.3 — parsing
 - [ ] `ipv4_parse` strict: four decimal octets, 0–255, **no leading zeros**
-- [ ] **every spelling in A-19's refusal table is a rejection test** — `127.1`, `0177.0.0.1`, `0x7f.0.0.1`, `1.2.3.4.5`, `1.2.3.`, `+1.2.3.4`, leading whitespace — because an untested security claim is a comment
+- [ ] **every spelling in A-19's refusal table is a rejection test** — `127.1`, `0177.0.0.1`, `010.0.0.1`, `1.2.3.04`, `0x7f.0.0.1`, `1.2.3.4.5`, `1.2.3.`, `+1.2.3.4`, leading whitespace — because an untested security claim is a comment
 - [ ] `ipv6_parse` per RFC 4291 §2.2: eight groups, at most one `::`, the trailing dotted-quad form, the `%scope` suffix
 - [ ] `socket_addr_parse` with the bracketed IPv6 form; unbracketed IPv6-with-port refused (A-21)
 - [ ] every parser takes `uint8[]`, not `string`, and allocates nothing (A-22)

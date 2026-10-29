@@ -53,7 +53,7 @@ index d902e7f..4525d2b 100644
  ### SK-023 — `UnixAddr` is not a `Path`
  **2026-09-03.** The prelude's `Path` (D-051, D-054) requires an **absolute**
  path — `path_parse` fails `BadPath` on anything whose first byte is not `/` —
-@@ -526,3 +540,33 @@ and a marker with no subject of its own is a marker nobody keeps working.
+@@ -532,3 +546,33 @@ and a marker with no subject of its own is a marker nobody keeps working.
  disposition as `SIG_DFL`, before any send — red on that pin's first run, as the probe started under `SIG_DFL` exits
  11 at this one (a third mutant); there a send with no flags dies by signal 13, as the no-flags mutant does here; and
  a decision restores `SK-013`'s premise and the marker, with probe 04 its consumer.
@@ -143,11 +143,24 @@ index 2bb41d6..6724d76 100644
  **Rule A-1 (SK-022) — every address type is a plain value with no owning
  field.** No
  `string`, no `buffer`, no `Path`. That is what lets an address sit in an array,
+@@ -253,6 +266,12 @@ Unbracketed IPv6 with a port is `ESockAddr`.
+ nothing. It takes a byte slice, not a `string`, so a caller parsing out of a
+ buffer does not build one first.
+ 
++*(@@DATE@@, cycle 0.0.0: measured at compiler `2e1cb4a` — an element of a `uint8` array declared without an
++initialiser, a local of sixteen (an IPv6 result's size) or a struct's field of 108 (`UnixAddr`'s `path`), cannot be
++read before it is written: each read is `NITPICK-ASSIGN-001` (`tests/probe/refused/probe15_unassigned_read.npk`).
++So no parser's result can carry a byte its path never wrote, and the research gate's D3, a result's bytes on the
++IPv4-in-IPv6 path (`meta/research/security-defects.md`), is closed by the language.)*
++
+ ---
+ 
+ ## 8. Formatting
 diff --git a/meta/specs/ANCILLARY_MODEL.md b/meta/specs/ANCILLARY_MODEL.md
 index 8df08e0..893eb93 100644
 --- a/meta/specs/ANCILLARY_MODEL.md
 +++ b/meta/specs/ANCILLARY_MODEL.md
-@@ -128,7 +128,10 @@ descriptors (`STREAM_MODEL.md` §9).
+@@ -156,7 +156,10 @@ descriptors (`STREAM_MODEL.md` §9).
  
  **Rule N-13.** `SOL_SOCKET` (1) / `SCM_CREDENTIALS` (2), payload a
  `struct ucred`: **12 bytes**, `pid` at 0, `uid` at 4, `gid` at 8, each an
@@ -159,7 +172,7 @@ index 8df08e0..893eb93 100644
  
  **Rule N-14 — the receiver must have set `SO_PASSCRED` (16) first**, or no
  credentials arrive. It is not automatic and there is no error to tell you: the
-@@ -152,7 +155,7 @@ several senders. The documentation says which is which, because reaching for
+@@ -180,7 +183,7 @@ several senders. The documentation says which is which, because reaching for
  the wrong one produces an authorisation check that is correct in testing and
  wrong under load.
  
@@ -646,6 +659,51 @@ index 0000000..c09d326
 +    dalloc(first);
 +    dalloc(second);
 +    exit (width =>! int32);
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe15_unassigned_read.npk b/tests/probe/refused/probe15_unassigned_read.npk
+new file mode 100644
+index 0000000..2129cf7
+--- /dev/null
++++ b/tests/probe/refused/probe15_unassigned_read.npk
+@@ -0,0 +1,39 @@
++// expect-error: NITPICK-ASSIGN-001
++// expect-error: NITPICK-ASSIGN-001
++//
++// PROBE 15 -- AN ARRAY ELEMENT READ BEFORE IT IS WRITTEN.
++//
++// ASKS: may a program read an element of a `uint8` array it declared without an initialiser -- a
++// local of sixteen, as an IPv6 parser's result is, and a struct's field of 108, as `UnixAddr`'s
++// `path` is -- before anything writes it; and if it may, does the read see zero, or stale bytes?
++// DEPENDS ON THE ANSWER: ADDRESS_MODEL.md A-22, and the research gate's D3 (a result's bytes
++// initialised on the IPv4-in-IPv6 path), in meta/research/security-defects.md.
++// EXPECTED: refused, `NITPICK-ASSIGN-001` at each of the two reads, and nothing else: a byte no path
++// wrote cannot be read, so a parser's result cannot carry one.
++mod:probe15_unassigned_read;
++
++struct:UnixPath = { uint8[108]:path; uint8:len; };
++
++func:main = int32(cstring[]:_~argv) {
++    uint8[16]:octets;
++    UnixPath:holder;
++    uint8:b0 = octets[0i64];
++    uint8:b107 = holder.path[107i64];
++    if (b0 == b107) { exit 0i32; }
++    exit 10i32;
 +};
 +
 +func:failsafe = int32(Error:e) {
