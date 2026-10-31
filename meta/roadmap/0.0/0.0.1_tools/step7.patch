@@ -92,7 +92,7 @@ index acb3d2c..bee273d 100644
  ---
  
 diff --git a/meta/research/CURRENCY.md b/meta/research/CURRENCY.md
-index 13d41b3..0276f4e 100644
+index 079f691..8bf1f2d 100644
 --- a/meta/research/CURRENCY.md
 +++ b/meta/research/CURRENCY.md
 @@ -14,7 +14,7 @@ are never rows here; they are read in the compiler's tree at the pinned commit.
@@ -100,7 +100,7 @@ index 13d41b3..0276f4e 100644
  | Python — the harness's interpreter | none chosen yet; the runner's version is printed by CI's first step | not yet — cycle 0.0.2, which writes the harness, names the version it needs | python.org | `SK-004` |
  | The x86-64 socket syscall numbers (`SOCKET_MODEL.md` §1) | the fifteen in its table, "measured on the target platform on 2026-09-03", no kernel release named | not yet — cycle 0.2.0, which writes `src/sys/`, against the kernel's table at a named release; cycle 0.0.0's probes ran on them | the kernel's `arch/x86/entry/syscalls/syscall_64.tbl` | `SK-016`, `SK-007` |
 -| The kernel's structure layouts (`ADDRESS_MODEL.md` §2, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
-+| The kernel's structure layouts (`ADDRESS_MODEL.md` §2, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `sockaddr_storage` 128, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running, and cycle 0.0.1's probe 16, which round-trips `sockaddr_storage`, `cmsghdr` and `ucred` through the kernel as A-4 asks | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
++| The kernel's structure layouts (`ADDRESS_MODEL.md` §2, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `sockaddr_storage` 128, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running, and cycle 0.0.1's probe 16, which round-trips `sockaddr_storage`, `cmsghdr` and `ucred` through the kernel as A-4 asks; `sockaddr_un`'s 110 is asserted by `#size_of` alone, its round trip handed to cycle 0.1.2 | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
  | The kernel feature floor (`COMPAT.md` W-3) | `accept4` 2.6.28, `SOCK_NONBLOCK`/`SOCK_CLOEXEC` 2.6.27, `MSG_CMSG_CLOEXEC` 2.6.23, `SO_REUSEPORT` 3.9; the floor Linux 3.9 | not yet — cycle 0.2.0, before it starts | man-pages at a named release | `SK-003`, `SK-007` |
  | `net.core.somaxconn`'s default (`SOCKET_MODEL.md` K-16) | 4096 "since Linux 5.4" | not yet — cycle 0.2.3, which writes `listen` and its note | the kernel's documentation at a named release | none; K-16 states it |
  | `SCM_MAX_FD` (`ANCILLARY_MODEL.md` N-5) | 253 | not yet — cycle 0.5, which writes the descriptor-passing path | the kernel's source at a named release | none; N-5 states it |
@@ -115,7 +115,7 @@ index 13d41b3..0276f4e 100644
    subtraction N-19 relies on traps as `IntOverflow` (cycle 0.0.0's §1.4, the gate's P1'). The credential defects are
    held by N-13 … N-17.
 diff --git a/meta/roadmap/0.0/0.0.0.md b/meta/roadmap/0.0/0.0.0.md
-index 0e8ebbe..789586f 100644
+index 0e8ebbe..a817b3b 100644
 --- a/meta/roadmap/0.0/0.0.0.md
 +++ b/meta/roadmap/0.0/0.0.0.md
 @@ -627,6 +627,10 @@ so. **The other branches**, had a read compiled: one that saw zero would close D
@@ -143,7 +143,21 @@ index 0e8ebbe..789586f 100644
  ---
  
  ## 7. The sweep's candidates, and the verdict on each
-@@ -1353,6 +1364,10 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
+@@ -1305,6 +1316,13 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
+   and read through `same<T: Copy>`, with the exit status `#size_of<SocketAddr>()`, 32. Probe 15: the two reads of a
+   never-written element — a local `uint8[16]` at 20:16 and a struct's `uint8[108]` field at 21:18, each column the
+   read's first character — under two `expect-error` lines, as the header's 'at each of the two reads' says.
++  *(@@DATE@@, cycle 0.0.1: probe 02's account above is corrected in part. The header's 'a 64- or 128-byte `wild`
++  block whose bytes past the structure hold a sentinel', with 'the sentinel untouched', is a false claim: every block
++  is 64 bytes, and `sockaddr_un`'s 110 bytes, which the probe asserts by `#size_of` alone, are cast over one with its
++  family alone set, so the sentinel it checks from byte 8 lies inside the structure, and no byte past it is checked.
++  That check shows the kernel wrote the 8 bytes it returned and nothing past them. Of the reads this account lists,
++  the `AF_UNIX` one reads its length, family and `path[0]`, and no port or address. Cycle 0.0.1's step 7 tightens the
++  header to what the code does, and the 110's round trip is handed to cycle 0.1.2 (`SK-016`'s second dated note).)*
+ - **Each dated note against what it cites.** SK-012's note (probe 01) says what the probe does, and block 2 holds it
+   (`-O0 0, -O2 0`). SK-016's note: every size it names is asserted, probe 02's four, probe 03's four and probe 12's, and
+   block 2 holds each (its 'round-tripped' is the second finding below). SK-022's note (probe 12): the 4 096 values, the
+@@ -1353,6 +1371,10 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
    every size of its §2 is asserted by a probe that fills a structure, hands it to the kernel and checks a sentinel.
    Every size is as the specifications state it. **For the seat:** tighten the notes' wording to what the programs do,
    or give `sockaddr_storage`, `cmsghdr` and `ucred` the round trips the notes and A-4 read as.
@@ -154,7 +168,7 @@ index 0e8ebbe..789586f 100644
  - **This step's commit**, the 10 files `apply.py` staged and this file, added by name: `cycle 0.0.0: step 2 — the kernel
    layouts, the address types and a read before a write, probes 01, 02, 03, 12 and 15`. Its push is for run 4's entry to
    record, read by `git ls-remote`.
-@@ -1626,6 +1641,9 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
+@@ -1626,6 +1648,9 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
    findings above are for the libraries' seat and are not this chain's to act on. Run 6's row is blocks 5 and 6 `SAME`,
    §6's 21 rows against the five entries (this one records 07, 08, 11, 13 and 13b `SAME` in block 4), and the sweep.
  
@@ -164,7 +178,7 @@ index 0e8ebbe..789586f 100644
  ### Step 5 — run 6, 2026-10-29: the probes' README, the cycle map's paragraph and the title DONE
  
  - **Times**, all from `date`: run 6's first `date` read 12:06:55 (the dispatch's own, 12:06:24, precedes it), with the
-@@ -1800,6 +1818,11 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
+@@ -1800,6 +1825,11 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
    ran as `--no-optional-locks`; no identity but the repository's configured one was used, and no hook was bypassed.
    *Model*: `claude-sonnet-5-5`.
  
@@ -317,11 +331,27 @@ index 5355a1a..eed1c0a 100644
 +  bytes, each with a sentinel past its end untouched, so every size A-4 names is measured as it asks but
 +  `sockaddr_un`'s 110, which probe 02 asserts by `#size_of` alone (`SK-016`'s second dated note).
 diff --git a/tests/probe/probe02_sockaddr_layout.npk b/tests/probe/probe02_sockaddr_layout.npk
-index 0a1165a..5f76ed3 100644
+index 0a1165a..51c51df 100644
 --- a/tests/probe/probe02_sockaddr_layout.npk
 +++ b/tests/probe/probe02_sockaddr_layout.npk
-@@ -10,7 +10,7 @@
- // of a 128-byte `sockaddr_storage`, is asserted beside it.
+@@ -1,16 +1,16 @@
+ // expect-exit: 0
+ //
+-// PROBE 02 -- THE `sockaddr` LAYOUTS, THROUGH THE KERNEL.
++// PROBE 02 -- THE `sockaddr` LAYOUTS: FOUR SIZES BY `#size_of`, AND THREE BINDS READ BACK.
+ //
+-// ASKS: `sockaddr_in`, `sockaddr_in6` and `sockaddr_un`, declared as Nitpick structs and laid over a
+-// 64- or 128-byte `wild` block whose bytes past the structure hold a sentinel (0x5A): each is
+-// filled, `bind`ed on loopback to port 0 (an `AF_UNIX` socket autobinds into the abstract
+-// namespace), and read back with `getsockname` -- the length the kernel returns, the family, a
+-// non-zero port, the loopback address, and the sentinel untouched. `#size_of` of each struct, and
+-// of a 128-byte `sockaddr_storage`, is asserted beside it.
++// ASKS: `sockaddr_in` and `sockaddr_in6`, each over a 64-byte block of sentinel bytes, are filled,
++// `bind`ed on loopback to port 0 and read by `getsockname`: length, family, a non-zero port, the
++// address's first and last bytes, and the sentinel past the struct untouched. `sockaddr_un`'s 110
++// bytes are cast over a 64-byte block, its family alone set, so it autobinds: only `family` and
++// `path[0]` (0) are read through it, length 8 (2 + 1 + 5), and the sentinel from byte 8, inside it.
++// `#size_of` asserts each, the 110 alone (handed to 0.1.2), and `sockaddr_storage`'s 128.
  // DEPENDS ON THE ANSWER: SK-016 and `ADDRESS_MODEL.md` §2's tables (A-4): a size or an offset the
  // kernel disagrees with is a table that is wrong, and the kernel wins.
 -// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 59 are the assertions.

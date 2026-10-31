@@ -664,6 +664,10 @@ question are probes of 0.0.0. No decision is taken.
   `uint8[108]` field before anything writes them, and both reads are `NITPICK-ASSIGN-001`, so the language closes the
   gate's D3 and A-22 takes a dated note; step 2's text gives the other branches. Block 0a prints each digest's sha256,
   and §10 hands the gate's currency rows to `CURRENCY.md` when 0.0.1 is re-cut (D1).
+  *(2026-10-31, cycle 0.0.1: "the language closes the gate's D3" is withdrawn in part. Both reads are
+  `NITPICK-ASSIGN-001`, as this says, so D3 is closed for a direct read; a binding handed on unassigned as `$$m` to a
+  callee that writes part of it is not, and D3 stays open for that handoff until a re-pin carries the compiler's
+  DEF-345 fix (probe 15b, and `ADDRESS_MODEL.md` A-22's second dated note, which cycle 0.0.1's step 7 adds).)*
 
 Its fourth commit cut 0.0.0 into runs (the libraries' seat's ruling (iii)), on `nitpick-parse` 0.0.2's model: six
 runs, each a fresh worker — run 1 the research gate's commit and step 0, runs 2 … 5 steps 1 … 4 one each, run 6 steps

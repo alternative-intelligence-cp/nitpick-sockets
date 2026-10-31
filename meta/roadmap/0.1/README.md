@@ -30,7 +30,7 @@ scope id? recommendation: yes).
 | # | Topic | Ends with |
 |---|---|---|
 | 0.1.0 | **The types and byte order** — the five values, `src/addr/order.npk` | `#size_of` asserted for each; the involution property green |
-| 0.1.1 | **Encode and decode** — `sockaddr_in`/`in6`/`un`, every offset | the kernel round trip: encode → `bind` → `getsockname` → decode |
+| 0.1.1 | **Encode and decode** — `sockaddr_in`/`in6`/`un`, every offset | the kernel round trip for `sockaddr_in` and `sockaddr_in6`: encode → `bind` → `getsockname` → decode |
 | 0.1.2 | **`UnixAddr`** — the three kinds and the abstract encoding | the abstract length asserted byte for byte; a 108-byte path refused |
 | 0.1.3 | **Parsing** — strict IPv4, RFC 4291 IPv6, the bracketed host:port form | every refusal in A-19's table is a passing rejection test |
 | 0.1.4 | **Formatting** — RFC 5952 canonical | canonical over any accepted spelling |
@@ -58,6 +58,7 @@ scope id? recommendation: yes).
 - [ ] `check_struct_sizes` goes live
 
 ### 0.1.2 — `UnixAddr`
+- [ ] **first, before any `UnixAddr` conversion that writes the whole structure is committed as work: `sockaddr_un`'s 110 round-tripped through the kernel as A-4 asks** — an abstract name filling the whole `sun_path` (a pathname cannot, since a 108-byte path is refused below), `sun_path[0] = 0` and 107 name bytes, `addrlen` 110, laid over a block whose bytes from 110 hold a sentinel; bound, read back by `getsockname`, and the length and every byte compared, the sentinel untouched, beside the autobound abstract name (length 8). The 8-byte autobind alone does not discharge A-4's 110 (A-4's dated note). This names the leg, not its result: a kernel that answers otherwise is reported, not adapted to
 - [ ] the three kinds — unnamed, pathname, abstract — and the `addrlen` each produces (A-11)
 - [ ] **the abstract encoding asserted byte for byte**: `sun_path[0] == 0`, `addrlen == 2 + 1 + len`, and a test that binds two abstract names differing only in trailing bytes and asserts they are different addresses (A-12)
 - [ ] a 108-byte path refused `ESockAddr` with the length in the message (A-13)
