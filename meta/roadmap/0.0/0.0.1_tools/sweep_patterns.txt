@@ -18,7 +18,7 @@ the probes run at c9baa9e | \bc9baa9e\b
 one cycle's items wait | one cycle.s items wait
 a second connect's error named | ECONNREFUSED. for a closed port|kernel.s own error (—|-) ?ECONNREFUSED
 D3 closed by the language | closed by the language|language (closes|guarantees|ensures)[^.;]{0,60}(byte|written|D3)|carries no byte (its|a) path never wrote|cannot carry a byte (its|a) path never wrote|no byte is read before it is written
-the three sizes round-tripped by probes 02 and 03 | sockaddr_storage 128 laid out|cmsghdr 16 and ucred 12 through|which assert each by running
+the sizes probes 02 and 03 assert alone, as round-tripped | sockaddr_storage 128 laid out|cmsghdr 16 and ucred 12 through|which assert each by running
 an unnamed errno compared, by either name | \bConnAborted\b|err ?== ?E[A-Z]{3,}|\b(ECONNABORTED|EMFILE|ENFILE|EINPROGRESS|TooManyOpenFiles|FileTableFull|InProgress|AlreadyInProgress)\b[^.;]{0,60}?\b(retr(y|ies|ied)|returned|compared|matched|backs? off|waits?|means)\b|waits NSOCK_EMFILE_BACKOFF
 # The subject fix round 1 added by subject (the plan verification's findings 4 and 5(c)) is proved on its claim in
 # other words than its old text's (`tools/sweep.py`).

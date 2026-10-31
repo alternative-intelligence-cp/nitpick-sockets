@@ -1,0 +1,284 @@
+# 0.0.1's twin check by subject: `tools/subjects.py`, run by block 8. One row per claim the T17 re-cut withdrew or
+# corrected whose twin check was a list of words, each keyed on what the claim is about: item 7's round trips, D3's
+# closure and the unnamed errno, with their plants (the libraries' seat's ruling of 04:40:20 and management_10's of
+# 04:32 on 2026-10-31), and four more with their base claims alone (management_10's addition of 04:41).
+
+row: item7 | item 7, the kernel structures' sizes measured by a round trip through the kernel
+base: item7 | 049afd0 | meta/DECISIONS.md | 577 | SK-102's What was measured, "are the kernel's sizes and round-trip through it"
+names: item7 | sockaddr_storage|sockaddr storage|SockaddrStorage|\bstorage (struct|structure|buffer|address)|cmsghdr|CmsgHdr|cmsg header|control[- ]message header|\bucred\b|Ucred|credentials? (struct|structure|payload|record)|SO_PEERCRED|sockaddr_un\b|SockaddrUn\b|unix (socket )?address (struct|structure)|kernel (structures?|structs?|layouts?)|\b(every|each|all) (one of (those|these|the|its) )?(sizes?|structures?|structs?|layouts?)\b
+says: item7 | round[- ]?trip|\bkernel\b|\bbind\b|getsockname|sendmsg|recvmsg|getsockopt|SCM_CREDENTIALS|socketpair|sentinel|(read|reads|reading) (\S+ ){0,2}back\b|sent and received|exchanged|\bA-4\b|\bprobes? \d|\bprobes \d|programs? (that|which) (run|ran)
+corrected: item7 | cycle 0\.0\.1: .{0,60}(corrected in part|as A-4 asks)\b.{0,400}#size_of alone
+plant: item7 | reworded | The kernel takes each Nitpick mirror at the size the specifications give, the 128 bytes of sockaddr_storage among them, as probes 02 and 03 show by running.
+plant: item7 | split | Probe 02 lays a 128-byte sockaddr_storage over a block and hands it\nto the kernel, which writes it back with the bytes past its end untouched.
+plant: item7 | part | The twelve bytes of a ucred come back exactly as probe 03 sent them.
+plant: item7 | part | cmsghdr is 16 bytes, which a recvmsg round trip confirms.
+plant: item7 | own | Every structure the library mirrors, sockaddr_un's 110 bytes among them, is checked against what bind and getsockname hand back.
+plant: item7 | own | The credentials structure was exchanged with the kernel by cycle 0.0's third probe and matched byte for byte.
+
+row: d3 | the research gate's D3, a parsed result's unwritten bytes, claimed closed by the language
+base: d3 | 049afd0 | meta/specs/ADDRESS_MODEL.md | 277 | A-22's first dated note, "is closed by the language"
+names: d3 | \bD3\b|pars(e|ed|er|ers|ing)\b|parser.s|\bresults?\b|\baddress(es)?\b|IPv4-in-IPv6|mapped (address|path)|octets?\b
+says: d3 | never (been )?(written|wrote|assigned|initiali[sz]ed)|unwritten|uninitiali[sz]ed|without an initiali[sz]er|before (it is|being) written|definite[- ]?assignment|ASSIGN-001|closed by the language|(its|a|the) path never wrote|no path wrote|nobody wrote|no one wrote|fully (initiali[sz]ed|written)|always initiali[sz]ed|stale (stack )?bytes?|previous frame|leftover|(settled|closed|answered|guaranteed|ruled out|impossible) by the (language|compiler)
+corrected: d3 | cycle 0\.0\.1: .{0,60}(withdrawn|corrected) in part\b.{0,800}(\$\$m|handoff)
+plant: d3 | missed | the definite-assignment rule means no parsed address can hold a byte that was never written
+plant: d3 | reworded | Because the compiler refuses every read of storage nobody wrote, a decoded IPv6 result is always fully initialised.
+plant: d3 | split | So the research gate's D3\nis settled by the language itself.
+plant: d3 | part | The IPv4-in-IPv6 path cannot leave a byte unwritten.
+plant: d3 | own | Nothing a parser returns can hold stale stack bytes, since reading an unassigned array does not compile.
+
+row: errno | an errno the prelude does not name, compared or acted on, by either of its names
+base: errno | 049afd0 | meta/DECISIONS.md | 410 | SK-031's text, "EMFILE/ENFILE ... server/ backs off for a bounded interval before retrying"
+names: errno | \b(ECONNABORTED|EMFILE|ENFILE|EINPROGRESS|EALREADY|ConnAborted|TooManyOpenFiles|FileTableFull|InProgress|AlreadyInProgress)\b|too many open files|file table (is )?full|connection aborted|out of (file )?descriptors|descriptor (table|limit|shortage|exhaustion)|runs? out of descriptors
+says: errno | ==|compar|match|apart|retr(y|ies|ied|ying)|\btries\b|\btry\b|once more|again|\bwait|pause|back(s|ing|ed)?[- ]?off|backoff|hold(s)? off|sleep|delay|\bspin|\bsees?\b|\bsaw\b|recogni|distinguish|treat|react|branch|handles?\b|\bon (an?|each|every) |\bif\b|\bwhen\b|\barms?\b|\brows?\b|\bmeans\b|protocol|answers?\b|returns?\b|returned\b
+corrected: errno | \(\d{4}-\d{2}-\d{2}, (cycle 0\.0\.\d, )?(SK-104|@@PD-162@@)\b
+plant: errno | missed | a listener that sees FileTableFull pauses and then tries once more
+plant: errno | reworded | On a descriptor shortage the accept loop sleeps briefly and goes round again.
+plant: errno | split | The accept loop compares the error with ECONNABORTED\nand retries at once.
+plant: errno | part | connect matches EINPROGRESS to know that the handshake is running.
+plant: errno | own | When accept answers TooManyOpenFiles, the server holds off for a moment before its next accept.
+
+row: probes | item (3), a probe credited with a kernel round trip it does not make
+base: probes | 049afd0 | meta/DECISIONS.md | 231 | SK-016's first dated note, "round-tripped through bind and getsockname"
+names: probes | \bprobes?\b|running programs?|\bthe programs?\b
+says: probes | round[- ]?trip|through the kernel|hands? (it|them) to the kernel|(read|reads|reading) (\S+ ){0,2}back\b|sent and received|through (bind|sendmsg|recvmsg|getsockname)
+corrected: probes | cycle 0\.0\.1: .{0,60}(corrected in part|as A-4 asks)\b.{0,400}#size_of alone
+plant: probes | reworded | Cycle 0.0's third probe passes each control-message header through the kernel and gets it back intact.
+plant: probes | split | Probe 03 round-trips\nthe ucred payload through sendmsg.
+plant: probes | part | The running programs read each address back from getsockname, sockaddr_un's 110 bytes among them.
+
+row: cycles | item 11, how many cycles' items wait on the compiler
+base: cycles | 049afd0 | meta/OPEN_QUESTIONS.md | 16 | the header, "One cycle's items wait on the compiler"
+names: cycles | wait(s|ing)? (on|for) (the compiler|O-N5)|compiler.s answer
+says: cycles | \b(one|a single|only one|two|both|only|no|single|each) cycles?\b|cycles?.{0,3}s? items|\bcycles? \d
+corrected: cycles | -
+
+row: connect2 | item 13, the second connect's answer named as an errno
+base: connect2 | 049afd0 | meta/specs/STREAM_MODEL.md | 115 | T-8's note, "ECONNREFUSED for a closed port"
+names: connect2 | second .?connect|connect.{0,30}after the wait|re-?call(ed|ing|s)? .?connect|\bleg B\b
+says: connect2 | ECONNREFUSED|\b111\b|kernel.s own error|refused
+corrected: connect2 | -
+
+row: datefile | item 20 (a), the steps that read a run's date file
+base: datefile | 049afd0 | meta/roadmap/0.0/0.0.1.md | 82 | gate item 6, "every later step reads it"
+scope: datefile | ^meta/roadmap/(done/)?0\.0/0\.0\.\d\.md$
+names: datefile | date file|\.date\b
+says: datefile | (every|each|all|any) (later|following|subsequent|other|remaining) steps?|steps? .{0,40}\breads? it\b|reads? it .{0,30}(every|each) step
+corrected: datefile | -
+
+row: title | item 20 (b), when step 0's title is committed
+base: title | 049afd0 | meta/roadmap/0.0/0.0.1.md | 242 | §3's opening, "uncommitted, and lands with the record"
+scope: title | ^meta/roadmap/(done/)?0\.0/0\.0\.\d\.md$
+names: title | \btitle\b|RUNNING
+says: title | uncommitted|not committed|lands with the record|left .{0,20}until the record|committed (only )?(at|with) the record
+corrected: title | -
+
+# item7's classes. D and N carry the correction in their section; T is this cycle's text; A is accurate as it
+# stands: a size asserted, a structure named for what it is, a record of what was run.
+class: item7 | D | meta/DECISIONS.md | sk-016 — every kernel layout is measured | corrected
+class: item7 | D | meta/DECISIONS.md | the running programs exist | corrected
+class: item7 | T | meta/DECISIONS.md | the note above is corrected in part | corrected
+class: item7 | T | meta/DECISIONS.md | probe 16 round-trips sockaddr_storage, cmsghdr and ucred: a sockaddr_storage bound
+class: item7 | T | meta/DECISIONS.md | no probe yet round-trips sockaddr_un at its 110
+class: item7 | D | meta/DECISIONS.md | sk-102 — the kernel layouts and the address types | corrected
+class: item7 | D | meta/DECISIONS.md | what was measured at compiler c9baa9e, at -o0 and through opt -o2 | corrected
+class: item7 | T | meta/DECISIONS.md | the measurement above is corrected in part | corrected
+class: item7 | A | meta/DECISIONS.md | probe 02 and probe 12, not probe 03, are the programs that assert them
+class: item7 | A | meta/DECISIONS.md | alternatives declined: sum the sizes from field widths
+class: item7 | A | README.md | the kernel structures laid out byte by byte
+class: item7 | A | README.md | addresses: the types, the parsers, the kernel layouts
+class: item7 | T | meta/research/CURRENCY.md | which round-trips sockaddr_storage, cmsghdr and ucred through the kernel as a-4 asks
+class: item7 | A | meta/research/CURRENCY.md | known defects in the prior art
+class: item7 | A | meta/roadmap/0.0/0.0.0.md | every kernel layout is the tables'
+class: item7 | A | meta/roadmap/0.0/0.0.0.md | the kernel layouts and the address types at their measured sizes
+class: item7 | A | meta/roadmap/0.0/0.0.0.md | the kernel layouts, the address types and a read before a write
+class: item7 | T | meta/roadmap/0.0/0.0.0.md | holds for sockaddr_in and sockaddr_in6: probe 02 sizes sockaddr_storage's 128 by #size_of alone | corrected
+class: item7 | A | meta/roadmap/0.0/0.0.0.md | every block the body allocates is 64 bytes
+class: item7 | N | meta/roadmap/0.0/0.0.0.md | sk-016's note: every size it names is asserted | corrected
+class: item7 | D | meta/roadmap/0.0/0.0.0.md | the programs do it for fewer | corrected
+class: item7 | A | meta/roadmap/0.0/0.0.0.md | tighten the notes' wording to what the programs do
+class: item7 | T | meta/roadmap/0.0/0.0.0.md | (2) is corrected in part — probe 02's sockaddr_un round trip | corrected
+class: item7 | A | meta/roadmap/0.0/0.0.0.md | the ucred field names (1)
+class: item7 | A | meta/roadmap/0.2/README.md | not sizeof(sockaddr_storage)
+class: item7 | A | meta/roadmap/0.4/README.md | distinguishing so_peercred (who connected)
+class: item7 | A | meta/roadmap/0.5/README.md | scm_credentials — so_passcred, ucred
+class: item7 | A | meta/roadmap/0.5/README.md | a sender cannot claim another uid
+class: item7 | A | meta/roadmap/ROADMAP.md | the kernel layouts, parsing, formatting
+class: item7 | A | meta/roadmap/ROADMAP.md | the cmsghdr fuzzer clean
+class: item7 | A | meta/specs/ADDRESS_MODEL.md | is re-asserted by a running program
+class: item7 | A | meta/specs/ADDRESS_MODEL.md | each size is #size_of, measured by probe 12
+class: item7 | A | meta/specs/ADDRESS_MODEL.md | the kernel structures, measured
+class: item7 | N | meta/specs/ADDRESS_MODEL.md | every one of those sizes is asserted by a probe that fills a structure | corrected
+class: item7 | T | meta/specs/ADDRESS_MODEL.md | measured at compiler 2e1cb4a as a-4 asks | corrected
+class: item7 | T | meta/specs/ADDRESS_MODEL.md | sockaddr_un is not yet: probe 02 round-trips the 8 bytes | corrected
+class: item7 | A | meta/specs/ANCILLARY_MODEL.md | its empty payload is no decoded type's
+class: item7 | D | meta/specs/ANCILLARY_MODEL.md | measured by cycle 0.0's probe 03, whose nitpick mirror | corrected
+class: item7 | T | meta/specs/ANCILLARY_MODEL.md | probe 03 sends no control payload, so it asserts ucred's 12 by #size_of alone | corrected
+class: item7 | T | meta/specs/ANCILLARY_MODEL.md | probe 16, cycle 0.0.1's, round-trips ucred through the kernel | corrected
+class: item7 | A | meta/specs/ANCILLARY_MODEL.md | getsockopt(so_peercred) returns the peer's credentials
+class: item7 | A | meta/specs/README.md | the kernel layouts, parsing and formatting
+class: item7 | A | meta/specs/SAFETY.md | does not fit its family's kernel structure
+class: item7 | A | meta/specs/SAFETY.md | received ancillary data is not what the wire promised
+class: item7 | A | meta/specs/SAFETY.md | every read of a kernel structure goes through one accessor per field
+class: item7 | A | meta/specs/SOCKET_MODEL.md | the length is not sizeof(sockaddr_storage)
+class: item7 | A | meta/specs/VERIFICATION.md | the cmsghdr walk is the obligation that matters most
+class: item7 | A | tests/probe/README.md | every layout and size is the specifications'
+class: item7 | T | tests/probe/README.md | round-trip through the kernel (probe 16, cycle 0.0.1's)
+class: item7 | A | tests/probe/probe02_sockaddr_layout.npk | laid over a 64- or 128-byte wild block
+class: item7 | A | tests/probe/probe03_cmsg_layout.npk | probe 03 -- msghdr, iovec, cmsghdr and ucred
+class: item7 | A | tests/probe/probe03_cmsg_layout.npk | one iovec and no control payload
+class: item7 | A | tests/probe/probe11_scm_rights.npk | cmsg_len = cmsg_len(4) = 20
+class: item7 | T | tests/probe/probe16_kernel_round_trips.npk | probe 16 -- sockaddr_storage, cmsghdr and ucred, round-tripped through the kernel
+class: item7 | T | tests/probe/probe16_kernel_round_trips.npk | a-4's measurement of three of the four sizes
+class: item7 | T | tests/probe/probe16_kernel_round_trips.npk | which the kernel refuses, then with 128
+class: item7 | T | tests/probe/probe16_kernel_round_trips.npk | a cmsghdr with a ucred payload
+class: item7 | T | tests/probe/probe16_kernel_round_trips.npk | given room for 16 writes 12 bytes
+class: item7 | T | tests/probe/probe16_kernel_round_trips.npk | depends on the answer: address_model.md a-4
+class: item7 | T | tests/probe/probe16_kernel_round_trips.npk | sockaddr_storage: ::1, port 0, in 128 bytes
+class: item7 | T | tests/probe/probe16_kernel_round_trips.npk | so_peercred, given room for 16: 12 written
+
+# probes' classes (item (3)): a probe's own round trip, as it makes it, is A; the item7 sites carry their notes.
+class: probes | A | meta/DECISIONS.md | read back non-blocking and close-on-exec by fcntl
+class: probes | D | meta/DECISIONS.md | the running programs exist | corrected
+class: probes | T | meta/DECISIONS.md | the note above is corrected in part | corrected
+class: probes | T | meta/DECISIONS.md | probe 16 round-trips sockaddr_storage, cmsghdr and ucred: a sockaddr_storage bound
+class: probes | T | meta/DECISIONS.md | no probe yet round-trips sockaddr_un at its 110
+class: probes | A | meta/DECISIONS.md | 4 096 socketaddr values in a wild array, filled, read back through a pick
+class: probes | D | meta/DECISIONS.md | what was measured at compiler c9baa9e, at -o0 and through opt -o2 | corrected
+class: probes | T | meta/DECISIONS.md | the measurement above is corrected in part | corrected
+class: probes | T | meta/research/CURRENCY.md | which round-trips sockaddr_storage, cmsghdr and ucred through the kernel as a-4 asks
+class: probes | A | meta/roadmap/0.0/0.0.0.md | the planning decisions p-0 … p-6 of the plan's first writing stand
+class: probes | T | meta/roadmap/0.0/0.0.0.md | holds for sockaddr_in and sockaddr_in6: probe 02 sizes sockaddr_storage's 128 by #size_of alone | corrected
+class: probes | A | meta/roadmap/0.0/0.0.0.md | probe 02: three structures over 64-byte blocks
+class: probes | A | meta/roadmap/0.0/0.0.0.md | probe 03: four #size_of checks, 56, 16, 16 and 12
+class: probes | A | meta/roadmap/0.0/0.0.0.md | probe 12: six #size_of checks
+class: probes | N | meta/roadmap/0.0/0.0.0.md | sk-016's note: every size it names is asserted | corrected
+class: probes | D | meta/roadmap/0.0/0.0.0.md | the programs do it for fewer | corrected
+class: probes | A | meta/roadmap/0.0/0.0.0.md | tighten the notes' wording to what the programs do
+class: probes | T | meta/roadmap/0.0/0.0.0.md | (2) is corrected in part — probe 02's sockaddr_un round trip | corrected
+class: probes | A | meta/roadmap/0.0/0.0.0.md | probe 08: leg a (codes 12 … 22)
+class: probes | N | meta/roadmap/0.0/0.0.0.md | which the programs meet for fewer structures than it names
+class: probes | N | meta/specs/ADDRESS_MODEL.md | every one of those sizes is asserted by a probe that fills a structure | corrected
+class: probes | T | meta/specs/ADDRESS_MODEL.md | measured at compiler 2e1cb4a as a-4 asks | corrected
+class: probes | T | meta/specs/ADDRESS_MODEL.md | sockaddr_un is not yet: probe 02 round-trips the 8 bytes | corrected
+class: probes | A | meta/specs/ADDRESS_MODEL.md | element 0 reads back as the callee wrote it
+class: probes | T | meta/specs/ANCILLARY_MODEL.md | probe 16, cycle 0.0.1's, round-trips ucred through the kernel | corrected
+class: probes | T | tests/probe/README.md | round-trip through the kernel (probe 16, cycle 0.0.1's)
+class: probes | A | tests/probe/probe02_sockaddr_layout.npk | probe 02 -- the sockaddr layouts, through the kernel
+class: probes | T | tests/probe/probe16_kernel_round_trips.npk | probe 16 -- sockaddr_storage, cmsghdr and ucred, round-tripped through the kernel
+
+# d3's classes.
+class: d3 | T | meta/research/CURRENCY.md | probe 15 answers its direct read
+class: d3 | A | meta/roadmap/0.0/0.0.0.md | probe 15 is the research gate's p3'
+class: d3 | D | meta/roadmap/0.0/0.0.0.md | so the language closes d3 and a-22's dated note says so | corrected
+class: d3 | A | meta/roadmap/0.0/0.0.0.md | the other branches, had a read compiled
+class: d3 | T | meta/roadmap/0.0/0.0.0.md | withdrawn in part — each read is nitpick-assign-001 | corrected
+class: d3 | D | meta/roadmap/0.0/0.0.0.md | a-22's dated note: the research gate's d3 closed by the language | corrected
+class: d3 | N | meta/roadmap/0.0/0.0.0.md | (1) a-22's dated note ends 'so no parser's result
+class: d3 | A | meta/roadmap/0.0/0.0.0.md | the second holds for a result built by a literal
+class: d3 | N | meta/roadmap/0.0/0.0.0.md | the readme's last bullet closes
+class: d3 | N | meta/roadmap/0.0/0.0.0.md | a-22: its dated note in address_model.md and the last bullet
+class: d3 | A | meta/roadmap/0.0/0.0.0.md | at 2e1cb4a that holds for a direct read
+class: d3 | D | meta/specs/ADDRESS_MODEL.md | measured at compiler 2e1cb4a — an element of a uint8 array | corrected
+class: d3 | D | meta/specs/ADDRESS_MODEL.md | so no parser's result can carry a byte its path never wrote | corrected
+class: d3 | T | meta/specs/ADDRESS_MODEL.md | so d3 is closed for a direct read
+class: d3 | D | tests/probe/README.md | a parser's result carries no byte its path never wrote | corrected
+class: d3 | A | tests/probe/probe15b_unassigned_handoff.npk | may a program hand a local uint8[16]
+class: d3 | A | tests/probe/refused/probe15_unassigned_read.npk | may a program read an element of a uint8 array
+class: d3 | D | tests/probe/refused/probe15_unassigned_read.npk | a byte no path wrote cannot be read | corrected
+class: d3 | T | tests/probe/refused/probe15_unassigned_read.npk | a direct read is refused, as expected says
+
+# errno's classes. D: SK-014 (its marker above), SK-031, C-11, K-19.1 and T-8 and T-12, each with its SK-104 marker or
+# note; N: those notes and the checklist items that say how the pin holds them; H: a later cycle's checklist, title or
+# prove site; A: the protocol or the back-off named, an errno forwarded, a probe's own question.
+class: errno | A | README.md | connect with its einprogress protocol
+class: errno | D | meta/DECISIONS.md | sk-014 — connect's einprogress protocol
+class: errno | N | meta/DECISIONS.md | at compiler 2e1cb4a no program can name einprogress
+class: errno | D | meta/DECISIONS.md | connect returning einprogress means the handshake is running
+class: errno | D | meta/DECISIONS.md | also settled here: eintr during connect
+class: errno | A | meta/DECISIONS.md | four rather than forty because kernel errnos are forwarded verbatim
+class: errno | D | meta/DECISIONS.md | sk-031 — the accept loop's error table | corrected
+class: errno | D | meta/DECISIONS.md | eintr and econnaborted retry immediately | corrected
+class: errno | D | meta/DECISIONS.md | reasoning: econnaborted means a peer sent syn | corrected
+class: errno | D | meta/DECISIONS.md | emfile leaves the connection pending | corrected
+class: errno | N | meta/DECISIONS.md | (2026-10-29, cycle 0.0.0, sk-104: at compiler 2e1cb4a the eintr and eagain rows compare
+class: errno | T | meta/DECISIONS.md | a non-blocking tcp connect on loopback answers an error none of the prelude's five
+class: errno | T | meta/DECISIONS.md | cannot be spelled at the pin, and wait on the compiler's answer to o-n5
+class: errno | T | meta/DECISIONS.md | alternatives declined: read the error's bytes through a pointer
+class: errno | T | meta/OPEN_QUESTIONS.md | cannot be told apart from any other failure
+class: errno | T | meta/OPEN_QUESTIONS.md | ask: the prelude names the errnos a socket library decides on
+class: errno | T | meta/OPEN_QUESTIONS.md | until then cycle 0.3.1's connect is spelled without einprogress
+class: errno | T | meta/roadmap/0.0/0.0.0.md | so connect is spelled without einprogress
+class: errno | N | meta/roadmap/0.0/0.0.0.md | because its patterns matched the old claims' words and not their subjects
+class: errno | N | meta/roadmap/0.0/0.0.0.md | sk-014's text, its marker above), 408, 409, 410
+class: errno | T | meta/roadmap/0.0/0.0.0.md | what the body cannot assert is the header's
+class: errno | N | meta/roadmap/0.0/0.0.0.md | the prelude at the pin declares five errors beside ioeof
+class: errno | H | meta/roadmap/0.10/README.md | the emfile back-off, and poll_set
+class: errno | A | meta/roadmap/0.3/README.md | connect's einprogress protocol, accept, the prelude's reader/writer
+class: errno | A | meta/roadmap/0.3/README.md | connect — the full einprogress protocol
+class: errno | N | meta/roadmap/0.3/README.md | spelled, at the pin, without naming einprogress
+class: errno | H | meta/roadmap/0.3/README.md | a test that a re-call would spin on ealready
+class: errno | N | meta/roadmap/0.3/README.md | econnaborted retries immediately — the test connects and resets before the accept
+class: errno | N | meta/roadmap/0.3/README.md | emfile is returned with the connection still pending (k-19.1) — waits on o-n5
+class: errno | A | meta/roadmap/0.4/README.md | af_unix connect usually succeeds immediately
+class: errno | H | meta/roadmap/0.8/README.md | re:the emfile back-off
+class: errno | N | meta/roadmap/0.8/README.md | emfile/enfile from accept4 returned with the connection pending (k-19.1) — waits on o-n5
+class: errno | H | meta/roadmap/0.8/README.md | a test that actually exhausts the descriptor table
+class: errno | H | meta/roadmap/0.9/README.md | the emfile back-off
+class: errno | H | meta/roadmap/ROADMAP.md | the emfile back-off
+class: errno | A | meta/roadmap/ROADMAP.md | connect's full einprogress protocol including the so_error read
+class: errno | A | meta/roadmap/ROADMAP.md | where it returns einprogress
+class: errno | D | meta/specs/CONCURRENCY_MODEL.md | rule c-11 — the emfile back-off is part of the loop | corrected
+class: errno | D | meta/specs/CONCURRENCY_MODEL.md | out of descriptors, accept4 fails immediately with the connection still pending | corrected
+class: errno | N | meta/specs/CONCURRENCY_MODEL.md | (2026-10-29, sk-104: at compiler 2e1cb4a nothing names emfile | corrected
+class: errno | N | meta/specs/SOCKET_MODEL.md | (2026-10-29, sk-104: eagain and eintr are the prelude's | corrected
+class: errno | D | meta/specs/SOCKET_MODEL.md | rule k-19.1 — emfile does not kill the server | corrected
+class: errno | D | meta/specs/SOCKET_MODEL.md | out of descriptors, accept4 fails immediately and the connection stays pending | corrected
+class: errno | D | meta/specs/SOCKET_MODEL.md | nsockets' accept returns emfile to the caller | corrected
+class: errno | D | meta/specs/STREAM_MODEL.md | rule t-8 (sk-014) — the einprogress protocol, in full | corrected
+class: errno | N | meta/specs/STREAM_MODEL.md | (2026-10-29, sk-104: at compiler 2e1cb4a no program can make an error | corrected
+class: errno | D | meta/specs/STREAM_MODEL.md | a second connect on a socket already connecting returns ealready | corrected
+class: errno | D | meta/specs/STREAM_MODEL.md | if r.err == connaborted -> retry immediately | corrected
+class: errno | N | meta/specs/STREAM_MODEL.md | (2026-10-29, sk-104: the interrupted and wouldblock rows compare | corrected
+class: errno | H | meta/specs/TESTING.md | the emfile back-off, and the bounded accept loop
+class: errno | H | meta/specs/VERIFICATION.md | the retry count is bounded, so econnaborted cannot spin forever
+class: errno | H | src/server/README.md | the emfile back-off, and poll_set
+class: errno | H | src/server/server.npk | the emfile back-off and poll_set
+class: errno | A | src/stream/README.md | connect with its full einprogress protocol
+class: errno | T | tests/probe/README.md | an errno the prelude does not name is forwarded but not compared
+class: errno | A | tests/probe/probe08_connect_inprogress.npk | einprogress, identified by identity, since no program can name it
+class: errno | A | tests/probe/probe08_connect_inprogress.npk | so the protocol must tell its cases apart without naming einprogress
+class: errno | A | tests/probe/refused/probe13_errno_declared.npk | may a library name a kernel errno the prelude does not
+class: errno | A | tests/probe/refused/probe13_errno_declared.npk | depends on the answer: sk-014
+
+# cycles' classes: its base claim was corrected in place (a slip's rule); every hit on the tree counts no cycle wrong.
+class: cycles | A | meta/DECISIONS.md | cannot be spelled at the pin, and wait on the compiler's answer to o-n5
+class: cycles | T | meta/OPEN_QUESTIONS.md | items of two cycles wait on the compiler
+class: cycles | A | meta/roadmap/0.0/0.0.0.md | to cycle 0.3: connect by a second connect
+class: cycles | N | meta/roadmap/0.0/0.0.0.md | open_questions.md's new header sentence reads
+class: cycles | N | meta/roadmap/0.0/0.0.0.md | for a text-only round: 'items of two cycles wait
+class: cycles | A | meta/roadmap/ROADMAP.md | no other cycle waits on a decision
+
+# connect2's classes: corrected in place; no hit on the tree names the second connect's answer an errno.
+class: connect2 | A | meta/DECISIONS.md | a non-blocking tcp connect on loopback answers an error none of the prelude's five
+class: connect2 | A | meta/roadmap/0.0/0.0.0.md | the first answer is one error, closed port or open
+class: connect2 | N | meta/roadmap/0.0/0.0.0.md | t-8's note says a second connect 'hands back
+class: connect2 | N | meta/roadmap/0.0/0.0.0.md | t-8's note states 'the kernel's own error
+class: connect2 | T | meta/specs/STREAM_MODEL.md | against a closed port an error unlike its first answer, to forward verbatim
+class: connect2 | A | tests/probe/probe08_connect_inprogress.npk | otherwise hands back the kernel's own error, to forward verbatim
+
+# datefile's classes, in the cycle's plans: 0.0.0's own date file; 0.0.1's corrected text; 0.0.2's sentence, which
+# 0.0.1's §8 names wrong for its re-cut (H); 0.0.3's and 0.0.4's, which §8 reads as holding.
+class: datefile | A | meta/roadmap/0.0/0.0.0.md | re:0\.0\.0\.date|the date file kept, step 4 the last step that reads it
+class: datefile | T | meta/roadmap/0.0/0.0.1.md | re:steps 3 … 7 read it|step 7 is the last step that reads it
+class: datefile | H | meta/roadmap/0.0/0.0.2.md | every later step reads it
+class: datefile | A | meta/roadmap/0.0/0.0.3.md | every later step reads it
+class: datefile | A | meta/roadmap/0.0/0.0.4.md | every later step reads it
+
+# title's classes: 0.0.0's own term; 0.0.1's text naming the old term as history; the later plans' sentences, which
+# 0.0.1's §8 names stale for each re-cut (H).
+class: title | A | meta/roadmap/0.0/0.0.0.md | which leaves it uncommitted until the record, so that no run leaves the tree dirty
+class: title | T | meta/roadmap/0.0/0.0.1.md | which leaves it uncommitted until the record, so that no run leaves the tree dirty
+class: title | T | meta/roadmap/0.0/0.0.1.md | left the title uncommitted until then
+class: title | T | meta/roadmap/0.0/0.0.1.md | the uncommitted-title and push-at-the-record sentences
+class: title | T | meta/roadmap/0.0/0.0.1.md | the uncommitted title
+class: title | H | meta/roadmap/0.0/0.0.[2-5].md | re:running \(since <date>, <stream>\).{0,40}uncommitted
