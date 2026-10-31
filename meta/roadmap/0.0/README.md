@@ -596,7 +596,9 @@ section: `lines.py` reads each heading afresh, so a heading inside the record wo
 **Round (i) of 0.0.0's amendments** (T15, continued by T15c, 2026-10-29) answered the libraries' seat's ruling (1):
 the seven checks that printed a finding and exited 0 now exit non-zero on everything they report as wrong, one meaning
 per status, and each has a planted control that the old code passed with 0 and the new one refuses. **A later pass
-reads each status, never the printed tally alone.**
+reads each status, never the printed tally alone**, with one exception, `tools/shapes.py`'s listing: the four shapes it
+lists for reading (an attribute by name, an `exit` operand by form, a plain `uint8[]` and `#ptr_add`) exit 0 as
+information, and the block's Expect, which holds the listing, is the check.
 
 - **`tools/names.py`**: 0, no declared name is a keyword; 3, a keyword-named declaration, each listed; 1, a STOP — a
   missing argument or a file it cannot read. 0.0.0's block 0b (§1.7) prints the statuses of its planted and clean

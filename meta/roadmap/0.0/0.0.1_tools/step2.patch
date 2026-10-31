@@ -162,7 +162,7 @@ index 0000000..b19d42a
 +// surface grows, and the day it does not, the surface changed incompatibly.
 +//
 +// Its `failsafe` names the six identities every program owes (`PLAYBOOK.md` §3 item 7) and no more:
-+// `NITPICK-REACH-003` names exactly these six for a root importing the umbrella at compiler `c9baa9e`.
++// `NITPICK-REACH-003` names exactly these six for a root importing the umbrella at compiler `2e1cb4a`.
 +mod:import;
 +
 +use "../../src/lib.npk".*;

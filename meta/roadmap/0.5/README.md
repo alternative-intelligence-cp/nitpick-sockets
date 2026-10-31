@@ -36,8 +36,9 @@ recommendation: keep it).
       `SCM_RIGHTS` bug (N-2)
 - [ ] the control buffer a 256-byte stack array (N-4), taking no `wild`
       bytes
-- [ ] the `cmsghdr` walk with its invariant and variant written as comments in
-      the syntax they will take (`specs/VERIFICATION.md` Z-3)
+- [ ] the `cmsghdr` walk, its checks in N-19's order, with its invariant and
+      variant written as comments in the syntax they will take
+      (`specs/VERIFICATION.md` Z-3)
 - [ ] **a `cmsg_len` below 16 refused before advancing** — the guard that turns
       a hostile zero-length header from a hang into an error
 

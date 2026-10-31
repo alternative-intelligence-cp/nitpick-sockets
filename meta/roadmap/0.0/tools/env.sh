@@ -149,9 +149,9 @@ refs() {
   sed -E 's/  +/ /g' "$A/refs.out"
 }
 
-# `apply.py`'s label checks, each seen to STOP on a mutated copy of this plan's folder: a bare PD-161 in an added line
-# of 0.0.0's step 3, and the same label in lower case, `pd-161`; @@PD-162@@ cited in 0.0.0's step 1, which step 4
-# declares; and, planted in step 1, a number
+# `apply.py`'s label checks, each seen to STOP on a mutated copy of this plan's folder: a bare PD-161 in the first of
+# the nine added lines of 0.0.0's step 3 that carry @@PD-161@@ (its dated note under `SK-023`), and the same label in
+# lower case there, `pd-161`; @@PD-162@@ cited in 0.0.0's step 1, which step 4 declares; and, planted in step 1, a number
 # past the base -- `SK-` and the base plus 900, made here and named in the output, so no file of the plan writes it --
 # and @@PD-999@@, which no step declares. The copy is applied to no tree -- the checks stop it before `git apply` runs,
 # and a check that did not would fail on the missing directory instead, a different line -- and is removed after.

@@ -8,7 +8,7 @@ index 1b4e49d..79ba35e 100644
  #                         byte-stable.
 -#   nitpick.lock        — read by every build, written only by `npkg update`.
 +#   nitpick.lock        — read by every build, and written only by `npkg update`,
-+#                         which refuses at compiler `c9baa9e`: nothing writes it
++#                         which refuses at compiler `2e1cb4a`: nothing writes it
 +#                         until dependencies resolve (meta/specs/BUILD.md §1).
 diff --git a/CLAUDE.md b/CLAUDE.md
 index 1d81d44..a2a85ea 100644

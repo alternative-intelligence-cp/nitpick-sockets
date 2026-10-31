@@ -172,8 +172,9 @@ zero.
     both 24, two descriptors): both received, and the walk ends;
   - `cmsg_len` 2⁶⁴ − 1: `ESockProtocol`, with no trap;
   - after a 24-byte header, exactly 16 bytes left: the next header is
-    visited, and its `cmsg_len` of 16 makes it the empty one below; 15 bytes
-    left: the walk ends, the first header's descriptor received;
+    visited, and its `cmsg_len` of 16, ending at `msg_controllen`, is
+    `ESockProtocol` for its empty payload; 15 bytes left: the walk ends, the
+    first header's descriptor received;
   - `cmsg_len` 15: `ESockProtocol`; `cmsg_len` 16, ending at
     `msg_controllen`: visited, then `ESockProtocol` for its empty payload;
   - the kernel's one-descriptor buffer, 20 bytes with no tail padding: one
