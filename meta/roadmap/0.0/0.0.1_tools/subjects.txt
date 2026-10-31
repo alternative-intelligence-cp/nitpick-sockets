@@ -1,7 +1,7 @@
 # 0.0.1's twin check by subject: `tools/subjects.py`, run by block 8. One row per claim the T17 re-cut withdrew or
 # corrected whose twin check was a list of words, each keyed on what the claim is about: item 7's round trips, D3's
 # closure and the unnamed errno, with their plants (the libraries' seat's ruling of 04:40:20 and management_10's of
-# 04:32 on 2026-10-31), and four more with their base claims alone (management_10's addition of 04:41).
+# 04:32 on 2026-10-31), item (3)'s, and six more with their base claims alone (management_10's addition of 04:41).
 
 row: item7 | item 7, the kernel structures' sizes measured by a round trip through the kernel
 base: item7 | 049afd0 | meta/DECISIONS.md | 577 | SK-102's What was measured, "are the kernel's sizes and round-trip through it"
@@ -57,6 +57,19 @@ base: connect2 | 049afd0 | meta/specs/STREAM_MODEL.md | 115 | T-8's note, "ECONN
 names: connect2 | second .?connect|connect.{0,30}after the wait|re-?call(ed|ing|s)? .?connect|\bleg B\b
 says: connect2 | ECONNREFUSED|\b111\b|kernel.s own error|refused
 corrected: connect2 | -
+
+row: compare | item 12, which probes compare an error with an identity, and which with another error
+base: compare | 049afd0 | tests/probe/refused/probe13b_errno_number.npk | 9 | 13b's EXPECTED, "probes 04, 05, 08 and 10 do both"
+names: compare | \bprobes? \d\d\b|\bprobes \d
+says: compare | (prelude|declared?s?) identit|another error|against (a |its |their )?witness|identif(y|ies|ied)\b.{0,40}(EPIPE|EBADF|witness)|\bdo(es)? both\b|compares? (it |an error |the error |an errno )?with
+corrected: compare | -
+
+row: status | item 15, a check's verdict read by its status, never by its printed tally
+base: status | 049afd0 | meta/roadmap/0.0/README.md | 599 | the shapes rule, "reads each status, never the printed tally alone"
+scope: status | ^meta/roadmap/(done/)?0\.0/(README|0\.0\.\d)\.md$
+names: status | \b(exit )?status(es)?\b|\btall(y|ies)\b|printed (count|summary|total)
+says: status | (reads?|reading|read) (each|every|its|the)\b|never (by |from )?the printed|\balone\b|\bnot (by |from )?(the|its) (printed|tally)
+corrected: status | -
 
 row: datefile | item 20 (a), the steps that read a run's date file
 base: datefile | 049afd0 | meta/roadmap/0.0/0.0.1.md | 82 | gate item 6, "every later step reads it"
@@ -265,6 +278,35 @@ class: connect2 | N | meta/roadmap/0.0/0.0.0.md | t-8's note says a second conne
 class: connect2 | N | meta/roadmap/0.0/0.0.0.md | t-8's note states 'the kernel's own error
 class: connect2 | T | meta/specs/STREAM_MODEL.md | against a closed port an error unlike its first answer, to forward verbatim
 class: connect2 | A | tests/probe/probe08_connect_inprogress.npk | otherwise hands back the kernel's own error, to forward verbatim
+
+# compare's classes: corrected in place; each other hit says what a probe compares as its body does.
+class: compare | A | meta/DECISIONS.md | (probes 04, 05, 08 and 10 identify epipe and ebadf against witnesses)
+class: compare | A | meta/OPEN_QUESTIONS.md | (probes 04, 05, 08 and 10 identify theirs against a witness)
+class: compare | A | meta/roadmap/0.0/0.0.0.md | probe 05: the first block takes the owner of a socketpair's first end
+class: compare | N | meta/roadmap/0.0/0.0.0.md | probe 13b's header says an error compares only with a prelude identity
+class: compare | A | meta/roadmap/0.0/0.0.0.md | that holds of the four together, not of each
+class: compare | A | meta/roadmap/0.0/0.0.0.md | for a text-only round: 'probe 08 does both
+class: compare | A | meta/specs/CONCURRENCY_MODEL.md | nothing names emfile that a program can compare an error with
+class: compare | A | meta/specs/SOCKET_MODEL.md | nothing names econnaborted, emfile or enfile that a program can compare an error with
+class: compare | A | meta/specs/STREAM_MODEL.md | nothing names econnaborted, emfile or enfile that a program can compare an error with
+class: compare | A | tests/probe/probe04_sigpipe.npk | so epipe is identified by its witness
+class: compare | A | tests/probe/probe08_connect_inprogress.npk | a program compares an errno only with a prelude identity or another error (probe 13)
+class: compare | A | tests/probe/refused/probe13b_errno_number.npk | so that it could compare it with a number
+class: compare | T | tests/probe/refused/probe13b_errno_number.npk | (probe 08 does both; 04, 05 and 10 the second)
+
+# status's classes, in the cycle's plans and README: the corrected rule; `lines.py`'s and `twins.py`'s statuses, of
+# which the README's other sentence speaks; and "status" in other senses.
+class: status | A | meta/roadmap/0.0/0.0.0.md | its status pattern stops at the comma
+class: status | T | meta/roadmap/0.0/0.0.1.md | the cycle readme's "reads each status"
+class: status | T | meta/roadmap/0.0/0.0.1.md | its status row those and the cycle readme
+class: status | T | meta/roadmap/0.0/0.0.1.md | compare, status, datefile and title for t17's claims
+class: status | A | meta/roadmap/0.0/0.0.2.md | ci reads the runner's status on its own line
+class: status | A | meta/roadmap/0.0/0.0.5.md | block 4 prints the last one's status
+class: status | A | meta/roadmap/0.0/0.0.5.md | a title with a comma after its status word
+class: status | A | meta/roadmap/0.0/README.md | status never through a pipe
+class: status | A | meta/roadmap/0.0/README.md | the exit statuses, one meaning each, which a later pass reads
+class: status | T | meta/roadmap/0.0/README.md | with one exception, tools/shapes.py's listing
+class: status | A | meta/roadmap/0.0/README.md | and reads each status as planted
 
 # datefile's classes, in the cycle's plans: 0.0.0's own date file; 0.0.1's corrected text; 0.0.2's sentence, which
 # 0.0.1's §8 names wrong for its re-cut (H); 0.0.3's and 0.0.4's, which §8 reads as holding.
