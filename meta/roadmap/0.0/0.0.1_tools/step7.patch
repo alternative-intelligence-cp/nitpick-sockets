@@ -1,0 +1,699 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+index a2a85ea..404a5f4 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -39,7 +39,7 @@ runtime catches `SIGPIPE` with a handler that returns, so on it a send to a
+ dead peer answers `EPIPE`; under the default disposition — which a host may
+ restore, and a runtime may stop overriding — the same send kills the process.
+ `MSG_NOSIGNAL` answers `EPIPE` under both (probe 04, measured at compiler
+-`c9baa9e`).
++`2e1cb4a`).
+ 
+ The corollary that will be broken by accident: **this library does not use the
+ runtime floor's `write` on a socket**, and neither may an impl of the prelude's
+diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
+index 8f93535..612f988 100644
+--- a/meta/DECISIONS.md
++++ b/meta/DECISIONS.md
+@@ -148,6 +148,7 @@ created with `SOCK_NONBLOCK | SOCK_CLOEXEC` in the creating call, read back non-
+ ### SK-013 — every send carries `MSG_NOSIGNAL`, without exception
+ > **SUPERSEDED IN PART by @@PD-159@@ (2026-10-29): its stated fact.** At compiler `2e1cb4a` the floor catches
+ > `SIGPIPE` with a handler that returns (probe 04); the rule stands, with its reason restated there.
++
+ **2026-09-03. The library's headline safety rule.**
+ 
+ *The fact it rests on, measured rather than assumed:* **the Nitpick runtime
+@@ -186,6 +187,7 @@ rule about every call site is a rule that will be broken by the twentieth one.
+ ### SK-014 — connect's `EINPROGRESS` protocol, including the `SO_ERROR` read
+ > **SUPERSEDED IN PART by @@PD-162@@ (2026-10-29): its mechanism.** At compiler `2e1cb4a` no program can name
+ > `EINPROGRESS` or make an error of `SO_ERROR`'s number; a second `connect` after the wait answers the outcome (probe 08).
++
+ **2026-09-03.** On a non-blocking socket, `connect` returning `EINPROGRESS`
+ means the handshake is running; the socket becomes **writable** on both success
+ and failure, so writability is not the answer. The library waits for
+@@ -239,6 +241,13 @@ program that round-trips it through the kernel is a measurement.
+ `sendmsg` and `recvmsg` (probe 03), and the address types' own sizes (probe 12) — every one as the specifications
+ state it.)*
+ 
++*(@@DATE@@, cycle 0.0.1: the note above is corrected in part — probe 02 asserts `sockaddr_storage`'s 128 by
++`#size_of` alone, and probe 03 sends no control payload, so it asserts `cmsghdr`'s 16 and `ucred`'s 12 the same way.
++Measured at compiler `2e1cb4a`, probe 16 round-trips the three: a `sockaddr_storage` bound with length 128, which the
++kernel takes where it refuses 129, and read back by `getsockname` with the sentinel at 128 untouched; a `cmsghdr`
++carrying a `ucred`, `cmsg_len` 28 in a control buffer of 32, sent and received over a `socketpair` with the sentinel
++at 32 untouched; and `SO_PEERCRED`, given room for 16, writing 12. Every size is as the specifications state it.)*
++
+ ### SK-017 — byte-order conversion lives in one module
+ **2026-09-03.** `src/addr/order.npk`, four functions, and every port, every
+ IPv4 word and every `sin6_flowinfo` goes through one of them. Nothing else in
+diff --git a/meta/OPEN_QUESTIONS.md b/meta/OPEN_QUESTIONS.md
+index acb3d2c..bee273d 100644
+--- a/meta/OPEN_QUESTIONS.md
++++ b/meta/OPEN_QUESTIONS.md
+@@ -13,7 +13,7 @@ A question that gets answered moves to `DECISIONS.md` as a numbered decision
+ and is struck through here with the decision's number, **never deleted** — the
+ question is part of the record of how the answer was reached.
+ 
+-**One cycle's items wait on the compiler:** two rows of cycle 0.3's accept loop
++**Items of two cycles wait on the compiler:** two rows of cycle 0.3's accept loop
+ and cycle 0.8.2's back-off wait on O-N5 (@@PD-162@@). Everything else below is
+ open by design, and each entry says why — a measurement, a default that wants a
+ number rather than a taste, or the compiler's. *(2026-10-29: this said "No cycle
+@@ -110,6 +110,14 @@ second `connect` after the wait (probe 08), and `SOCKET_MODEL.md` K-19's
+ `ECONNABORTED` and `EMFILE`/`ENFILE` rows, K-19.1 and cycle 0.8.2's back-off
+ wait on this answer (@@PD-162@@). *(This id is this repository's own; a
+ workbench registry id for it is the orchestrator's to assign — ED2.)*
++*(@@DATE@@, cycle 0.0.1: the ask is answered in the compiler's text, not yet in
++the prelude this library is built with. The workbench registry holds this
++question as O-N42, registered on 2026-10-25, and the compiler settled its five
++names that day: `InProgress` (115), `AlreadyInProgress` (114), `ConnAborted`
++(103), `TooManyOpenFiles` (24) and `FileTableFull` (23). They reach this
++library with the re-pin that carries DEF-286's fix, so at `2e1cb4a` everything
++under **Until then** stands, and `STREAM_MODEL.md` T-12's sketch names them in
++specification text only.)*
+ 
+ ---
+ 
+diff --git a/meta/research/CURRENCY.md b/meta/research/CURRENCY.md
+index 13d41b3..0276f4e 100644
+--- a/meta/research/CURRENCY.md
++++ b/meta/research/CURRENCY.md
+@@ -14,7 +14,7 @@ are never rows here; they are read in the compiler's tree at the pinned commit.
+ | LLVM's release asset by content — its sha256 and size | not pinned: CI fetches the asset by its version and asserts each tool's `--version` (@@PD-167@@) | not yet — cycle 0.0.2, which pins it: the asset's sha256 and size from a research digest its dispatch carries, which CI then checks every download against before unpacking it | github.com/llvm/llvm-project/releases | @@PD-167@@ |
+ | Python — the harness's interpreter | none chosen yet; the runner's version is printed by CI's first step | not yet — cycle 0.0.2, which writes the harness, names the version it needs | python.org | `SK-004` |
+ | The x86-64 socket syscall numbers (`SOCKET_MODEL.md` §1) | the fifteen in its table, "measured on the target platform on 2026-09-03", no kernel release named | not yet — cycle 0.2.0, which writes `src/sys/`, against the kernel's table at a named release; cycle 0.0.0's probes ran on them | the kernel's `arch/x86/entry/syscalls/syscall_64.tbl` | `SK-016`, `SK-007` |
+-| The kernel's structure layouts (`ADDRESS_MODEL.md` §2, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
++| The kernel's structure layouts (`ADDRESS_MODEL.md` §2, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `sockaddr_storage` 128, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running, and cycle 0.0.1's probe 16, which round-trips `sockaddr_storage`, `cmsghdr` and `ucred` through the kernel as A-4 asks | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
+ | The kernel feature floor (`COMPAT.md` W-3) | `accept4` 2.6.28, `SOCK_NONBLOCK`/`SOCK_CLOEXEC` 2.6.27, `MSG_CMSG_CLOEXEC` 2.6.23, `SO_REUSEPORT` 3.9; the floor Linux 3.9 | not yet — cycle 0.2.0, before it starts | man-pages at a named release | `SK-003`, `SK-007` |
+ | `net.core.somaxconn`'s default (`SOCKET_MODEL.md` K-16) | 4096 "since Linux 5.4" | not yet — cycle 0.2.3, which writes `listen` and its note | the kernel's documentation at a named release | none; K-16 states it |
+ | `SCM_MAX_FD` (`ANCILLARY_MODEL.md` N-5) | 253 | not yet — cycle 0.5, which writes the descriptor-passing path | the kernel's source at a named release | none; N-5 states it |
+@@ -62,7 +62,8 @@ workbench plan skill's note of 2026-10-16). What each digest found, and where ea
+   octet's leading zero read as octal (CVE-2021-29921, -29922 and -29923) is held by `ADDRESS_MODEL.md` A-19 and
+   `SK-036`'s dated note; `::` and group counting by A-20 and A-22, with `TESTING.md` V-9's fixed cases; an overlong
+   `sun_path` by A-13. Initialisation on the IPv4-in-IPv6 path asked the language, and probe 15 answers its direct read:
+-  refused, `NITPICK-ASSIGN-001` (A-22's dated note). The `cmsghdr` walk's arithmetic, its final empty header and its
++  refused, `NITPICK-ASSIGN-001` (A-22's dated note); its `$$m` face stays open until a re-pin carries the compiler's
++  DEF-345 fix (probe 15b, A-22's second dated note). The `cmsghdr` walk's arithmetic, its final empty header and its
+   tail padding, which no rule held, are `ANCILLARY_MODEL.md` N-19, with V-12's fixed cases, and the `uint64`
+   subtraction N-19 relies on traps as `IntOverflow` (cycle 0.0.0's §1.4, the gate's P1'). The credential defects are
+   held by N-13 … N-17.
+diff --git a/meta/roadmap/0.0/0.0.0.md b/meta/roadmap/0.0/0.0.0.md
+index 0e8ebbe..59fa668 100644
+--- a/meta/roadmap/0.0/0.0.0.md
++++ b/meta/roadmap/0.0/0.0.0.md
+@@ -1626,6 +1626,9 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
+   findings above are for the libraries' seat and are not this chain's to act on. Run 6's row is blocks 5 and 6 `SAME`,
+   §6's 21 rows against the five entries (this one records 07, 08, 11, 13 and 13b `SAME` in block 4), and the sweep.
+ 
++*(@@DATE@@, cycle 0.0.1 step 7: in **Each probe's header against its body**, probe 08's "(the first finding below)"
++means the third, on T-8's note; the first is `OPEN_QUESTIONS.md`'s header.)*
++
+ ### Step 5 — run 6, 2026-10-29: the probes' README, the cycle map's paragraph and the title DONE
+ 
+ - **Times**, all from `date`: run 6's first `date` read 12:06:55 (the dispatch's own, 12:06:24, precedes it), with the
+@@ -1800,6 +1803,11 @@ return-to: the orchestrator, filed as meta/research/security-vectors.md by cycle
+   ran as `--no-optional-locks`; no identity but the repository's configured one was used, and no hook was bypassed.
+   *Model*: `claude-sonnet-5-5`.
+ 
++*(@@DATE@@, cycle 0.0.1 step 7: the two bullets every other entry gives, owed here. This step's commit is
++`049afd0aa61e902b9d34c4f3fb399f0449dd998d`, subject `cycle 0.0.0: the record — the probes' verdicts at 2e1cb4a`, and
++its parent is commit 5, `f0c7b16a3863609fe0551fe8955775da1ad4779c`. The next step is cycle 0.0.1's step 0, from the
++commit its dispatch names.)*
++
+ ### The REPORT block — 0.0.0, closed by run 6
+ 
+ ```
+diff --git a/meta/roadmap/ROADMAP.md b/meta/roadmap/ROADMAP.md
+index 0b8d524..e7b74a4 100644
+--- a/meta/roadmap/ROADMAP.md
++++ b/meta/roadmap/ROADMAP.md
+@@ -50,7 +50,7 @@ And the two that shape the *design*:
+ > (`SK-035`).
+ 
+ Both were read in the compiler's own source and then run, by cycle 0.0.0's
+-probes 04, 09 and 10 at compiler `c9baa9e` — the first contradicted its reading
++probes 04, 09 and 10 at compiler `2e1cb4a` — the first contradicted its reading
+ (@@PD-159@@), the second confirmed it — and both are enforced mechanically
+ rather than by discipline: `check_msg_nosignal` greps
+ every send site, and the second is enforced by the compiler itself.
+@@ -87,7 +87,7 @@ The **language probes** first: small programs that ask the compiler whether
+ the shapes `meta/specs/` depends on are spellable, and the kernel whether its
+ layouts are the tables'. Two of them are the
+ reason this cycle exists — **probe 04 measures what `SIGPIPE` does** (at compiler
+-`c9baa9e` the runtime catches it, so `SK-013` is belt-and-braces there and
++`2e1cb4a` the runtime catches it, so `SK-013` is belt-and-braces there and
+ load-bearing under the default disposition, @@PD-159@@), and **probes 09 and 10
+ run the `OwnedFd` channel refusal and the spawn move**, with their twins 09b and
+ 10b, which is `SK-035`'s entire foundation — confirmed. Then the harness, the
+diff --git a/meta/specs/ADDRESS_MODEL.md b/meta/specs/ADDRESS_MODEL.md
+index d400b46..9cc5b1b 100644
+--- a/meta/specs/ADDRESS_MODEL.md
++++ b/meta/specs/ADDRESS_MODEL.md
+@@ -38,7 +38,7 @@ pub struct:UnixAddr = {     // 110 bytes
+ };
+ ```
+ 
+-Each size is `#size_of`, **measured by probe 12** at compiler `c9baa9e`, never summed from field widths
++Each size is `#size_of`, **measured by probe 12** at compiler `2e1cb4a`, never summed from field widths
+ (`@@PD-160@@`). Each type derives `Copy`, so a container bounded `T: Copy` holds it and a generic read copies it
+ (probe 12 reads one through `func:same<T: Copy>`).
+ 
+@@ -110,6 +110,10 @@ structure, hands it to the kernel, reads it back, and checks a sentinel written
+ one byte past the end is untouched. A comment stating a size is a comment; a
+ program that round-trips it is a measurement.
+ 
++*(@@DATE@@, cycle 0.0.1: measured at compiler `2e1cb4a` as A-4 asks — `sockaddr_in`, `sockaddr_in6` and
++`sockaddr_un` by probe 02, and `sockaddr_storage` by probe 16, bound with length 128, which the kernel takes where it
++refuses 129, and read back with the sentinel at 128 untouched.)*
++
+ ---
+ 
+ ## 3. Encoding and decoding
+@@ -276,6 +280,16 @@ read before it is written: each read is `NITPICK-ASSIGN-001` (`tests/probe/refus
+ So no parser's result can carry a byte its path never wrote, and the research gate's D3, a result's bytes on the
+ IPv4-in-IPv6 path (`meta/research/security-defects.md`), is closed by the language.)*
+ 
++*(@@DATE@@, cycle 0.0.1: withdrawn in part — the language closes D3 for a direct read, not for every path. A `$$m`
++handoff assigns a binding declared without an initialiser and does not bind the callee to write it, and a local whose
++type does not drop is never zeroed, so a callee that writes part of a `uint8[16]` leaves the previous frame's bytes in
++the rest (the compiler's DEF-345, open HIGH, 85/85 at both legs; the workbench `PLAYBOOK.md` §2). At compiler
++`2e1cb4a` the handoff compiles, the part-write compiles, and element 0 reads back as the callee wrote it
++(`tests/probe/probe15b_unassigned_handoff.npk`, which reads nothing else). So D3 is closed for a direct read (probe 15,
++`NITPICK-ASSIGN-001`) and open for the `$$m` face (probe 15b, DEF-345) until a re-pin carries DEF-345's fix, the
++author's ruling (b) of 2026-10-29. The house rule, never to hand an unassigned binding on as `$$m`, and its grep stay
++a belt after any fix, never the guarantee.)*
++
+ ---
+ 
+ ## 8. Formatting
+diff --git a/meta/specs/SAFETY.md b/meta/specs/SAFETY.md
+index 027038a..32ba054 100644
+--- a/meta/specs/SAFETY.md
++++ b/meta/specs/SAFETY.md
+@@ -44,7 +44,7 @@ is to **terminate the process** — not to return an error, not to route through
+ `failsafe`, not to run a `defer`. The program is gone, mid-transaction, with
+ whatever it was holding.
+ 
+-**What the floor's runtime does, measured at compiler `c9baa9e`** (probe 04,
++**What the floor's runtime does, measured at compiler `2e1cb4a`** (probe 04,
+ `tests/probe/probe04_sigpipe.npk`, at `-O0` and through `opt -O2`). It catches
+ `SIGPIPE` with a handler that returns: `runtime/npkrt.ll`'s `npk_fault_arm`
+ installs it at startup (the compiler's DEF-68), and `rt_sigaction(SIGPIPE,
+diff --git a/meta/specs/STREAM_MODEL.md b/meta/specs/STREAM_MODEL.md
+index 226cd77..9363bce 100644
+--- a/meta/specs/STREAM_MODEL.md
++++ b/meta/specs/STREAM_MODEL.md
+@@ -112,9 +112,10 @@ socket `connect` almost never completes immediately. The sequence is:
+    of `SO_ERROR`'s number, nor name `EINPROGRESS` to compare step 2's answer
+    with (probes 13 and 13b). Probe 08 measures the spelling that needs neither:
+    after the wait, a SECOND `connect` answers success once the connection is
+-   made and otherwise hands back the kernel's own error — `ECONNREFUSED` for a
+-   closed port — to forward verbatim, leaving `SO_ERROR` at 0. Cycle 0.3.1
+-   writes steps 2 and 4 by it.)*
++   made, and against a closed port an error unlike its first answer, to forward
++   verbatim, leaving `SO_ERROR` at 0 (leg B); read instead of that second
++   `connect`, `SO_ERROR` holds 111, `ECONNREFUSED` (leg A). Cycle 0.3.1 writes
++   steps 2 and 4 by it.)*
+ 5. **`EINTR`** — the handshake continues in the background. Do **not** re-call
+    `connect`; go to step 3. A second `connect` on a socket already connecting
+    returns `EALREADY`, and a loop that retries on `EINTR` by re-calling
+diff --git a/tests/probe/README.md b/tests/probe/README.md
+index 5355a1a..6d857c4 100644
+--- a/tests/probe/README.md
++++ b/tests/probe/README.md
+@@ -2,7 +2,7 @@
+ 
+ Small programs, one question each, asking the compiler whether a shape `meta/specs/` depends on is spellable and
+ correct, and the kernel whether a layout or a behaviour is what the specifications say. Cycle 0.0.0 wrote and ran
+-them at compiler `c9baa9e`; its file, `meta/roadmap/0.0/0.0.0.md` (from cycle 0.0's close,
++them at compiler `2e1cb4a`; its file, `meta/roadmap/0.0/0.0.0.md` (from cycle 0.0's close,
+ `meta/roadmap/done/0.0/0.0.0.md`), records every verdict.
+ 
+ **They stay, permanently.** A probe is a regression test for a fact this library is built on, so a compiler or
+@@ -41,4 +41,12 @@ cycle adds, `DeadlineExceeded` 111 and `IoEof` 112 (@@PD-163@@).
+ - **No byte is read before it is written** (probe 15): an element of an array declared without an initialiser is
+   `NITPICK-ASSIGN-001` where it is read, once for each of the probe's two reads, so its first two lines state the
+   code twice; a parser's result carries no byte its path never wrote (`meta/specs/ADDRESS_MODEL.md` A-22's dated
+-  note).
++  note). *(@@DATE@@, cycle 0.0.1: withdrawn in part. A direct read is refused, but an array declared without an
++  initialiser may be handed on as `$$m` to a callee that leaves part of it unwritten, holding the previous frame's
++  bytes (the compiler's DEF-345). Probe 15b pins that handoff and reads only the element its callee wrote: the
++  research gate's D3 is closed for a direct read, and open for the `$$m` face until a re-pin carries DEF-345's fix,
++  as A-22's second dated note says.)*
++- **`sockaddr_storage`, `cmsghdr` and `ucred` round-trip through the kernel** (probe 16, cycle 0.0.1's): a 128-byte
++  `sockaddr_storage` bound and read back, a `cmsghdr` carrying a `ucred` sent and received, and `SO_PEERCRED`'s 12
++  bytes, each with a sentinel past its end untouched, so every size A-4 names is measured as it asks (`SK-016`'s
++  second dated note).
+diff --git a/tests/probe/probe02_sockaddr_layout.npk b/tests/probe/probe02_sockaddr_layout.npk
+index 0a1165a..5f76ed3 100644
+--- a/tests/probe/probe02_sockaddr_layout.npk
++++ b/tests/probe/probe02_sockaddr_layout.npk
+@@ -10,7 +10,7 @@
+ // of a 128-byte `sockaddr_storage`, is asserted beside it.
+ // DEPENDS ON THE ANSWER: SK-016 and `ADDRESS_MODEL.md` §2's tables (A-4): a size or an offset the
+ // kernel disagrees with is a table that is wrong, and the kernel wins.
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 59 are the assertions.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 43 are the assertions.
+ mod:probe02_sockaddr_layout;
+ 
+ fixed int64:SYS_CLOSE = 3i64;
+diff --git a/tests/probe/probe03_cmsg_layout.npk b/tests/probe/probe03_cmsg_layout.npk
+index 8f15f2a..efd352d 100644
+--- a/tests/probe/probe03_cmsg_layout.npk
++++ b/tests/probe/probe03_cmsg_layout.npk
+@@ -9,7 +9,7 @@
+ // a keyword declared as a name of any kind is `NITPICK-PARSE-001`).
+ // DEPENDS ON THE ANSWER: `ANCILLARY_MODEL.md` §1's layouts, and SK-016. The compiler's Bridge
+ // (`lib/nbridge.npk`) depends on the same numbers; this measures them independently.
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 24 are the assertions.
+ mod:probe03_cmsg_layout;
+ 
+ fixed int64:SYS_CLOSE = 3i64;
+diff --git a/tests/probe/probe05_ownedfd_drop.npk b/tests/probe/probe05_ownedfd_drop.npk
+index ae9e9e3..f0d34d3 100644
+--- a/tests/probe/probe05_ownedfd_drop.npk
++++ b/tests/probe/probe05_ownedfd_drop.npk
+@@ -11,7 +11,7 @@
+ // DEPENDS ON THE ANSWER: SK-011 (`SAFETY.md` S-17): the drop is the whole lifetime story, and there
+ // is no `close` in the surface; `close(release_fd(move s))` is the spelling for a caller that must
+ // see close's verdict, with no double close spellable.
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 19 are the assertions.
+ mod:probe05_ownedfd_drop;
+ 
+ fixed int64:SYS_CLOSE = 3i64;
+diff --git a/tests/probe/probe06_reader_writer.npk b/tests/probe/probe06_reader_writer.npk
+index a01b12f..f329540 100644
+--- a/tests/probe/probe06_reader_writer.npk
++++ b/tests/probe/probe06_reader_writer.npk
+@@ -10,9 +10,9 @@
+ // gives a syscall), never the floor's `write` (SK-013's corollary, `SAFETY.md` S-2); a would-block
+ // waits on `io_ready` with what remains of the deadline, the descriptor converted `fd` -> `int32`
+ // at the reactor.
+-// DEPENDS ON THE ANSWER: SK-027 (`STREAM_MODEL.md` T-6), the library's interoperability property;
++// DEPENDS ON THE ANSWER: SK-027 (`STREAM_MODEL.md` T-3), the library's interoperability property;
+ // `TYPE-014` holds an impl to its trait's spelling (probe 06b refuses the dropped `fixed`).
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 21 are the assertions.
+ mod:probe06_reader_writer;
+ 
+ fixed int64:SYS_SENDTO = 44i64;
+diff --git a/tests/probe/probe07_io_ready.npk b/tests/probe/probe07_io_ready.npk
+index fb3813e..3a1b642 100644
+--- a/tests/probe/probe07_io_ready.npk
++++ b/tests/probe/probe07_io_ready.npk
+@@ -10,7 +10,7 @@
+ // reactor's `int32` -- `(o.value) =>! int32` at each call.
+ // DEPENDS ON THE ANSWER: `CONCURRENCY_MODEL.md` §1 -- every wait in the library is one of these --
+ // and `io_ready2` is what makes fan-in expressible without a `select` the language does not have.
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 29 are the assertions; the time
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 20 are the assertions; the time
+ // bounds are wide (a ready wait under 900 ms of a 1 s deadline; an expired one no sooner than its
+ // 20 ms), so the probe states a verdict, not a rate.
+ mod:probe07_io_ready;
+diff --git a/tests/probe/probe08_connect_inprogress.npk b/tests/probe/probe08_connect_inprogress.npk
+index 1daff9c..fbb7839 100644
+--- a/tests/probe/probe08_connect_inprogress.npk
++++ b/tests/probe/probe08_connect_inprogress.npk
+@@ -18,7 +18,7 @@
+ // without naming `EINPROGRESS`: by readiness and a second `connect`, which answers success once the
+ // connection is made and otherwise hands back the kernel's own error, to forward verbatim
+ // (`SAFETY.md` S-6).
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 59 are the assertions. A loopback
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 47 are the assertions. A loopback
+ // connect may complete or fail at once on another kernel; at this machine's it does neither.
+ mod:probe08_connect_inprogress;
+ 
+diff --git a/tests/probe/probe10_ownedfd_spawn.npk b/tests/probe/probe10_ownedfd_spawn.npk
+index ad1e157..a1612af 100644
+--- a/tests/probe/probe10_ownedfd_spawn.npk
++++ b/tests/probe/probe10_ownedfd_spawn.npk
+@@ -10,7 +10,7 @@
+ // DEPENDS ON THE ANSWER: SK-035 -- with probe 09's refusal, accept-then-spawn is the only server
+ // model the language permits (`CONCURRENCY_MODEL.md` §3). Refused, it would leave only "one
+ // connection at a time, inline", and the server story would be re-planned from scratch.
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 19 are the assertions: the byte the
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 18 are the assertions: the byte the
+ // task sent arrives at the other end, and after the join the moved descriptor is closed -- its
+ // `fcntl(F_GETFD)` answers the error a closed descriptor's does, measured against a witness.
+ // Probe 10b is its pair: a BORROW across the spawn is refused.
+diff --git a/tests/probe/probe11_scm_rights.npk b/tests/probe/probe11_scm_rights.npk
+index 2d7ac95..e64eb49 100644
+--- a/tests/probe/probe11_scm_rights.npk
++++ b/tests/probe/probe11_scm_rights.npk
+@@ -10,7 +10,7 @@
+ // `fcntl(F_GETFD)` reports `FD_CLOEXEC` -- so the flag reached the kernel through `sys`.
+ // DEPENDS ON THE ANSWER: `ANCILLARY_MODEL.md` end to end -- N-2's distinction between `CMSG_LEN`
+ // and `CMSG_SPACE`, and the rule that every received descriptor is close-on-exec atomically.
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 39 are the assertions.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 34 are the assertions.
+ mod:probe11_scm_rights;
+ 
+ fixed int64:SYS_READ = 0i64;
+diff --git a/tests/probe/probe12_pod_addr_array.npk b/tests/probe/probe12_pod_addr_array.npk
+index c09d326..9b10f80 100644
+--- a/tests/probe/probe12_pod_addr_array.npk
++++ b/tests/probe/probe12_pod_addr_array.npk
+@@ -11,7 +11,7 @@
+ // precisely so this works) and `ADDRESS_MODEL.md` §1's declarations. A `#size_of` is measured,
+ // never summed (`PLAYBOOK.md` §2).
+ // EXPECTED: exit 32 -- `#size_of<SocketAddr>()`, the probe's subject -- at -O0 and through
+-// `opt -O2`. Codes 10 ... 29 are the assertions, the other sizes among them: `Ipv4Addr` 4,
++// `opt -O2`. Codes 10 ... 17 are the assertions, the other sizes among them: `Ipv4Addr` 4,
+ // `Ipv6Addr` 20, `IpAddr` 24, `SocketAddrV4` 6, `SocketAddrV6` 28, `UnixAddr` 110.
+ mod:probe12_pod_addr_array;
+ 
+diff --git a/tests/probe/probe14_view_codec.npk b/tests/probe/probe14_view_codec.npk
+index 5c58854..ab65bd1 100644
+--- a/tests/probe/probe14_view_codec.npk
++++ b/tests/probe/probe14_view_codec.npk
+@@ -12,7 +12,7 @@
+ // DEPENDS ON THE ANSWER: the pin audit's SL-1 -- every read-only byte parameter is `fixed uint8[]`
+ // (A-5, A-22, Z-2's accessors, `unix_addr_path`) -- and @@PD-161@@, which takes for every slot a
+ // reader's bytes reach the read-only view `nitpick-regex`'s RX-230 names.
+-// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 19 are the assertions.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 13 are the assertions.
+ mod:probe14_view_codec;
+ 
+ // The family a sockaddr's first two bytes hold, host order; -1 when there are fewer than two.
+diff --git a/tests/probe/probe15b_unassigned_handoff.npk b/tests/probe/probe15b_unassigned_handoff.npk
+new file mode 100644
+index 0000000..6bc7b6e
+--- /dev/null
++++ b/tests/probe/probe15b_unassigned_handoff.npk
+@@ -0,0 +1,42 @@
++// expect-exit: 0
++//
++// PROBE 15b -- AN ARRAY DECLARED WITHOUT AN INITIALISER, HANDED ON AS `$$m`.
++//
++// ASKS: may a program hand a local `uint8[16]` it declared without an initialiser, as an IPv6
++// parser's result is, to a callee as `$$m`; may the callee write its element 0 alone; and does the
++// caller then read element 0 as the value the callee wrote? Nothing reads the other fifteen: storage
++// a `$$m` callee may have left unwritten has no expectation, since DEF-345 leaves the previous
++// frame's bytes there (the workbench's `PLAYBOOK.md` section 2).
++// DEPENDS ON THE ANSWER: ADDRESS_MODEL.md A-22's dated notes, and the research gate's D3 (a
++// result's bytes initialised on the IPv4-in-IPv6 path), whose `$$m` face this probe holds open.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`; code 10 is the assertion. Refused once a re-pin
++// carries DEF-345's fix (the author's ruling (b) of 2026-10-29: a `uint8[16]` does not drop), and it
++// then moves to tests/probe/refused/.
++mod:probe15b_unassigned_handoff;
++
++func:first = NIL(uint8[16]->:p) never fails {
++    (<-p)[0i64] = 7u8;
++    pass NIL;
++};
++
++func:main = int32(cstring[]:_~argv) {
++    uint8[16]:octets;
++    drop first($$m octets);
++    if (octets[0i64] != 7u8) { exit 10i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/probe16_kernel_round_trips.npk b/tests/probe/probe16_kernel_round_trips.npk
+new file mode 100644
+index 0000000..1ff381d
+--- /dev/null
++++ b/tests/probe/probe16_kernel_round_trips.npk
+@@ -0,0 +1,241 @@
++// expect-exit: 0
++//
++// PROBE 16 -- `sockaddr_storage`, `cmsghdr` AND `ucred`, ROUND-TRIPPED THROUGH THE KERNEL.
++//
++// ASKS: A-4's measurement of the three sizes probes 02 and 03 assert by `#size_of` alone, each
++// structure laid over a `wild` block whose bytes past it hold a sentinel (0x5A). A 128-byte
++// `sockaddr_storage` holding `::1`, port 0, is `bind`ed with length 129, which the kernel refuses,
++// then with 128, which it takes, and read back by `getsockname` given room for 128: the length 28,
++// the family, a non-zero port, the loopback address, and every byte from 28 to the sentinel at 128
++// untouched. A `cmsghdr` with a `ucred` payload, `cmsg_len` = `CMSG_LEN(12)` = 28 in a control
++// buffer of `CMSG_SPACE(12)` = 32, is filled with the sender's own pid, uid and gid, sent by
++// `sendmsg` over a datagram `socketpair` whose receiver set `SO_PASSCRED`, and received by `recvmsg`
++// into a control buffer of 32: the control length, the header and the three fields as sent, and the
++// sentinel at 32 untouched. `getsockopt(SO_PEERCRED)` given room for 16 writes 12 bytes, the same
++// three, and leaves the sentinel from 12 on.
++// DEPENDS ON THE ANSWER: ADDRESS_MODEL.md A-4 and §2's `sockaddr_storage`, ANCILLARY_MODEL.md §1's
++// layouts and N-13 ... N-16, and SK-016: a size the kernel disagrees with is a table that is wrong.
++// EXPECTED: exit 0 at -O0 and through `opt -O2`. Codes 10 ... 14 and 20 ... 57 are the assertions.
++mod:probe16_kernel_round_trips;
++
++fixed int64:SYS_CLOSE = 3i64;
++fixed int64:SYS_GETPID = 39i64;
++fixed int64:SYS_SOCKET = 41i64;
++fixed int64:SYS_SENDMSG = 46i64;
++fixed int64:SYS_RECVMSG = 47i64;
++fixed int64:SYS_BIND = 49i64;
++fixed int64:SYS_GETSOCKNAME = 51i64;
++fixed int64:SYS_SOCKETPAIR = 53i64;
++fixed int64:SYS_SETSOCKOPT = 54i64;
++fixed int64:SYS_GETSOCKOPT = 55i64;
++fixed int64:SYS_GETUID = 102i64;
++fixed int64:SYS_GETGID = 104i64;
++fixed int64:AF_UNIX = 1i64;
++fixed int64:AF_INET6 = 10i64;
++fixed int64:SOCK_STREAM = 1i64;
++fixed int64:SOCK_DGRAM = 2i64;
++fixed int64:SOCK_NONBLOCK = 2048i64;
++fixed int64:SOCK_CLOEXEC = 524288i64;
++fixed int64:SOL_SOCKET = 1i64;
++fixed int64:SO_PASSCRED = 16i64;
++fixed int64:SO_PEERCRED = 17i64;
++fixed int64:MSG_NOSIGNAL = 16384i64;
++fixed int64:MSG_CTRUNC = 8i64;
++fixed uint8:SENTINEL = 90u8;
++
++struct:SockaddrIn6 = { uint16:family; uint16:port_be; uint32:flow_be; uint8[16]:addr; uint32:scope; };
++struct:SockaddrStorage = { uint16:family; uint8[126]:rest; };
++// `msg_namelen` and `msg_flags` as one 8-byte word each, covering the `int32` and its padding (N-1).
++struct:MsgHdr = {
++    wild int8->:name; int64:namelen;
++    wild int8->:iov; uint64:iovlen;
++    wild int8->:control; uint64:controllen;
++    int64:flags;
++};
++struct:IoVec = { wild int8->:base; uint64:len; };
++struct:CmsgHdr = { uint64:len; int32:level; int32:ctype; };
++struct:Ucred = { int32:cpid; uint32:cuid; uint32:cgid; };
++struct:CmsgCred = { CmsgHdr:hdr; Ucred:cred; int32:pad; };
++
++// The first `n` bytes of `blk` set to the sentinel.
++func:fill = NIL(wild int8->:blk, int64:n) never fails {
++    for (int64:k in 0i64...n) { <-(#ptr_add<uint8>(blk, k)) = SENTINEL; }
++    pass NIL;
++};
++
++// Every byte of `blk` from `from` up to `upto` still holds the sentinel.
++func:untouched = bool(wild int8->:blk, int64:from, int64:upto) never fails {
++    for (int64:k in from...upto) {
++        if ((<-(#ptr_add<uint8>(blk, k))) != SENTINEL) { pass false; }
++    }
++    pass true;
++};
++
++func:main = int32(cstring[]:_~argv) {
++    if (#size_of<SockaddrStorage>() != 128i64) { exit 10i32; }
++    if (#size_of<SockaddrIn6>() != 28i64) { exit 11i32; }
++    if (#size_of<CmsgHdr>() != 16i64) { exit 12i32; }
++    if (#size_of<Ucred>() != 12i64) { exit 13i32; }
++    if (#size_of<CmsgCred>() != 32i64) { exit 14i32; }
++
++    // sockaddr_storage: ::1, port 0, in 128 bytes, the sentinel from 28 to 136
++    wild int8->:sb = alloc(136i64);
++    drop fill(sb, 136i64);
++    wild SockaddrIn6->:s6 = sb =>! wild SockaddrIn6->;
++    wild SockaddrStorage->:ss = sb =>! wild SockaddrStorage->;
++    s6.family = 10u16;
++    s6.port_be = 0u16;
++    s6.flow_be = 0u32;
++    for (int64:k in 0i64...15i64) { s6.addr[k] = 0u8; }
++    s6.addr[15i64] = 1u8;
++    s6.scope = 0u32;
++    int64:kind = (SOCK_STREAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rs = sys(SYS_SOCKET, AF_INET6, kind, 0i64);
++    if (rs.is_error) { exit 20i32; }
++    int64:s = rs.value;
++    Result<int64>:rb9 = sys(SYS_BIND, s, sb, 129i64);
++    if (!rb9.is_error) { exit 21i32; }
++    Result<int64>:rb8 = sys(SYS_BIND, s, sb, 128i64);
++    if (rb8.is_error) { exit 22i32; }
++    wild int8->:sl = calloc(1i64, 8i64);
++    <-(#ptr_add<int32>(sl, 0i64)) = 128i32;
++    Result<int64>:rg = sys(SYS_GETSOCKNAME, s, sb, sl);
++    if (rg.is_error) { exit 23i32; }
++    int64:sn = (<-(#ptr_add<int32>(sl, 0i64))) => int64;
++    dalloc(sl);
++    if (sn != 28i64) { exit 24i32; }
++    if (ss.family != 10u16) { exit 25i32; }
++    if (s6.port_be == 0u16) { exit 26i32; }
++    if (s6.addr[15i64] != 1u8) { exit 27i32; }
++    if (s6.addr[0i64] != 0u8) { exit 28i32; }
++    if (!(raw untouched(sb, 28i64, 136i64))) { exit 29i32; }
++    dalloc(sb);
++    Result<int64>:cs = sys(SYS_CLOSE, s);
++    if (cs.is_error) { exit 30i32; }
++
++    // the process's own credentials
++    Result<int64>:gp = sys(SYS_GETPID);
++    Result<int64>:gu = sys(SYS_GETUID);
++    Result<int64>:gg = sys(SYS_GETGID);
++    if (gp.is_error) { exit 31i32; }
++    if (gu.is_error) { exit 32i32; }
++    if (gg.is_error) { exit 33i32; }
++    int32:mypid = gp.value =>! int32;
++    uint32:myuid = gu.value =>! uint32;
++    uint32:mygid = gg.value =>! uint32;
++
++    // a datagram socketpair, its receiver passing credentials
++    wild int8->:sv = alloc(8i64);
++    int64:dkind = (SOCK_DGRAM | SOCK_NONBLOCK) | SOCK_CLOEXEC;
++    Result<int64>:rp = sys(SYS_SOCKETPAIR, AF_UNIX, dkind, 0i64, sv);
++    if (rp.is_error) { exit 34i32; }
++    int64:a = (<-(#ptr_add<int32>(sv, 0i64))) => int64;
++    int64:b = (<-(#ptr_add<int32>(sv, 1i64))) => int64;
++    dalloc(sv);
++    wild int8->:one = calloc(1i64, 8i64);
++    <-(#ptr_add<int32>(one, 0i64)) = 1i32;
++    Result<int64>:ro = sys(SYS_SETSOCKOPT, b, SOL_SOCKET, SO_PASSCRED, one, 4i64);
++    dalloc(one);
++    if (ro.is_error) { exit 35i32; }
++
++    // send one byte with one SCM_CREDENTIALS header, filled with our own pid, uid and gid
++    wild int8->:smb = calloc(1i64, 56i64);
++    wild int8->:svb = calloc(1i64, 16i64);
++    wild int8->:spb = calloc(1i64, 8i64);
++    wild int8->:scb = alloc(40i64);
++    drop fill(scb, 40i64);
++    wild MsgHdr->:sm = smb =>! wild MsgHdr->;
++    wild IoVec->:siv = svb =>! wild IoVec->;
++    wild CmsgCred->:sc = scb =>! wild CmsgCred->;
++    <-(#ptr_add<uint8>(spb, 0i64)) = 99u8;
++    siv.base = spb;
++    siv.len = 1u64;
++    sc.hdr.len = 28u64;
++    sc.hdr.level = 1i32;
++    sc.hdr.ctype = 2i32;
++    sc.cred.cpid = mypid;
++    sc.cred.cuid = myuid;
++    sc.cred.cgid = mygid;
++    sc.pad = 0i32;
++    sm.iov = svb;
++    sm.iovlen = 1u64;
++    sm.control = scb;
++    sm.controllen = 32u64;
++    Result<int64>:rsend = sys(SYS_SENDMSG, a, smb, MSG_NOSIGNAL);
++    dalloc(smb);
++    dalloc(svb);
++    dalloc(spb);
++    dalloc(scb);
++    if (rsend.is_error) { exit 36i32; }
++    if (rsend.value != 1i64) { exit 37i32; }
++
++    // receive it into a control buffer of 32, the sentinel from 32 to 40
++    wild int8->:rmb = calloc(1i64, 56i64);
++    wild int8->:rvb = calloc(1i64, 16i64);
++    wild int8->:rpb = calloc(1i64, 8i64);
++    wild int8->:rcb = alloc(40i64);
++    drop fill(rcb, 40i64);
++    wild MsgHdr->:rm = rmb =>! wild MsgHdr->;
++    wild IoVec->:riv = rvb =>! wild IoVec->;
++    wild CmsgCred->:rc = rcb =>! wild CmsgCred->;
++    riv.base = rpb;
++    riv.len = 1u64;
++    rm.iov = rvb;
++    rm.iovlen = 1u64;
++    rm.control = rcb;
++    rm.controllen = 32u64;
++    Result<int64>:rrecv = sys(SYS_RECVMSG, b, rmb, 0i64);
++    if (rrecv.is_error) { exit 38i32; }
++    if (rrecv.value != 1i64) { exit 39i32; }
++    if ((rm.flags & MSG_CTRUNC) != 0i64) { exit 40i32; }
++    if (rm.controllen != 32u64) { exit 41i32; }
++    if (rc.hdr.len != 28u64) { exit 42i32; }
++    if (rc.hdr.level != 1i32) { exit 43i32; }
++    if (rc.hdr.ctype != 2i32) { exit 44i32; }
++    if (rc.cred.cpid != mypid) { exit 45i32; }
++    if (rc.cred.cuid != myuid) { exit 46i32; }
++    if (rc.cred.cgid != mygid) { exit 47i32; }
++    if (!(raw untouched(rcb, 32i64, 40i64))) { exit 48i32; }
++    if ((<-(#ptr_add<uint8>(rpb, 0i64))) != 99u8) { exit 49i32; }
++    dalloc(rmb);
++    dalloc(rvb);
++    dalloc(rpb);
++    dalloc(rcb);
++
++    // SO_PEERCRED, given room for 16: 12 written, the sentinel from 12 to 24
++    wild int8->:pk = alloc(24i64);
++    drop fill(pk, 24i64);
++    wild Ucred->:pc = pk =>! wild Ucred->;
++    wild int8->:pl = calloc(1i64, 8i64);
++    <-(#ptr_add<int32>(pl, 0i64)) = 16i32;
++    Result<int64>:rk = sys(SYS_GETSOCKOPT, a, SOL_SOCKET, SO_PEERCRED, pk, pl);
++    if (rk.is_error) { exit 50i32; }
++    int64:pn = (<-(#ptr_add<int32>(pl, 0i64))) => int64;
++    dalloc(pl);
++    if (pn != 12i64) { exit 51i32; }
++    if (pc.cpid != mypid) { exit 52i32; }
++    if (pc.cuid != myuid) { exit 53i32; }
++    if (pc.cgid != mygid) { exit 54i32; }
++    if (!(raw untouched(pk, 12i64, 24i64))) { exit 55i32; }
++    dalloc(pk);
++    Result<int64>:ca = sys(SYS_CLOSE, a);
++    Result<int64>:cb = sys(SYS_CLOSE, b);
++    if (ca.is_error) { exit 56i32; }
++    if (cb.is_error) { exit 57i32; }
++    exit 0i32;
++};
++
++func:failsafe = int32(Error:e) {
++    pick (e) {
++        (HeapBadRequest)    { exit 91i32; },
++        (HeapOom)           { exit 92i32; },
++        (IntOverflow)       { exit 93i32; },
++        (OutOfBounds)       { exit 94i32; },
++        (Unreachable)       { exit 95i32; },
++        (WildLeak)          { exit 96i32; },
++        (StackExhausted)    { exit 106i32; },
++        (MachineFault)      { exit 107i32; },
++        (*)                 { exit 99i32; }
++    }
++    exit 9i32;
++};
+diff --git a/tests/probe/refused/probe06b_impl_drops_fixed.npk b/tests/probe/refused/probe06b_impl_drops_fixed.npk
+index 1037c61..1f0cc8e 100644
+--- a/tests/probe/refused/probe06b_impl_drops_fixed.npk
++++ b/tests/probe/refused/probe06b_impl_drops_fixed.npk
+@@ -6,7 +6,7 @@
+ // where the prelude's trait spells `fixed uint8[]:wsrc`. The compiler's `IO_REFERENCE.md` says an
+ // impl declares `wsrc` as the trait does; this asks it.
+ // DEPENDS ON THE ANSWER: the pin audit's SL-4 -- the stream checklists name the `fixed`
+-// (`STREAM_MODEL.md` T-6, cycle 0.3) -- and SK-027.
++// (`STREAM_MODEL.md` T-3, cycle 0.3) -- and SK-027.
+ // EXPECTED: refused, `NITPICK-TYPE-014` at the implementation's `write`, and nothing else.
+ mod:probe06b_impl_drops_fixed;
+ 
+diff --git a/tests/probe/refused/probe13b_errno_number.npk b/tests/probe/refused/probe13b_errno_number.npk
+index 0757785..4e69d0b 100644
+--- a/tests/probe/refused/probe13b_errno_number.npk
++++ b/tests/probe/refused/probe13b_errno_number.npk
+@@ -6,7 +6,7 @@
+ // that it could compare it with a number where it cannot name an identity (probe 13)?
+ // DEPENDS ON THE ANSWER: with probe 13, SK-014, SK-031 and S-6.
+ // EXPECTED: refused, `NITPICK-TYPE-032` at the cast, and nothing else. An error compares only with
+-// an identity the prelude declares, or with another error (probes 04, 05, 08 and 10 do both).
++// an identity the prelude declares, or with another error (probe 08 does both; 04, 05 and 10 the second).
+ mod:probe13b_errno_number;
+ 
+ fixed int64:SYS_CLOSE = 3i64;

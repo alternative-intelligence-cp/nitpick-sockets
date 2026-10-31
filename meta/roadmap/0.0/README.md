@@ -24,7 +24,7 @@ sources and added the two checks its last section records. No subcycle has start
 | File | At `2e1cb4a` |
 |---|---|
 | [0.0.0](0.0.0.md) | **yes**, adopted — probes measured, five patches, blocks with filled Expects |
-| [0.0.1](0.0.1.md) | **yes**, adopted — the layout, the skeleton, the manifest, CI and the currency table; six patches, blocks with filled Expects |
+| [0.0.1](0.0.1.md) | **yes**, adopted, and re-cut over 0.0.0's record — the layout, the skeleton, the manifest, CI, the currency table and 0.0.0's texts corrected; seven patches, blocks with filled Expects |
 | [0.0.2](0.0.2.md) | **yes**, adopted — the harness, part 1: the runner, its two scans and their controls, `repro`, three stages, the probes as suites, CI's summary and LLVM by content; three patches, the mutants, blocks with filled Expects |
 | [0.0.3](0.0.3.md) | **yes**, adopted — the harness, part 2: the `check` stage and the `parse` sweep, `loopback` and `network`, the self-check beside its controls, nine tree checks and `--only`; two patches, the mutants, blocks with filled Expects |
 | [0.0.4](0.0.4.md) | **yes**, planned at `2e1cb4a` — `src/core/`: `limits.npk` held to the bounds the specifications state, `Vec<T: Copy>` checking its own indexes with every generic instantiated where the call-edge scan reads it, `Bytes` through its buffer's checked index with no view; three patches, the mutants, the loop sweep, blocks with filled Expects |
@@ -355,6 +355,7 @@ states its own acceptance when it reaches the pin, and where the two differ, the
 - [ ] CI: a workflow running no action — `harness/run.py`'s stub on push, LLVM 20.1.8 asserted, the compiler at the pinned commit and its emission asserted, the runner's loopback bound, every hex value quoted (@@PD-167@@) — green on the push
 - [ ] `meta/research/CURRENCY.md`, its three research rows and every external fact the specifications state (@@PD-168@@)
 - [ ] `CLAUDE.md` and `CONTRIBUTING.md` re-read against 0.0.0's verdicts and extended; `CLAUDE.md`'s empty heading filled
+- [ ] 0.0.0's texts corrected where its review found them wrong, and probes 15b (the `$$m` face of D3) and 16 (A-4's three round trips) exit 0 at both legs
 
 ### 0.0.2 — the harness, part 1
 - [ ] the research gate's LLVM digest filed before any block runs (`0.0.2.md` gate item 7, §13)

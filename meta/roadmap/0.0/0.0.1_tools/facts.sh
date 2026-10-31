@@ -7,9 +7,9 @@ T1=$REPO/meta/roadmap/0.0/0.0.1_tools
 TL=$REPO/meta/roadmap/0.0/tools
 show() { git -C "$NPK_TREE" show "$1"; }
 
-# The patched tree: the six steps applied to a throwaway clone of HEAD, which §1.2 to §1.10 read
+# The patched tree: the seven steps applied to a throwaway clone of HEAD, which §1.2 to §1.10 read
 d=$F/tree; git clone -q --shared "$REPO" "$d"
-for s in 1 2 3 4 5 6; do python3 -B "$TL/apply.py" "$d" 0.0.1 $s > /dev/null; done
+for s in 1 2 3 4 5 6 7; do python3 -B "$TL/apply.py" "$d" 0.0.1 $s > /dev/null; done
 
 # §1.1 -- the tree it starts from: cycle 0.0.0's record
 echo "§1.1 decisions: the highest by value $(grep -o '^### SK-[0-9]*' "$REPO/meta/DECISIONS.md" | sort -t- -k2 -n | tail -1 | cut -c5-)"
@@ -90,7 +90,7 @@ echo "§1.5 the pinned rows: NITPICK_COMMIT $( [ "$(sed -nE 's/^  NITPICK_COMMIT
 echo "§1.5 the compiler's bootstrap harness at the pin: $(show $PIN:bootstrap/harness/quickemit.py > /dev/null 2>&1 && echo 'bootstrap/harness/quickemit.py exists' || echo 'NO quickemit.py')"
 
 # §1.6 -- the shapes, over every `.npk` the patches add, comments and strings blanked
-grep -ohE '^\+\+\+ b/.*\.npk$' "$T1"/step*.patch | sed 's|^+++ b/||' > "$F/added"
+awk 'p && /^\+\+\+ b\/.*\.npk$/ {print substr($0, 7)} {p = ($0 == "--- /dev/null")}' "$T1"/step*.patch > "$F/added"
 echo "§1.6 the $(wc -l < "$F/added") .npk file(s) the patches add:"
 python3 -B "$TL/shapes.py" $(sed "s|^|$d/|" "$F/added") | tail -n +2
 echo "§1.6 the rulings over them:"; python3 -B "$TL/rulings.py" $(sed "s|^|$d/|" "$F/added") | tail -n +2

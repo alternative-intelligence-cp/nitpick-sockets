@@ -14,6 +14,16 @@ the consumer under accept | accept.{0,4}tests/conformance|conformance/.{0,6}acce
 rootlist_add called from nowhere | rootlist_add.{0,30}(never called|called from (nowhere|anywhere))|never populated
 npkg has no update | no install and no update|written only by npkg update
 the builder returns a stream type | listen\(backlog\)\s+-> TcpListener|connect\(addr, within\) -> TcpStream
+the probes run at c9baa9e | \bc9baa9e\b
+one cycle's items wait | one cycle.s items wait
+a second connect's error named | ECONNREFUSED. for a closed port|kernel.s own error (—|-) ?ECONNREFUSED
+D3 closed by the language | closed by the language|language (closes|guarantees|ensures)[^.;]{0,60}(byte|written|D3)|carries no byte (its|a) path never wrote|cannot carry a byte (its|a) path never wrote|no byte is read before it is written
+the three sizes round-tripped by probes 02 and 03 | sockaddr_storage 128 laid out|cmsghdr 16 and ucred 12 through|which assert each by running
+an unnamed errno compared, by either name | \bConnAborted\b|err ?== ?E[A-Z]{3,}|\b(ECONNABORTED|EMFILE|ENFILE|EINPROGRESS|TooManyOpenFiles|FileTableFull|InProgress|AlreadyInProgress)\b[^.;]{0,60}?\b(retr(y|ies|ied)|returned|compared|matched|backs? off|waits?|means)\b|waits NSOCK_EMFILE_BACKOFF
 # The subject fix round 1 added by subject (the plan verification's findings 4 and 5(c)) is proved on its claim in
 # other words than its old text's (`tools/sweep.py`).
 twin: the layering as a drawing | each import is checked against the module drawing in BUILD.md
+# The subjects T17's re-cut added by subject are proved the same way: D3's closure, and the errno subject that sees
+# T-12's row by its new names as well as its old (the round's item 20 (d)).
+twin: D3 closed by the language | so the language guarantees every byte of a parsed address was written on its path
+twin: an unnamed errno compared, by either name | an accept that answers TooManyOpenFiles or FileTableFull waits before it retries
