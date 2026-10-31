@@ -1,5 +1,5 @@
 diff --git a/meta/DECISIONS.md b/meta/DECISIONS.md
-index 4da12d4..8b089ff 100644
+index 238cfd2..e7f2ec3 100644
 --- a/meta/DECISIONS.md
 +++ b/meta/DECISIONS.md
 @@ -792,3 +792,33 @@ currency row for cycle 0.0.2.
@@ -22,9 +22,9 @@ index 4da12d4..8b089ff 100644
 +checked names the cycle that checks it. **`nsockets` is security-sensitive**: it parses addresses from text, walks
 +control messages another process sent, passes descriptors between processes and reads a peer's credentials, and
 +`SK-036` already treats its parser's refusals as a security claim. So the three research items are owed, and, by the
-+libraries' reviewer's ruling of 2026-10-15, **they gate cycle 0.0's first work dispatch**, cycle 0.0.0's, which
-+carries their digests and files them before any probe runs, so that a finding which asks the language a question
-+becomes a cycle-0.0 probe before it is anything else; every other finding is held where its subject is decided, and
++libraries' reviewer's ruling of 2026-10-15, **they gated cycle 0.0's first work dispatch**, cycle 0.0.0's, which
++filed their digests on 2026-10-29 before any probe ran, so that a finding which asked the language a question became
++a cycle-0.0 probe before it was anything else; every other finding is held where its subject is decided, and
 +`CURRENCY.md` says where. Each is a `security` digest, stale ninety days after its date, so a later cycle reads the
 +three dates before it starts.
 +
@@ -33,15 +33,15 @@ index 4da12d4..8b089ff 100644
 +0.0 is archived has no cycle 0.0 to become a probe in; **a table per subject** — the workbench's checks and its
 +research skill read one.
 +
-+*Reversal:* to let cycle 0.0's probes run before the research, move the gate to cycle 0.1: cycle 0.0.0's gate item 7
-+and block 0a's research lines go, the three rows wait for their digests, and `0.1/0.1.0.md`'s gate names them; to
-+count the library routine, strike `CURRENCY.md`'s research section and its three rows, and the gate with them.
++*Reversal:* to count the library routine, strike `CURRENCY.md`'s research section and its three research rows, and
++re-run none of the three at hardening; the digests stay filed, as what was read on their date. The gate itself has
++run, so no reversal moves it.
 diff --git a/meta/research/CURRENCY.md b/meta/research/CURRENCY.md
 new file mode 100644
-index 0000000..f3550cb
+index 0000000..d876dd3
 --- /dev/null
 +++ b/meta/research/CURRENCY.md
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,81 @@
 +# Currency — the facts from outside the compiler tree this plan rests on
 +
 +One row per standard, kernel fact, reference implementation, test-vector set and outside tool the plan names, with
@@ -58,16 +58,19 @@ index 0000000..f3550cb
 +| LLVM's release asset by content — its sha256 and size | not pinned: CI fetches the asset by its version and asserts each tool's `--version` (@@PD-167@@) | not yet — cycle 0.0.2, which pins it: the asset's sha256 and size from a research digest its dispatch carries, which CI then checks every download against before unpacking it | github.com/llvm/llvm-project/releases | @@PD-167@@ |
 +| Python — the harness's interpreter | none chosen yet; the runner's version is printed by CI's first step | not yet — cycle 0.0.2, which writes the harness, names the version it needs | python.org | `SK-004` |
 +| The x86-64 socket syscall numbers (`SOCKET_MODEL.md` §1) | the fifteen in its table, "measured on the target platform on 2026-09-03", no kernel release named | not yet — cycle 0.2.0, which writes `src/sys/`, against the kernel's table at a named release; cycle 0.0.0's probes ran on them | the kernel's `arch/x86/entry/syscalls/syscall_64.tbl` | `SK-016`, `SK-007` |
-+| The kernel's structure layouts (`ADDRESS_MODEL.md` §1, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
++| The kernel's structure layouts (`ADDRESS_MODEL.md` §2, `ANCILLARY_MODEL.md` §1) | `sockaddr_in` 16, `sockaddr_in6` 28, `sockaddr_un` 110, `msghdr` 56, `iovec` 16, `cmsghdr` 16, `ucred` 12 | by cycle 0.0.0's probes 02 and 03, which assert each by running | the kernel's uapi headers; the probes | `SK-016`, @@PD-160@@ |
 +| The kernel feature floor (`COMPAT.md` W-3) | `accept4` 2.6.28, `SOCK_NONBLOCK`/`SOCK_CLOEXEC` 2.6.27, `MSG_CMSG_CLOEXEC` 2.6.23, `SO_REUSEPORT` 3.9; the floor Linux 3.9 | not yet — cycle 0.2.0, before it starts | man-pages at a named release | `SK-003`, `SK-007` |
 +| `net.core.somaxconn`'s default (`SOCKET_MODEL.md` K-16) | 4096 "since Linux 5.4" | not yet — cycle 0.2.3, which writes `listen` and its note | the kernel's documentation at a named release | none; K-16 states it |
 +| `SCM_MAX_FD` (`ANCILLARY_MODEL.md` N-5) | 253 | not yet — cycle 0.5, which writes the descriptor-passing path | the kernel's source at a named release | none; N-5 states it |
 +| The IPv6 text and canonical forms (`ADDRESS_MODEL.md` A-20, A-24) | RFC 4291 §2.2; RFC 5952 | by research item 2 below | rfc-editor.org | none; A-20 and A-24 state them |
 +| IPv4 text strictness, and the defects of the parsers that are not strict (`ADDRESS_MODEL.md` A-19) | `inet_pton`'s four decimal octets; "CVEs in more than one language's standard library", none named | by research item 1 below | cve.org, nvd.nist.gov | `SK-036` |
 +| POSIX's short-write contract (`STREAM_MODEL.md` T-17) | "the POSIX contract", no edition named | not yet — cycle 0.3, which writes `write_all`, at POSIX.1-2024 | pubs.opengroup.org | none; T-17 states it |
-+| Research item 1 below — known defects in the prior art and the reference implementations | what its digest records, as of its date | **unchecked** until cycle 0.0's research gate files [`security-defects.md`](security-defects.md); stale ninety days after its date | cve.org, nvd.nist.gov, each implementation's tracker | @@PD-168@@ |
-+| Research item 2 below — the standards bodies' current guidance | what its digest records, as of its date | **unchecked** until the same gate files [`security-guidance.md`](security-guidance.md); stale ninety days after its date | rfc-editor.org, pubs.opengroup.org, the kernel's documentation and man-pages at a named release | @@PD-168@@ |
-+| Research item 3 below — the current test vectors | what its digest records, as of its date | **unchecked** until the same gate files [`security-vectors.md`](security-vectors.md); stale ninety days after its date | each vector set's repository or standard, at a named revision | @@PD-168@@ |
++| RFC 5952 — the IPv6 text form A-24 writes, and the RFC 4291 forms A-20 must accept | August 2010, Proposed Standard, "Updates: 4291" | 2026-10-29, read twice: its RFC Editor status page answered HTTP 502 (research item 2's digest), and the IETF datatracker shows no obsoleting or updating RFC and twelve errata that change no address example (research item 3's) | rfc-editor.org/rfc/rfc5952; datatracker.ietf.org/doc/rfc5952 | none; A-20 and A-24 state it |
++| os-test's `basic/arpa_inet/inet_ntop.c` — a cross-check of A-24's output | ISC; HEAD `8e790a45188ac67b550ba62cdde4103b253f5ce8` of 2026-10-19, its newest `published-*` tag being older; 9 vectors, 2 IPv4 and 7 IPv6 | 2026-10-29, by research item 3 below; compared at the conformance stage, cycle 0.1, and copied into the tests only with its licence and revision | gitlab.com/sortix/os-test | @@PD-168@@ |
++| glibc's `resolv/tst-inet_pton.c` — a cross-check of A-19's and A-20's refusals | LGPL-2.1-or-later; master on 2026-10-29, no release tag resolved; 106 entries with their expected bytes, 4 accepted as `AF_INET` and 37 as `AF_INET6` | 2026-10-29, by research item 3 below; compared with A-19's table at the conformance stage, cycle 0.1, and copied into the tests only with its licence and revision | sourceware.org/git/glibc.git | @@PD-168@@ |
++| Research item 1 below — known defects in the prior art and the reference implementations | what its digest records, as of its date | 2026-10-29, by [`security-defects.md`](security-defects.md), which cycle 0.0's research gate filed; stale after 2027-01-27 | cve.org, nvd.nist.gov, each implementation's tracker | @@PD-168@@ |
++| Research item 2 below — the standards bodies' current guidance | what its digest records, as of its date | 2026-10-29, by [`security-guidance.md`](security-guidance.md), which the same gate filed; stale after 2027-01-27 | rfc-editor.org, pubs.opengroup.org, the kernel's documentation and man-pages at a named release | @@PD-168@@ |
++| Research item 3 below — the current test vectors | what its digest records, as of its date | 2026-10-29, by [`security-vectors.md`](security-vectors.md), which the same gate filed; stale after 2027-01-27 | each vector set's repository or standard, at a named revision | @@PD-168@@ |
 +
 +## The research this library owes, because it is security-sensitive
 +
@@ -92,14 +95,34 @@ index 0000000..f3550cb
 +   `SCM_RIGHTS` handling, with their versions and primary copies. *Would change the plan if* a maintained set exists
 +   that cycle 0.1's conformance stage should pin, or a set the specifications cite has a newer revision.
 +
-+**They gate cycle 0.0's work** (@@PD-168@@): its first work dispatch, cycle 0.0.0's, carries their three digests, and its
-+worker files them here before any probe runs. The orchestrator dispatches the requests to the researcher, who never
-+writes into a repository. When the three arrive, the plan is re-cut before any probe runs, and this section then
-+says, per digest, what it found and where each finding is held: a finding that asks the language a question becomes
-+a cycle-0.0 probe; every other is held where its subject is decided — a row of this table, a specification, or the
-+roadmap item of the cycle that owns it — or this section says who decides it; none is dropped for want of a probe
-+(the workbench plan skill's note of 2026-10-16). A later cycle reads the three dates before it starts, since each is
-+stale ninety days after its own, and all three are re-run at hardening, cycle 0.10.
++**They gated cycle 0.0's work** (@@PD-168@@): cycle 0.0.0's research gate filed the three digests here on 2026-10-29,
++before any probe ran, and the plan was re-cut that day on the libraries' seat's rulings. The orchestrator dispatches the
++requests to the researcher, who never writes into a repository. A finding that asked the language a question became a
++cycle-0.0 probe; every other is held where its subject is decided — a row of this table, a specification, or the
++roadmap item of the cycle that owns it — or this section says who decides it; none is dropped for want of a probe (the
++workbench plan skill's note of 2026-10-16). What each digest found, and where each finding is held:
++
++- **[`security-defects.md`](security-defects.md)**, item 1, found published defects in all five surfaces. An IPv4
++  octet's leading zero read as octal (CVE-2021-29921, -29922 and -29923) is held by `ADDRESS_MODEL.md` A-19 and
++  `SK-036`'s dated note; `::` and group counting by A-20 and A-22, with `TESTING.md` V-9's fixed cases; an overlong
++  `sun_path` by A-13. Initialisation on the IPv4-in-IPv6 path asked the language, and probe 15 answers its direct read:
++  refused, `NITPICK-ASSIGN-001` (A-22's dated note). The `cmsghdr` walk's arithmetic, its final empty header and its
++  tail padding, which no rule held, are `ANCILLARY_MODEL.md` N-19, with V-12's fixed cases, and the `uint64`
++  subtraction N-19 relies on traps as `IntOverflow` (cycle 0.0.0's §1.4, the gate's P1'). The credential defects are
++  held by N-13 … N-17.
++- **[`security-guidance.md`](security-guidance.md)**, item 2, found RFC 4291 current and RFC 5952 its text form's
++  update. A-19's leading-zero refusal stands, deliberately stricter than POSIX.1-2024's `inet_pton` (Austin Group
++  Defect 1573): its sentence names glibc and RFC 3986 §3.2.2, its table gains the two spellings where they part, and
++  `SK-036` its dated note. A-20 already accepts every RFC 4291 form, and reads its dotted-quad tail by A-19's rules;
++  `::a.b.c.d` parses and is never converted (`SK-037`). RFC 5952's own status page did not answer, so its row above
++  carries a second read. POSIX's one documented difference from Linux, `accept`'s `O_NONBLOCK` inheritance, goes to
++  `COMPAT.md`, whose matrix cycle 0.10 fills.
++- **[`security-vectors.md`](security-vectors.md)**, item 3, found no maintained vector set for the whole semantics.
++  Two cross-check corpora are rows above, os-test's `inet_ntop.c` and glibc's `tst-inet_pton.c`; the `cmsghdr` and
++  `SCM_RIGHTS` sets are test programs only, read by cycle 0.5, which writes the walk.
++
++A later cycle reads the three dates before it starts, since each is stale ninety days after its own, and all three are
++re-run at hardening, cycle 0.10.
 diff --git a/meta/research/README.md b/meta/research/README.md
 index 9fb1227..498ba70 100644
 --- a/meta/research/README.md
